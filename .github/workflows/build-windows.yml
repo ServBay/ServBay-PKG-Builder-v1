@@ -1,10 +1,43 @@
 name: build-windows
 
-# Manual dispatch now; workflow_call lets an orchestrator reuse this once a
-# dynamic matrix is wired in.
+# Single self-compiled Windows package, x64 only (this phase).
+# Stage 1 ensures the upstream *-Windows-Portable release is ready (dispatches the
+# upstream compile and waits if missing); Stage 2 runs build_windows on ubuntu to
+# download that release and repack a .7z, then uploads it as an artifact for the
+# downstream Uploader (meta.json contract is byte-identical to build-macos.yml).
 on:
   workflow_dispatch:
+    inputs:
+      pkg:
+        description: 'Self-compiled package'
+        required: true
+        type: choice
+        options: [ollama, python, openssl, apache, php]
+        default: ollama
+      version:
+        description: 'Package version (ollama 0.21.2 / python 3.14.4 / php 8.4.20 ...)'
+        required: true
+        default: 0.21.2
+      version_type:
+        description: 'php only: stable | testing | development (ignored for other pkgs)'
+        required: false
+        type: choice
+        options: [stable, testing, development]
+        default: stable
   workflow_call:
+    inputs:
+      pkg:
+        type: string
+        required: false
+        default: ollama
+      version:
+        type: string
+        required: false
+        default: 0.21.2
+      version_type:
+        type: string
+        required: false
+        default: stable
 
 permissions:
   contents: read
@@ -12,51 +45,133 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      # TODO: replace this hardcoded `include` with a dynamic matrix produced by
-      # update_packages.py --emit-json and consumed via fromJSON(...).
-      # A single entry kept here to validate the build end-to-end.
-      matrix:
-        include:
-          - pkg: node
-            version: 24.15.0
-            arch: x64
-
+    # Stage 1 may poll an upstream build up to ~90min; release-already-built is instant.
+    timeout-minutes: 120
+    env:
+      ARCH: x64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Stage 1: ensure the upstream *-Windows-Portable release exists with assets.
+      # All 5 upstream repos are PUBLIC -> querying release/run only needs github.token;
+      # only `gh workflow run` (dispatch) needs UPSTREAM_DISPATCH_PAT (actions:write on
+      # those repos). So the skip-path (release already built, e.g. ollama v0.21.2)
+      # works even before the PAT is configured.
+      - name: Ensure upstream release ready
+        env:
+          PKG: ${{ inputs.pkg }}
+          VERSION: ${{ inputs.version }}
+          VERSION_TYPE: ${{ inputs.version_type }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_DISPATCH_PAT || github.token }}
+        run: |
+          set -euo pipefail
+
+          # Config table: pkg -> upstream repo / workflow file / release tag / dispatch args.
+          # Verified via gh api 2026-06-16 against the live upstream workflows.
+          case "$PKG" in
+            ollama)
+              REPO="ServBay/Ollama-Windows-Portable"; WF="build_ollama_windows.yml"
+              TAG="v${VERSION}"
+              DISPATCH_ARGS=(-f "ollama_version=${VERSION}")
+              ;;
+            python)
+              REPO="ServBay/Python-Windows-Portable"; WF="package_python_install.yml"
+              TAG="python-${VERSION}-win-${ARCH}"
+              DISPATCH_ARGS=(-f "python_version=${VERSION}" -f "python_arch=${ARCH}")
+              ;;
+            openssl)
+              REPO="ServBay/OpenSSL-Windows-Portable"; WF="build-openssl-windows.yml"
+              TAG="openssl-${VERSION}-win-${ARCH}"
+              DISPATCH_ARGS=(-f "openssl_version=${VERSION}" -f "openssl_arch=${ARCH}")
+              ;;
+            apache)
+              REPO="ServBay/Apache-Windows-Portable"; WF="build-apache-windows.yml"
+              TAG="apache-${VERSION}-win-${ARCH}"
+              DISPATCH_ARGS=(-f "apache_version=${VERSION}" -f "apache_arch=${ARCH}")
+              ;;
+            php)
+              REPO="ServBay/PHP-Windows-Portable"; WF="build.yml"
+              TAG="php-${VERSION}-${ARCH}-nts"
+              case "$VERSION_TYPE" in
+                stable)      VER_ARG=(-f "stable_version=${VERSION}");;
+                testing)     VER_ARG=(-f "testing_tag=php-${VERSION}");;
+                development) VER_ARG=(-f "dev_version=${VERSION}");;
+                *) echo "::error::unknown php version_type=${VERSION_TYPE}"; exit 1;;
+              esac
+              DISPATCH_ARGS=(-f "version_type=${VERSION_TYPE}" "${VER_ARG[@]}" -f "arch=${ARCH}" -f "thread_safe=nts")
+              ;;
+            *) echo "::error::unsupported pkg=${PKG}"; exit 1;;
+          esac
+          echo "pkg=${PKG} repo=${REPO} wf=${WF} tag=${TAG}"
+
+          # Already built? (tag exists with >=1 asset) -> skip dispatch.
+          asset_count="$(gh release view "$TAG" -R "$REPO" --json assets --jq '.assets | length' 2>/dev/null || echo 0)"
+          if [ "${asset_count:-0}" -ge 1 ]; then
+            echo "OK upstream release ${TAG} already has ${asset_count} assets; skip dispatch."
+            exit 0
+          fi
+
+          echo "release ${TAG} missing/empty; dispatching upstream build on ${REPO}..."
+          before_id="$(gh run list -R "$REPO" -w "$WF" -L 1 --json databaseId --jq '.[0].databaseId // 0')"
+          gh workflow run "$WF" -R "$REPO" "${DISPATCH_ARGS[@]}"
+
+          # Wait for the new run to appear (~5min max).
+          run_id=""
+          for i in $(seq 1 30); do
+            sleep 10
+            cand="$(gh run list -R "$REPO" -w "$WF" -L 1 --json databaseId --jq '.[0].databaseId // 0')"
+            if [ -n "$cand" ] && [ "$cand" != "$before_id" ]; then run_id="$cand"; break; fi
+          done
+          [ -z "$run_id" ] && { echo "::error::new upstream run did not appear"; exit 1; }
+          echo "upstream run: https://github.com/${REPO}/actions/runs/${run_id}"
+
+          # Poll until completed (~90min max).
+          conclusion=""
+          for i in $(seq 1 180); do
+            status="$(gh run view "$run_id" -R "$REPO" --json status --jq '.status' 2>/dev/null || echo unknown)"
+            echo "[poll ${i}] status=${status}"
+            if [ "$status" = "completed" ]; then
+              conclusion="$(gh run view "$run_id" -R "$REPO" --json conclusion --jq '.conclusion')"
+              break
+            fi
+            sleep 30
+          done
+          [ "$conclusion" = "success" ] || { echo "::error::upstream run ${run_id} conclusion=${conclusion}"; exit 1; }
+
+          # Re-check release assets (publish may lag the run a few seconds).
+          for i in $(seq 1 12); do
+            asset_count="$(gh release view "$TAG" -R "$REPO" --json assets --jq '.assets | length' 2>/dev/null || echo 0)"
+            if [ "${asset_count:-0}" -ge 1 ]; then echo "OK release ${TAG} ready with ${asset_count} assets"; exit 0; fi
+            echo "waiting release ${TAG} assets... (${i})"; sleep 10
+          done
+          echo "::error::release ${TAG} has no assets after successful build"; exit 1
 
       # build_windows hard-depends on jq (check_command "jq" -> exit 1 if missing).
       # wget for downloads, p7zip-full provides 7z for extract/compress.
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y wget p7zip-full jq
 
-      # build_windows resolves paths from $(pwd): it reads ./windows-packages.txt and
-      # writes ./dist-windows/<pkg>/<arch>/... and ./build_windows_packages.log.
-      # So it MUST run from inside runtime-windows/.
-      # Matrix values go through env (not inline ${{ }}) so they are passed as shell
-      # variables rather than interpolated into the script text.
+      # Stage 2: build_windows resolves paths from $(pwd): it reads ./windows-packages.txt
+      # and writes ./dist-windows/<pkg>/<arch>/... and ./build_windows_packages.log, so it
+      # MUST run from inside runtime-windows/. The -p filter key is exactly "<name>-<version>".
       - name: Build Windows package
         working-directory: runtime-windows
         env:
-          PKG: ${{ matrix.pkg }}
-          VERSION: ${{ matrix.version }}
-          ARCH: ${{ matrix.arch }}
+          PKG: ${{ inputs.pkg }}
+          VERSION: ${{ inputs.version }}
         run: |
           chmod +x ./build_windows
           ./build_windows "$ARCH" -p "${PKG}-${VERSION}"
 
-      # Produce the meta.json for the downstream upload step. Filename/path mirror the
-      # actual build_windows output:
-      #   dist-windows/<pkg>/<arch>/<pkg>-<version>-windows-<arch>.7z
+      # Produce meta.json for the downstream upload step. Filename/path mirror the actual
+      # build_windows output: dist-windows/<pkg>/<arch>/<pkg>-<version>-windows-<arch>.7z
       - name: Generate meta.json
         id: meta
         working-directory: runtime-windows
         env:
-          PKG: ${{ matrix.pkg }}
-          VERSION: ${{ matrix.version }}
-          ARCH: ${{ matrix.arch }}
+          PKG: ${{ inputs.pkg }}
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           major="${VERSION%%.*}"
@@ -93,7 +208,7 @@ jobs:
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pkg-windows-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          name: pkg-windows-${{ env.ARCH }}-${{ inputs.pkg }}-${{ inputs.version }}
           path: |
             ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
             ${{ steps.meta.outputs.pkg_dir }}/meta.json
@@ -106,7 +221,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: log-windows-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          name: log-windows-${{ env.ARCH }}-${{ inputs.pkg }}-${{ inputs.version }}
           path: runtime-windows/build_windows_packages.log
           if-no-files-found: warn
           retention-days: 7
