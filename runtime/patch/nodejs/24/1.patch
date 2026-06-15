@@ -1,0 +1,19 @@
+--- deps/v8/src/inspector/string-util.h.bak	2025-05-18 12:14:13
++++ deps/v8/src/inspector/string-util.h	2025-05-18 16:54:56
+@@ -56,8 +56,14 @@
+     return fromSpan(v8::MemorySpan<const uint8_t>(span.begin(), span.size()));
+   }
+   static Binary fromSpan(v8::MemorySpan<const uint8_t> span) {
+-    return Binary(
+-        std::make_shared<std::vector<uint8_t>>(span.begin(), span.end()));
++    auto vec = std::make_shared<std::vector<uint8_t>>();
++    if (span.size() > 0) {
++        vec->reserve(span.size());
++    }
++    for (auto it = span.begin(); it != span.end(); ++it) {
++        vec->push_back(*it);
++    }
++    return Binary(vec);
+   }
+ 
+  private:

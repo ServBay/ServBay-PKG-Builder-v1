@@ -1,0 +1,188 @@
+name: build-macos
+
+# POC: manual trigger now; workflow_call kept so B6 (check-updates orchestrator)
+# can invoke this as a reusable workflow once the dynamic matrix is wired in.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Public-repo safe: only the (public) base-download location + version, injected
+# from repository Variables. NO credentials / hosts / buckets appear here.
+# The repo owner must configure these in Settings -> Variables before a real run:
+#   vars.BASE_DOWNLOAD_URL  base URL of the public bucket holding the ServBay base tarballs
+#   vars.BASE_VERSION       version of the base to fetch (e.g. "1.2.3")
+env:
+  BASE_DOWNLOAD_URL: ${{ vars.BASE_DOWNLOAD_URL }}
+  BASE_VERSION: ${{ vars.BASE_VERSION }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    # Single job per package; 6h is the hard GitHub-hosted ceiling, 300 min stays under it.
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      # TODO(B4): replace this hardcoded `include` with a dynamic matrix produced by
+      # runtime/update_packages.py --emit-json and consumed via fromJSON(...).
+      # Runner mapping is fixed by arch: x86_64 -> macos-15-intel, arm64 -> macos-15.
+      # POC keeps the two nginx entries so the link can be validated end-to-end.
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+            pkg: nginx
+            version: '1.30.0'
+          - arch: arm64
+            runner: macos-15
+            pkg: nginx
+            version: '1.30.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Take ownership of the base dir BEFORE cache restore: actions/cache unpacks
+      # as the runner user, and a root-owned /Applications/ServBay would block it.
+      # bootstrap_base.sh also does this, but cache restore runs first, so we must
+      # ensure the mount point is writable up front.
+      - name: Ensure base dir is writable
+        run: |
+          sudo mkdir -p /Applications/ServBay
+          sudo chown -R "$(whoami)" /Applications/ServBay
+
+      # Cache the compile base (runtime + devlib under /Applications/ServBay).
+      # Key uses the workflow-known BASE_VERSION (NOT a bootstrap output): the key
+      # must be decided before bootstrap runs, and a version bump invalidates it.
+      - name: Cache ServBay build base
+        uses: actions/cache@v4
+        with:
+          path: /Applications/ServBay
+          key: servbay-base-${{ matrix.arch }}-${{ env.BASE_VERSION }}
+
+      # Cache miss -> download + extract the base; cache hit -> seconds-fast no-op
+      # (bootstrap re-checks its version-scoped marker + non-empty common/ tree).
+      # ARCH goes through env (not inline ${{ }}) to avoid script-text injection.
+      - name: Bootstrap build base
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          chmod +x ./runtime/ci/bootstrap_base.sh
+          ./runtime/ci/bootstrap_base.sh "$ARCH"
+
+      # build_package needs gtar (it shells out to $GTAR_BIN explicitly) plus the
+      # usual autotools/cmake toolchain. coreutils is a safety net for GNU tools.
+      - name: Install build toolchain
+        run: |
+          brew install autoconf automake cmake pkg-config gnu-tar coreutils
+
+      # Caching policy (intentional, do not re-add per-package caches):
+      # ONLY the runtime+devlib base (cached above) is worth caching — it is the one
+      # high-frequency, REUSED artifact: every package links against it and it changes
+      # only on a BASE_VERSION bump. Everything else is deliberately NOT cached because
+      # it is never reused across runs and would just burn the 10GB/repo budget:
+      #   - runtime/src (per-package source tarballs): a rebuilt package is a NEW version
+      #     pulling fresh sources; the old tarball is never reused.
+      #   - ~/go, ~/.cargo: only caddy uses Go in the whole package set — not worth a
+      #     global toolchain cache. (If caddy build time ever hurts, cache it narrowly.)
+
+      # build_package resolves paths from $(pwd): it reads ./packages.conf and writes
+      # ./dist/packages/<pkg>/, ./src/, ./logs/. So it MUST run from inside runtime/.
+      # Matrix values go through env (not inline ${{ }}) so they reach the script as
+      # shell variables instead of being interpolated into the run text.
+      - name: Build macOS package
+        working-directory: runtime
+        env:
+          PKG: ${{ matrix.pkg }}
+          VERSION: ${{ matrix.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          chmod +x ./build_package
+          ./build_package -a "$ARCH" -p "${PKG}-${VERSION}"
+
+      # build_package's EXIT trap (teardown_build_env) renames /Applications/ServBay
+      # -> /Applications/ServBay-1.0 when it finishes. Move it back so the post-job
+      # actions/cache save step finds the base at /Applications/ServBay again.
+      # Idempotent: no-op if the base is already in place.
+      - name: Restore base mount point for cache save
+        if: always()
+        run: |
+          if [[ ! -e /Applications/ServBay && -d /Applications/ServBay-1.0 ]]; then
+            echo "Moving /Applications/ServBay-1.0 back to /Applications/ServBay for caching."
+            sudo mv /Applications/ServBay-1.0 /Applications/ServBay
+          fi
+
+      # Produce the meta.json the Uploader consumes. Path/filename mirror the ACTUAL
+      # build_package output (core_pack_package):
+      #   runtime/dist/packages/<pkg>/<pkg>-<version>.tar.gz
+      # NOTE: build_package names the archive <pkg>-<version>.tar.gz (no -<os>-<arch>
+      # suffix), so meta.filename matches that real file verbatim. This differs from
+      # the docs' ideal <name>-<version>-<os>-<arch>.tar.gz; see report. The artifact
+      # name still carries os+arch, so x86_64/arm64 outputs never collide on download.
+      - name: Generate meta.json
+        id: meta
+        working-directory: runtime
+        env:
+          PKG: ${{ matrix.pkg }}
+          VERSION: ${{ matrix.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          major="${VERSION%%.*}"
+          filename="${PKG}-${VERSION}.tar.gz"
+          pkg_path="dist/packages/${PKG}/${filename}"
+
+          if [[ ! -f "${pkg_path}" ]]; then
+            echo "::error::Expected package not found: runtime/${pkg_path}"
+            echo "--- dist/packages tree ---"
+            find dist/packages -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          sha256="$(shasum -a 256 "${pkg_path}" | awk '{print $1}')"
+
+          # Emit meta.json via a heredoc (no jq dependency on the macOS runner).
+          cat > "dist/packages/${PKG}/meta.json" <<META
+          {
+            "name": "${PKG}",
+            "version": "${VERSION}",
+            "major": "${major}",
+            "arch": "${ARCH}",
+            "os": "macos",
+            "sha256": "${sha256}",
+            "filename": "${filename}"
+          }
+          META
+
+          {
+            echo "pkg_dir=runtime/dist/packages/${PKG}"
+            echo "filename=${filename}"
+          } >> "$GITHUB_OUTPUT"
+          echo "--- meta.json ---"
+          cat "dist/packages/${PKG}/meta.json"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-macos-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          path: |
+            ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
+            ${{ steps.meta.outputs.pkg_dir }}/meta.json
+          if-no-files-found: error
+          retention-days: 7
+
+      # Always upload the build log so failures are diagnosable even when the build
+      # step fails before meta.json exists. build_package writes a date-stamped log
+      # under runtime/logs/; glob both .log and the errors .txt.
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-macos-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          path: |
+            runtime/logs/*.log
+            runtime/logs/*.txt
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,11 @@
+--- src/contrib/php_array_api.h.orig
++++ src/contrib/php_array_api.h
+@@ -382,7 +382,7 @@
+ 		zval_copy_ctor(&c);
+ 		convert_to_string(&c);
+ #ifdef ZEND_ENGINE_3
+-		*pfree = ! IS_INTERNED(Z_STR(c));
++		*pfree = ! ZSTR_IS_INTERNED(Z_STR(c));
+ #else
+ 		*pfree = ! IS_INTERNED(Z_STRVAL(c));
+ #endif

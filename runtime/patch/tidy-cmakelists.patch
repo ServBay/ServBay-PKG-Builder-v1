@@ -1,0 +1,10 @@
+--- ../../CMakeLists.txt.ori    2023-07-01 23:10:46
++++ ../../CMakeLists.txt        2023-07-01 23:15:19
+@@ -476,7 +476,7 @@
+         set_target_properties( ${name} PROPERTIES
+                                        COMPILE_FLAGS "-DTIDY_STATIC" )
+     endif ()
+-    install (TARGETS ${name} DESTINATION bin)
++    install (TARGETS ${name} DESTINATION ${BIN_INSTALL_DIR})
+ endif ()
+

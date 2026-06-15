@@ -1,0 +1,11 @@
+--- CMakeLists.txt.ori  2023-07-01 12:02:45
++++ CMakeLists.txt      2023-07-01 12:03:29
+@@ -438,7 +438,7 @@
+     FILE "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-targets.cmake")
+
+   # installation
+-  install(FILES ${PROJECT_BINARY_DIR}/zipconf.h DESTINATION include)
++  install(FILES ${PROJECT_BINARY_DIR}/zipconf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+   install(FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+     )

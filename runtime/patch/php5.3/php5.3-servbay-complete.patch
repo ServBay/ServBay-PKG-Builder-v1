@@ -1,0 +1,1158 @@
+--- php-5.3.29-orig/ext/openssl/openssl.c	2025-11-05 20:40:43
++++ php-5.3.29/ext/openssl/openssl.c	2025-11-05 22:10:05
+@@ -38,6 +38,12 @@
+ 
+ /* OpenSSL includes */
+ #include <openssl/evp.h>
++#if OPENSSL_VERSION_NUMBER >= 0x10002000L
++#include <openssl/bn.h>
++#include <openssl/rsa.h>
++#include <openssl/dsa.h>
++#include <openssl/dh.h>
++#endif
+ #include <openssl/x509.h>
+ #include <openssl/x509v3.h>
+ #include <openssl/crypto.h>
+@@ -462,7 +468,115 @@
+ #ifdef COMPILE_DL_OPENSSL
+ ZEND_GET_MODULE(openssl)
+ #endif
++
++/* {{{ OpenSSL compatibility functions and macros */
++#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined (LIBRESSL_VERSION_NUMBER)
++#define EVP_PKEY_get0_RSA(_pkey) _EVP_PKEY_get0_RSA(pkey)
++#define EVP_PKEY_get0_DH(_pkey) _EVP_PKEY_get0_DH(pkey)
++#define EVP_PKEY_get0_DSA(_pkey) _EVP_PKEY_get0_DSA(pkey)
++#define EVP_PKEY_get0_EC_KEY(_pkey) _pkey->pkey.ec
++
++static int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d)
++{
++	r->n = n;
++	r->e = e;
++	r->d = d;
++	return 1;
++}
+ 
++static int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q)
++{
++	r->p = p;
++	r->q = q;
++	return 1;
++}
++
++static int RSA_set0_crt_params(RSA *r, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp)
++{
++	r->dmp1 = dmp1;
++	r->dmq1 = dmq1;
++	r->iqmp = iqmp;
++	return 1;
++}
++
++static void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d)
++{
++	if (n != NULL) *n = r->n;
++	if (e != NULL) *e = r->e;
++	if (d != NULL) *d = r->d;
++}
++
++static void RSA_get0_factors(const RSA *r, const BIGNUM **p, const BIGNUM **q)
++{
++	if (p != NULL) *p = r->p;
++	if (q != NULL) *q = r->q;
++}
++
++static void RSA_get0_crt_params(const RSA *r, const BIGNUM **dmp1, const BIGNUM **dmq1, const BIGNUM **iqmp)
++{
++	if (dmp1 != NULL) *dmp1 = r->dmp1;
++	if (dmq1 != NULL) *dmq1 = r->dmq1;
++	if (iqmp != NULL) *iqmp = r->iqmp;
++}
++
++static void DH_get0_pqg(const DH *dh, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g)
++{
++	if (p != NULL) *p = dh->p;
++	if (q != NULL) *q = dh->q;
++	if (g != NULL) *g = dh->g;
++}
++
++static int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g)
++{
++	dh->p = p;
++	dh->q = q;
++	dh->g = g;
++	return 1;
++}
++
++static void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
++{
++	if (pub_key != NULL) *pub_key = dh->pub_key;
++	if (priv_key != NULL) *priv_key = dh->priv_key;
++}
++
++static int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
++{
++	dh->pub_key = pub_key;
++	dh->priv_key = priv_key;
++	return 1;
++}
++
++static void DSA_get0_pqg(const DSA *d, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g)
++{
++	if (p != NULL) *p = d->p;
++	if (q != NULL) *q = d->q;
++	if (g != NULL) *g = d->g;
++}
++
++static int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g)
++{
++	d->p = p;
++	d->q = q;
++	d->g = g;
++	return 1;
++}
++
++static void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key)
++{
++	if (pub_key != NULL) *pub_key = d->pub_key;
++	if (priv_key != NULL) *priv_key = d->priv_key;
++}
++
++static int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key)
++{
++	d->pub_key = pub_key;
++	d->priv_key = priv_key;
++	return 1;
++}
++#endif
++/* }}} */
++
+ static int le_key;
+ static int le_x509;
+ static int le_csr;
+@@ -881,12 +995,15 @@
+ 
+ 	if (file == NULL) {
+ 		file = RAND_file_name(buffer, sizeof(buffer));
+-	} else if (RAND_egd(file) > 0) {
++	}
++#if OPENSSL_VERSION_NUMBER < 0x10100000L
++	else if (RAND_egd(file) > 0) {
+ 		/* if the given filename is an EGD socket, don't
+ 		 * write anything back to it */
+ 		*egdsocket = 1;
+ 		return SUCCESS;
+ 	}
++#endif
+ 	if (file == NULL || !RAND_load_file(file, -1)) {
+ 		if (RAND_status() == 0) {
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "unable to load random state; not enough random data!");
+@@ -940,7 +1057,7 @@
+ 			break;
+ #endif
+ 		case OPENSSL_ALGO_DSS1:
+-			mdtype = (EVP_MD *) EVP_dss1();
++			mdtype = (EVP_MD *) EVP_sha1();
+ 			break;
+ 		default:
+ 			return NULL;
+@@ -1037,7 +1154,9 @@
+ 	REGISTER_LONG_CONSTANT("PKCS7_NOSIGS", PKCS7_NOSIGS, CONST_CS|CONST_PERSISTENT);
+ 
+ 	REGISTER_LONG_CONSTANT("OPENSSL_PKCS1_PADDING", RSA_PKCS1_PADDING, CONST_CS|CONST_PERSISTENT);
++#ifdef RSA_SSLV23_PADDING
+ 	REGISTER_LONG_CONSTANT("OPENSSL_SSLV23_PADDING", RSA_SSLV23_PADDING, CONST_CS|CONST_PERSISTENT);
++#endif
+ 	REGISTER_LONG_CONSTANT("OPENSSL_NO_PADDING", RSA_NO_PADDING, CONST_CS|CONST_PERSISTENT);
+ 	REGISTER_LONG_CONSTANT("OPENSSL_PKCS1_OAEP_PADDING", RSA_PKCS1_OAEP_PADDING, CONST_CS|CONST_PERSISTENT);
+ 
+@@ -1352,8 +1471,11 @@
+ 		return -1;
+ 	}
+ 
+-	p = extension->value->data;
+-	length = extension->value->length;
++	{
++		ASN1_OCTET_STRING *ext_data = X509_EXTENSION_get_data(extension);
++		p = ASN1_STRING_get0_data(ext_data);
++		length = ASN1_STRING_length(ext_data);
++	}
+ 	if (method->it) {
+ 		names = (GENERAL_NAMES*)(ASN1_item_d2i(NULL, &p, length,
+ 						       ASN1_ITEM_ptr(method->it)));
+@@ -1430,9 +1552,7 @@
+ 	}
+ 	array_init(return_value);
+ 
+-	if (cert->name) {
+-		add_assoc_string(return_value, "name", cert->name, 1);
+-	}
++	/* Note: cert->name is not accessible in OpenSSL 3.0, skipping */
+ /*	add_assoc_bool(return_value, "valid", cert->valid); */
+ 
+ 	add_assoc_name_entry(return_value, "subject", 		X509_get_subject_name(cert), useshortnames TSRMLS_CC);
+@@ -2921,15 +3041,22 @@
+ {
+ 	assert(pkey != NULL);
+ 
+-	switch (pkey->type) {
++	switch (EVP_PKEY_base_id(pkey)) {
+ #ifndef NO_RSA
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+-			assert(pkey->pkey.rsa != NULL);
+-			if (pkey->pkey.rsa != NULL && (NULL == pkey->pkey.rsa->p || NULL == pkey->pkey.rsa->q)) {
+-				return 0;
++		{
++			RSA *rsa = EVP_PKEY_get0_RSA(pkey);
++			const BIGNUM *p, *q;
++			assert(rsa != NULL);
++			if (rsa != NULL) {
++				RSA_get0_factors(rsa, &p, &q);
++				if (p == NULL || q == NULL) {
++					return 0;
++				}
+ 			}
+ 			break;
++		}
+ #endif
+ #ifndef NO_DSA
+ 		case EVP_PKEY_DSA:
+@@ -2937,21 +3064,35 @@
+ 		case EVP_PKEY_DSA2:
+ 		case EVP_PKEY_DSA3:
+ 		case EVP_PKEY_DSA4:
+-			assert(pkey->pkey.dsa != NULL);
+-
+-			if (NULL == pkey->pkey.dsa->p || NULL == pkey->pkey.dsa->q || NULL == pkey->pkey.dsa->priv_key){ 
+-				return 0;
++		{
++			DSA *dsa = EVP_PKEY_get0_DSA(pkey);
++			const BIGNUM *p, *q, *priv_key;
++			assert(dsa != NULL);
++			if (dsa != NULL) {
++				DSA_get0_pqg(dsa, &p, &q, NULL);
++				DSA_get0_key(dsa, NULL, &priv_key);
++				if (p == NULL || q == NULL || priv_key == NULL) {
++					return 0;
++				}
+ 			}
+ 			break;
++		}
+ #endif
+ #ifndef NO_DH
+ 		case EVP_PKEY_DH:
+-			assert(pkey->pkey.dh != NULL);
+-
+-			if (NULL == pkey->pkey.dh->p || NULL == pkey->pkey.dh->priv_key) {
+-				return 0;
++		{
++			DH *dh = EVP_PKEY_get0_DH(pkey);
++			const BIGNUM *p, *priv_key;
++			assert(dh != NULL);
++			if (dh != NULL) {
++				DH_get0_pqg(dh, &p, NULL, NULL);
++				DH_get0_key(dh, NULL, &priv_key);
++				if (p == NULL || priv_key == NULL) {
++					return 0;
++				}
+ 			}
+ 			break;
++		}
+ #endif
+ 		default:
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "key type not supported in this PHP build!");
+@@ -2961,27 +3102,196 @@
+ }
+ /* }}} */
+ 
+-#define OPENSSL_PKEY_GET_BN(_type, _name) do {							\
+-		if (pkey->pkey._type->_name != NULL) {							\
+-			int len = BN_num_bytes(pkey->pkey._type->_name);			\
+-			char *str = emalloc(len + 1);								\
+-			BN_bn2bin(pkey->pkey._type->_name, (unsigned char*)str);	\
+-			str[len] = 0;                                           	\
+-			add_assoc_stringl(_type, #_name, str, len, 0);				\
+-		}																\
++#define OPENSSL_GET_BN(_array, _bn, _name) do { \
++		if (_bn != NULL) { \
++			int len = BN_num_bytes(_bn); \
++			char *str = emalloc(len + 1); \
++			BN_bn2bin(_bn, (unsigned char*)str); \
++			str[len] = 0; \
++			add_assoc_stringl(_array, #_name, str, len, 0); \
++		} \
+ 	} while (0)
+ 
+-#define OPENSSL_PKEY_SET_BN(_ht, _type, _name) do {						\
+-		zval **bn;														\
+-		if (zend_hash_find(_ht, #_name, sizeof(#_name),	(void**)&bn) == SUCCESS && \
+-				Z_TYPE_PP(bn) == IS_STRING) {							\
+-			_type->_name = BN_bin2bn(									\
+-				(unsigned char*)Z_STRVAL_PP(bn),						\
+-	 			Z_STRLEN_PP(bn), NULL);									\
+-	    }                                                               \
++#define OPENSSL_PKEY_GET_BN(_type, _name) OPENSSL_GET_BN(_type, _name, _name)
++
++#define OPENSSL_PKEY_SET_BN(_data, _name) do { \
++		zval **bn; \
++		if (zend_hash_find(Z_ARRVAL_P(_data), #_name, sizeof(#_name),(void**)&bn) == SUCCESS && \
++				Z_TYPE_PP(bn) == IS_STRING) { \
++			_name = BN_bin2bn( \
++				(unsigned char*)Z_STRVAL_PP(bn), \
++				Z_STRLEN_PP(bn), NULL); \
++		} else { \
++			_name = NULL; \
++		} \
+ 	} while (0);
+ 
++/* {{{ php_openssl_pkey_init_and_assign_rsa */
++zend_bool php_openssl_pkey_init_and_assign_rsa(EVP_PKEY *pkey, RSA *rsa, zval *data)
++{
++	BIGNUM *n, *e, *d, *p, *q, *dmp1, *dmq1, *iqmp;
+ 
++	OPENSSL_PKEY_SET_BN(data, n);
++	OPENSSL_PKEY_SET_BN(data, e);
++	OPENSSL_PKEY_SET_BN(data, d);
++	if (!n || !d || !RSA_set0_key(rsa, n, e, d)) {
++		return 0;
++	}
++
++	OPENSSL_PKEY_SET_BN(data, p);
++	OPENSSL_PKEY_SET_BN(data, q);
++	if ((p || q) && !RSA_set0_factors(rsa, p, q)) {
++		return 0;
++	}
++
++	OPENSSL_PKEY_SET_BN(data, dmp1);
++	OPENSSL_PKEY_SET_BN(data, dmq1);
++	OPENSSL_PKEY_SET_BN(data, iqmp);
++	if ((dmp1 || dmq1 || iqmp) && !RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp)) {
++		return 0;
++	}
++
++	if (!EVP_PKEY_assign_RSA(pkey, rsa)) {
++		return 0;
++	}
++
++	return 1;
++}
++/* }}} */
++
++/* {{{ php_openssl_pkey_init_dsa */
++zend_bool php_openssl_pkey_init_dsa(EVP_PKEY *pkey, DSA *dsa, zval *data)
++{
++	BIGNUM *p, *q, *g, *priv_key, *pub_key;
++	const BIGNUM *priv_key_const, *pub_key_const;
++
++	OPENSSL_PKEY_SET_BN(data, p);
++	OPENSSL_PKEY_SET_BN(data, q);
++	OPENSSL_PKEY_SET_BN(data, g);
++
++	if (!p || !q || !g || !DSA_set0_pqg(dsa, p, q, g)) {
++		if (p) BN_free(p);
++		if (q) BN_free(q);
++		if (g) BN_free(g);
++		return 0;
++	}
++
++	OPENSSL_PKEY_SET_BN(data, priv_key);
++	OPENSSL_PKEY_SET_BN(data, pub_key);
++
++	if (priv_key || pub_key) {
++		if (!DSA_set0_key(dsa, pub_key, priv_key)) {
++			if (priv_key) BN_free(priv_key);
++			if (pub_key) BN_free(pub_key);
++			return 0;
++		}
++	} else {
++		if (!DSA_generate_key(dsa)) {
++			return 0;
++		}
++	}
++
++	DSA_get0_key(dsa, &pub_key_const, &priv_key_const);
++	if (!pub_key_const || !priv_key_const) {
++		return 0;
++	}
++
++	if (!EVP_PKEY_assign_DSA(pkey, dsa)) {
++		return 0;
++	}
++
++	return 1;
++}
++/* }}} */
++
++/* {{{ php_openssl_dh_pub_from_priv */
++static zend_bool php_openssl_dh_pub_from_priv(BIGNUM *pub_key, BIGNUM *priv_key, DH *dh)
++{
++	const BIGNUM *p;
++	BIGNUM *priv_key_const_time;
++	BN_CTX *ctx;
++	zend_bool ret = 0;
++
++	DH_get0_pqg(dh, &p, NULL, NULL);
++	if (!p) {
++		return 0;
++	}
++
++	ctx = BN_CTX_new();
++	if (!ctx) {
++		return 0;
++	}
++
++	priv_key_const_time = BN_new();
++	if (!priv_key_const_time) {
++		BN_CTX_free(ctx);
++		return 0;
++	}
++
++	if (BN_copy(priv_key_const_time, priv_key)) {
++		BN_set_flags(priv_key_const_time, BN_FLG_CONSTTIME);
++		if (BN_mod_exp_mont(pub_key, DH_get0_g(dh), priv_key_const_time, p, ctx, NULL)) {
++			ret = 1;
++		}
++	}
++
++	BN_free(priv_key_const_time);
++	BN_CTX_free(ctx);
++	return ret;
++}
++/* }}} */
++
++/* {{{ php_openssl_pkey_init_dh */
++zend_bool php_openssl_pkey_init_dh(EVP_PKEY *pkey, DH *dh, zval *data)
++{
++	BIGNUM *p, *q, *g, *priv_key, *pub_key;
++
++	OPENSSL_PKEY_SET_BN(data, p);
++	OPENSSL_PKEY_SET_BN(data, g);
++
++	if (!p || !g || !DH_set0_pqg(dh, p, NULL, g)) {
++		if (p) BN_free(p);
++		if (g) BN_free(g);
++		return 0;
++	}
++
++	OPENSSL_PKEY_SET_BN(data, priv_key);
++	OPENSSL_PKEY_SET_BN(data, pub_key);
++
++	if (priv_key) {
++		if (!pub_key) {
++			pub_key = BN_new();
++			if (!pub_key || !php_openssl_dh_pub_from_priv(pub_key, priv_key, dh)) {
++				if (pub_key) BN_free(pub_key);
++				BN_free(priv_key);
++				return 0;
++			}
++		}
++		if (!DH_set0_key(dh, pub_key, priv_key)) {
++			BN_free(pub_key);
++			BN_free(priv_key);
++			return 0;
++		}
++	} else {
++		if (pub_key) {
++			if (!DH_set0_key(dh, pub_key, NULL)) {
++				BN_free(pub_key);
++				return 0;
++			}
++		}
++		if (!DH_generate_key(dh)) {
++			return 0;
++		}
++	}
++
++	if (!EVP_PKEY_assign_DH(pkey, dh)) {
++		return 0;
++	}
++
++	return 1;
++}
++/* }}} */
++
+ /* {{{ proto resource openssl_pkey_new([array configargs])
+    Generates a new private key */
+ PHP_FUNCTION(openssl_pkey_new)
+@@ -3004,18 +3314,8 @@
+ 		    if (pkey) {
+ 				RSA *rsa = RSA_new();
+ 				if (rsa) {
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, n);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, e);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, d);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, p);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, q);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, dmp1);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, dmq1);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), rsa, iqmp);
+-					if (rsa->n && rsa->d) {
+-						if (EVP_PKEY_assign_RSA(pkey, rsa)) {
+-							RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+-						}
++					if (php_openssl_pkey_init_and_assign_rsa(pkey, rsa, *data)) {
++						RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+ 					}
+ 					RSA_free(rsa);
+ 				}
+@@ -3028,18 +3328,8 @@
+ 		    if (pkey) {
+ 				DSA *dsa = DSA_new();
+ 				if (dsa) {
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dsa, p);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dsa, q);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dsa, g);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dsa, priv_key);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dsa, pub_key);
+-					if (dsa->p && dsa->q && dsa->g) {
+-						if (!dsa->priv_key && !dsa->pub_key) {
+-							DSA_generate_key(dsa);
+-						}
+-						if (EVP_PKEY_assign_DSA(pkey, dsa)) {
+-							RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+-						}
++					if (php_openssl_pkey_init_dsa(pkey, dsa, *data)) {
++						RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+ 					}
+ 					DSA_free(dsa);
+ 				}
+@@ -3052,17 +3342,8 @@
+ 		    if (pkey) {
+ 				DH *dh = DH_new();
+ 				if (dh) {
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dh, p);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dh, g);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dh, priv_key);
+-					OPENSSL_PKEY_SET_BN(Z_ARRVAL_PP(data), dh, pub_key);
+-					if (dh->p && dh->g) {
+-						if (!dh->pub_key) {
+-							DH_generate_key(dh);
+-						}
+-						if (EVP_PKEY_assign_DH(pkey, dh)) {
+-							RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+-						}
++					if (php_openssl_pkey_init_dh(pkey, dh, *data)) {
++						RETURN_RESOURCE(zend_list_insert(pkey, le_key));
+ 					}
+ 					DH_free(dh);
+ 				}
+@@ -3289,63 +3570,91 @@
+ 	/*TODO: Use the real values once the openssl constants are used 
+ 	 * See the enum at the top of this file
+ 	 */
+-	switch (EVP_PKEY_type(pkey->type)) {
++	switch (EVP_PKEY_type(EVP_PKEY_id(pkey))) {
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+ 			ktype = OPENSSL_KEYTYPE_RSA;
+-
+-			if (pkey->pkey.rsa != NULL) {
+-				zval *rsa;
++			{
++				RSA *rsa_key = EVP_PKEY_get0_RSA(pkey);
++				if (rsa_key != NULL) {
++					zval *rsa;
++					const BIGNUM *n, *e, *d;
++					const BIGNUM *p, *q;
++					const BIGNUM *dmp1, *dmq1, *iqmp;
+ 
+-				ALLOC_INIT_ZVAL(rsa);
+-				array_init(rsa);
+-				OPENSSL_PKEY_GET_BN(rsa, n);
+-				OPENSSL_PKEY_GET_BN(rsa, e);
+-				OPENSSL_PKEY_GET_BN(rsa, d);
+-				OPENSSL_PKEY_GET_BN(rsa, p);
+-				OPENSSL_PKEY_GET_BN(rsa, q);
+-				OPENSSL_PKEY_GET_BN(rsa, dmp1);
+-				OPENSSL_PKEY_GET_BN(rsa, dmq1);
+-				OPENSSL_PKEY_GET_BN(rsa, iqmp);
+-				add_assoc_zval(return_value, "rsa", rsa);
+-			}
++					ALLOC_INIT_ZVAL(rsa);
++					array_init(rsa);
+ 
+-			break;	
++					RSA_get0_key(rsa_key, &n, &e, &d);
++					OPENSSL_GET_BN(rsa, n, n);
++					OPENSSL_GET_BN(rsa, e, e);
++					OPENSSL_GET_BN(rsa, d, d);
++
++					RSA_get0_factors(rsa_key, &p, &q);
++					OPENSSL_GET_BN(rsa, p, p);
++					OPENSSL_GET_BN(rsa, q, q);
++
++					RSA_get0_crt_params(rsa_key, &dmp1, &dmq1, &iqmp);
++					OPENSSL_GET_BN(rsa, dmp1, dmp1);
++					OPENSSL_GET_BN(rsa, dmq1, dmq1);
++					OPENSSL_GET_BN(rsa, iqmp, iqmp);
++
++					add_assoc_zval(return_value, "rsa", rsa);
++				}
++			}
++			break;
+ 		case EVP_PKEY_DSA:
+ 		case EVP_PKEY_DSA2:
+ 		case EVP_PKEY_DSA3:
+ 		case EVP_PKEY_DSA4:
+ 			ktype = OPENSSL_KEYTYPE_DSA;
++			{
++				DSA *dsa_key = EVP_PKEY_get0_DSA(pkey);
++				if (dsa_key != NULL) {
++					zval *dsa;
++					const BIGNUM *p, *q, *g;
++					const BIGNUM *priv_key, *pub_key;
+ 
+-			if (pkey->pkey.dsa != NULL) {
+-				zval *dsa;
++					ALLOC_INIT_ZVAL(dsa);
++					array_init(dsa);
+ 
+-				ALLOC_INIT_ZVAL(dsa);
+-				array_init(dsa);
+-				OPENSSL_PKEY_GET_BN(dsa, p);
+-				OPENSSL_PKEY_GET_BN(dsa, q);
+-				OPENSSL_PKEY_GET_BN(dsa, g);
+-				OPENSSL_PKEY_GET_BN(dsa, priv_key);
+-				OPENSSL_PKEY_GET_BN(dsa, pub_key);
+-				add_assoc_zval(return_value, "dsa", dsa);
++					DSA_get0_pqg(dsa_key, &p, &q, &g);
++					OPENSSL_GET_BN(dsa, p, p);
++					OPENSSL_GET_BN(dsa, q, q);
++					OPENSSL_GET_BN(dsa, g, g);
++
++					DSA_get0_key(dsa_key, &pub_key, &priv_key);
++					OPENSSL_GET_BN(dsa, priv_key, priv_key);
++					OPENSSL_GET_BN(dsa, pub_key, pub_key);
++
++					add_assoc_zval(return_value, "dsa", dsa);
++				}
+ 			}
+ 			break;
+ 		case EVP_PKEY_DH:
+-			
+-			ktype = OPENSSL_KEYTYPE_DH;
+ 
+-			if (pkey->pkey.dh != NULL) {
+-				zval *dh;
++			ktype = OPENSSL_KEYTYPE_DH;
++			{
++				DH *dh_key = EVP_PKEY_get0_DH(pkey);
++				if (dh_key != NULL) {
++					zval *dh;
++					const BIGNUM *p, *q, *g;
++					const BIGNUM *priv_key, *pub_key;
+ 
+-				ALLOC_INIT_ZVAL(dh);
+-				array_init(dh);
+-				OPENSSL_PKEY_GET_BN(dh, p);
+-				OPENSSL_PKEY_GET_BN(dh, g);
+-				OPENSSL_PKEY_GET_BN(dh, priv_key);
+-				OPENSSL_PKEY_GET_BN(dh, pub_key);
+-				add_assoc_zval(return_value, "dh", dh);
+-			}
++					ALLOC_INIT_ZVAL(dh);
++					array_init(dh);
++
++					DH_get0_pqg(dh_key, &p, &q, &g);
++					OPENSSL_GET_BN(dh, p, p);
++					OPENSSL_GET_BN(dh, g, g);
++
++					DH_get0_key(dh_key, &pub_key, &priv_key);
++					OPENSSL_GET_BN(dh, priv_key, priv_key);
++					OPENSSL_GET_BN(dh, pub_key, pub_key);
+ 
++					add_assoc_zval(return_value, "dh", dh);
++				}
++			}
+ 			break;
+ #ifdef EVP_PKEY_EC 
+ 		case EVP_PKEY_EC:
+@@ -3844,13 +4153,13 @@
+ 	cryptedlen = EVP_PKEY_size(pkey);
+ 	cryptedbuf = emalloc(cryptedlen + 1);
+ 
+-	switch (pkey->type) {
++	switch (EVP_PKEY_id(pkey)) {
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+ 			successful =  (RSA_private_encrypt(data_len, 
+ 						(unsigned char *)data, 
+ 						cryptedbuf, 
+-						pkey->pkey.rsa, 
++						EVP_PKEY_get0_RSA(pkey), 
+ 						padding) == cryptedlen);
+ 			break;
+ 		default:
+@@ -3902,13 +4211,13 @@
+ 	cryptedlen = EVP_PKEY_size(pkey);
+ 	crypttemp = emalloc(cryptedlen + 1);
+ 
+-	switch (pkey->type) {
++	switch (EVP_PKEY_id(pkey)) {
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+ 			cryptedlen = RSA_private_decrypt(data_len, 
+ 					(unsigned char *)data, 
+ 					crypttemp, 
+-					pkey->pkey.rsa, 
++					EVP_PKEY_get0_RSA(pkey), 
+ 					padding);
+ 			if (cryptedlen != -1) {
+ 				cryptedbuf = emalloc(cryptedlen + 1);
+@@ -3967,13 +4276,13 @@
+ 	cryptedlen = EVP_PKEY_size(pkey);
+ 	cryptedbuf = emalloc(cryptedlen + 1);
+ 
+-	switch (pkey->type) {
++	switch (EVP_PKEY_id(pkey)) {
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+ 			successful = (RSA_public_encrypt(data_len, 
+ 						(unsigned char *)data, 
+ 						cryptedbuf, 
+-						pkey->pkey.rsa, 
++						EVP_PKEY_get0_RSA(pkey), 
+ 						padding) == cryptedlen);
+ 			break;
+ 		default:
+@@ -4026,13 +4335,13 @@
+ 	cryptedlen = EVP_PKEY_size(pkey);
+ 	crypttemp = emalloc(cryptedlen + 1);
+ 
+-	switch (pkey->type) {
++	switch (EVP_PKEY_id(pkey)) {
+ 		case EVP_PKEY_RSA:
+ 		case EVP_PKEY_RSA2:
+ 			cryptedlen = RSA_public_decrypt(data_len, 
+ 					(unsigned char *)data, 
+ 					crypttemp, 
+-					pkey->pkey.rsa, 
++					EVP_PKEY_get0_RSA(pkey), 
+ 					padding);
+ 			if (cryptedlen != -1) {
+ 				cryptedbuf = emalloc(cryptedlen + 1);
+@@ -4096,7 +4405,7 @@
+ 	long keyresource = -1;
+ 	char * data;
+ 	int data_len;
+-	EVP_MD_CTX md_ctx;
++	EVP_MD_CTX *md_ctx;
+ 	zval *method = NULL;
+ 	long signature_algo = OPENSSL_ALGO_SHA1;
+ 	const EVP_MD *mdtype;
+@@ -4129,9 +4438,10 @@
+ 	siglen = EVP_PKEY_size(pkey);
+ 	sigbuf = emalloc(siglen + 1);
+ 
+-	EVP_SignInit(&md_ctx, mdtype);
+-	EVP_SignUpdate(&md_ctx, data, data_len);
+-	if (EVP_SignFinal (&md_ctx, sigbuf,(unsigned int *)&siglen, pkey)) {
++	md_ctx = EVP_MD_CTX_create();
++	EVP_SignInit(md_ctx, mdtype);
++	EVP_SignUpdate(md_ctx, data, data_len);
++	if (EVP_SignFinal (md_ctx, sigbuf,(unsigned int *)&siglen, pkey)) {
+ 		zval_dtor(signature);
+ 		sigbuf[siglen] = '\0';
+ 		ZVAL_STRINGL(signature, (char *)sigbuf, siglen, 0);
+@@ -4140,7 +4450,7 @@
+ 		efree(sigbuf);
+ 		RETVAL_FALSE;
+ 	}
+-	EVP_MD_CTX_cleanup(&md_ctx);
++	EVP_MD_CTX_destroy(md_ctx);
+ 	if (keyresource == -1) {
+ 		EVP_PKEY_free(pkey);
+ 	}
+@@ -4154,7 +4464,7 @@
+ 	zval **key;
+ 	EVP_PKEY *pkey;
+ 	int err;
+-	EVP_MD_CTX     md_ctx;
++	EVP_MD_CTX *md_ctx;
+ 	const EVP_MD *mdtype;
+ 	long keyresource = -1;
+ 	char * data;	int data_len;
+@@ -4188,10 +4498,11 @@
+ 		RETURN_FALSE;
+ 	}
+ 
+-	EVP_VerifyInit   (&md_ctx, mdtype);
+-	EVP_VerifyUpdate (&md_ctx, data, data_len);
+-	err = EVP_VerifyFinal (&md_ctx, (unsigned char *)signature, signature_len, pkey);
+-	EVP_MD_CTX_cleanup(&md_ctx);
++	md_ctx = EVP_MD_CTX_create();
++	EVP_VerifyInit   (md_ctx, mdtype);
++	EVP_VerifyUpdate (md_ctx, data, data_len);
++	err = EVP_VerifyFinal (md_ctx, (unsigned char *)signature, signature_len, pkey);
++	EVP_MD_CTX_destroy(md_ctx);
+ 
+ 	if (keyresource == -1) {
+ 		EVP_PKEY_free(pkey);
+@@ -4215,7 +4526,7 @@
+ 	char *method =NULL;
+ 	int method_len = 0;
+ 	const EVP_CIPHER *cipher;
+-	EVP_CIPHER_CTX ctx;
++	EVP_CIPHER_CTX *ctx;
+ 
+ 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "szza/|s", &data, &data_len, &sealdata, &ekeys, &pubkeys, &method, &method_len) == FAILURE) {
+ 		return;
+@@ -4335,7 +4646,7 @@
+ 	int len1, len2;
+ 	unsigned char *buf;
+ 	long keyresource = -1;
+-	EVP_CIPHER_CTX ctx;
++	EVP_CIPHER_CTX *ctx;
+ 	char * data;	int data_len;
+ 	char * ekey;	int ekey_len;
+ 	char *method =NULL;
+@@ -4364,8 +4675,9 @@
+ 	
+ 	buf = emalloc(data_len + 1);
+ 
+-	if (EVP_OpenInit(&ctx, cipher, (unsigned char *)ekey, ekey_len, NULL, pkey) && EVP_OpenUpdate(&ctx, buf, &len1, (unsigned char *)data, data_len)) {
+-		if (!EVP_OpenFinal(&ctx, buf + len1, &len2) || (len1 + len2 == 0)) {
++	ctx = EVP_CIPHER_CTX_new();
++	if (EVP_OpenInit(ctx, cipher, (unsigned char *)ekey, ekey_len, NULL, pkey) && EVP_OpenUpdate(ctx, buf, &len1, (unsigned char *)data, data_len)) {
++		if (!EVP_OpenFinal(ctx, buf + len1, &len2) || (len1 + len2 == 0)) {
+ 			efree(buf);
+ 			if (keyresource == -1) { 
+ 				EVP_PKEY_free(pkey);
+@@ -4690,7 +5002,7 @@
+ 	char *data, *method;
+ 	int data_len, method_len;
+ 	const EVP_MD *mdtype;
+-	EVP_MD_CTX md_ctx;
++	EVP_MD_CTX *md_ctx;
+ 	int siglen;
+ 	unsigned char *sigbuf;
+ 
+@@ -4706,9 +5018,10 @@
+ 	siglen = EVP_MD_size(mdtype);
+ 	sigbuf = emalloc(siglen + 1);
+ 
+-	EVP_DigestInit(&md_ctx, mdtype);
+-	EVP_DigestUpdate(&md_ctx, (unsigned char *)data, data_len);
+-	if (EVP_DigestFinal (&md_ctx, (unsigned char *)sigbuf, (unsigned int *)&siglen)) {
++	md_ctx = EVP_MD_CTX_create();
++	EVP_DigestInit(md_ctx, mdtype);
++	EVP_DigestUpdate(md_ctx, (unsigned char *)data, data_len);
++	if (EVP_DigestFinal (md_ctx, (unsigned char *)sigbuf, (unsigned int *)&siglen)) {
+ 		if (raw_output) {
+ 			sigbuf[siglen] = '\0';
+ 			RETVAL_STRINGL((char *)sigbuf, siglen, 0);
+@@ -4769,7 +5082,7 @@
+ 	char *data, *method, *password, *iv = "";
+ 	int data_len, method_len, password_len, iv_len = 0, max_iv_len;
+ 	const EVP_CIPHER *cipher_type;
+-	EVP_CIPHER_CTX cipher_ctx;
++	EVP_CIPHER_CTX *cipher_ctx;
+ 	int i = 0, outlen, keylen;
+ 	unsigned char *outbuf, *key;
+ 	zend_bool free_iv;
+@@ -4801,16 +5114,18 @@
+ 	outlen = data_len + EVP_CIPHER_block_size(cipher_type);
+ 	outbuf = emalloc(outlen + 1);
+ 
+-	EVP_EncryptInit(&cipher_ctx, cipher_type, NULL, NULL);
++	cipher_ctx = EVP_CIPHER_CTX_new();
++
++	EVP_EncryptInit(cipher_ctx, cipher_type, NULL, NULL);
+ 	if (password_len > keylen) {
+-		EVP_CIPHER_CTX_set_key_length(&cipher_ctx, password_len);
++		EVP_CIPHER_CTX_set_key_length(cipher_ctx, password_len);
+ 	}
+-	EVP_EncryptInit_ex(&cipher_ctx, NULL, NULL, key, (unsigned char *)iv);
++	EVP_EncryptInit_ex(cipher_ctx, NULL, NULL, key, (unsigned char *)iv);
+ 	if (data_len > 0) {
+-		EVP_EncryptUpdate(&cipher_ctx, outbuf, &i, (unsigned char *)data, data_len);
++		EVP_EncryptUpdate(cipher_ctx, outbuf, &i, (unsigned char *)data, data_len);
+ 	}
+ 	outlen = i;
+-	if (EVP_EncryptFinal(&cipher_ctx, (unsigned char *)outbuf + i, &i)) {
++	if (EVP_EncryptFinal(cipher_ctx, (unsigned char *)outbuf + i, &i)) {
+ 		outlen += i;
+ 		if (raw_output) {
+ 			outbuf[outlen] = '\0';
+@@ -4833,7 +5148,7 @@
+ 	if (free_iv) {
+ 		efree(iv);
+ 	}
+-	EVP_CIPHER_CTX_cleanup(&cipher_ctx);
++	EVP_CIPHER_CTX_free(cipher_ctx);
+ }
+ /* }}} */
+ 
+@@ -4845,7 +5160,7 @@
+ 	char *data, *method, *password, *iv = "";
+ 	int data_len, method_len, password_len, iv_len = 0;
+ 	const EVP_CIPHER *cipher_type;
+-	EVP_CIPHER_CTX cipher_ctx;
++	EVP_CIPHER_CTX *cipher_ctx;
+ 	int i, outlen, keylen;
+ 	unsigned char *outbuf, *key;
+ 	int base64_str_len;
+@@ -4891,6 +5206,8 @@
+ 	outlen = data_len + EVP_CIPHER_block_size(cipher_type);
+ 	outbuf = emalloc(outlen + 1);
+ 
++	cipher_ctx = EVP_CIPHER_CTX_new();
++
+ 	EVP_DecryptInit(&cipher_ctx, cipher_type, NULL, NULL);
+ 	if (password_len > keylen) {
+ 		EVP_CIPHER_CTX_set_key_length(&cipher_ctx, password_len);
+@@ -4915,7 +5232,7 @@
+ 	if (base64_str) {
+ 		efree(base64_str);
+ 	}
+- 	EVP_CIPHER_CTX_cleanup(&cipher_ctx);
++ 	EVP_CIPHER_CTX_free(cipher_ctx);
+ }
+ /* }}} */
+ 
+@@ -4962,14 +5279,14 @@
+ 		return;
+ 	}
+ 	ZEND_FETCH_RESOURCE(pkey, EVP_PKEY *, &key, -1, "OpenSSL key", le_key);
+-	if (!pkey || EVP_PKEY_type(pkey->type) != EVP_PKEY_DH || !pkey->pkey.dh) {
++	if (!pkey || EVP_PKEY_type(EVP_PKEY_id(pkey)) != EVP_PKEY_DH || !EVP_PKEY_get0_DH(pkey)) {
+ 		RETURN_FALSE;
+ 	}
+ 
+ 	pub = BN_bin2bn((unsigned char*)pub_str, pub_len, NULL);
+ 
+-	data = emalloc(DH_size(pkey->pkey.dh) + 1);
+-	len = DH_compute_key((unsigned char*)data, pub, pkey->pkey.dh);
++	data = emalloc(DH_size(EVP_PKEY_get0_DH(pkey)) + 1);
++	len = DH_compute_key((unsigned char*)data, pub, EVP_PKEY_get0_DH(pkey));
+ 
+ 	if (len >= 0) {
+ 		data[len] = 0;
+--- php-5.3.29-orig/ext/openssl/xp_ssl.c	2025-11-05 20:40:43
++++ php-5.3.29/ext/openssl/xp_ssl.c	2025-11-05 22:10:05
+@@ -334,12 +334,12 @@
+ 			return -1;
+ #else
+ 			sslsock->is_client = 1;
+-			method = SSLv2_client_method();
++			method = SSLv23_client_method();
+ 			break;
+ #endif
+ 		case STREAM_CRYPTO_METHOD_SSLv3_CLIENT:
+ 			sslsock->is_client = 1;
+-			method = SSLv3_client_method();
++			method = SSLv23_client_method();
+ 			break;
+ 		case STREAM_CRYPTO_METHOD_TLS_CLIENT:
+ 			sslsock->is_client = 1;
+@@ -351,7 +351,7 @@
+ 			break;
+ 		case STREAM_CRYPTO_METHOD_SSLv3_SERVER:
+ 			sslsock->is_client = 0;
+-			method = SSLv3_server_method();
++			method = SSLv23_server_method();
+ 			break;
+ 		case STREAM_CRYPTO_METHOD_SSLv2_SERVER:
+ #ifdef OPENSSL_NO_SSL2
+@@ -359,7 +359,7 @@
+ 			return -1;
+ #else
+ 			sslsock->is_client = 0;
+-			method = SSLv2_server_method();
++			method = SSLv23_server_method();
+ 			break;
+ #endif
+ 		case STREAM_CRYPTO_METHOD_TLS_SERVER:
+--- php-5.3.29-orig/ext/gd/gd.c	2025-11-05 20:40:43
++++ php-5.3.29/ext/gd/gd.c	2025-11-05 22:19:20
+@@ -33,6 +33,7 @@
+ #include "php_ini.h"
+ #include "ext/standard/head.h"
+ #include <math.h>
++#include <limits.h>
+ #include "SAPI.h"
+ #include "php_gd.h"
+ #include "ext/standard/info.h"
+@@ -88,6 +89,21 @@
+ #define M_PI 3.14159265358979323846
+ #endif
+ 
++/* overflow2 function from gd_security.c */
++int overflow2(int a, int b)
++{
++	TSRMLS_FETCH();
++	if(a <= 0 || b <= 0) {
++		php_error_docref(NULL TSRMLS_CC, E_WARNING, "gd warning: one parameter to a memory allocation multiplication is negative or zero, failing operation gracefully");
++		return 1;
++	}
++	if(a > INT_MAX / b) {
++		php_error_docref(NULL TSRMLS_CC, E_WARNING, "gd warning: product of memory allocation multiplication would exceed INT_MAX, failing operation gracefully");
++		return 1;
++	}
++	return 0;
++}
++
+ #ifdef ENABLE_GD_TTF
+ static void php_imagettftext_common(INTERNAL_FUNCTION_PARAMETERS, int, int);
+ #endif
+@@ -2258,28 +2274,8 @@
+ 	} else if (!memcmp(data, php_sig_gif, 3)) {
+ 		return PHP_GDIMG_TYPE_GIF;
+ 	}
+-#ifdef HAVE_GD_WBMP
+-	else {
+-		gdIOCtx *io_ctx;
+-		io_ctx = gdNewDynamicCtxEx(8, data, 0);
+-		if (io_ctx) {
+-			if (getmbi((int(*)(void *)) gdGetC, io_ctx) == 0 && skipheader((int(*)(void *)) gdGetC, io_ctx) == 0 ) {
+-#if HAVE_LIBGD204
+-				io_ctx->gd_free(io_ctx);
+-#else
+-				io_ctx->free(io_ctx);
+-#endif
+-				return PHP_GDIMG_TYPE_WBM;
+-			} else {
+-#if HAVE_LIBGD204
+-				io_ctx->gd_free(io_ctx);
+-#else
+-				io_ctx->free(io_ctx);
+-#endif
+-			}
+-		}
+-	}
+-#endif
++	/* WBMP detection removed - external GD library handles WBMP but type auto-detection
++	 * requires internal GD functions not available when using external libgd */
+ 	return -1;
+ #endif
+ }
+@@ -2305,7 +2301,7 @@
+ #if HAVE_LIBGD204
+ 		io_ctx->gd_free(io_ctx);
+ #else
+-		io_ctx->free(io_ctx);
++		io_ctx->gd_free(io_ctx);
+ #endif
+ 		return NULL;
+ 	}
+@@ -2313,7 +2309,7 @@
+ #if HAVE_LIBGD204
+ 	io_ctx->gd_free(io_ctx);
+ #else
+-	io_ctx->free(io_ctx);
++	io_ctx->gd_free(io_ctx);
+ #endif
+ 
+ 	return im;
+@@ -2475,7 +2471,7 @@
+ #if HAVE_LIBGD204
+ 		io_ctx->gd_free(io_ctx);
+ #else
+-		io_ctx->free(io_ctx);
++		io_ctx->gd_free(io_ctx);
+ #endif
+ 		pefree(buff, 1);
+ #endif
+--- php-5.3.29-orig/ext/gd/gd_ctx.c	2025-11-05 20:40:42
++++ php-5.3.29/ext/gd/gd_ctx.c	2025-11-05 22:10:05
+@@ -110,7 +110,7 @@
+ #if HAVE_LIBGD204
+ 		ctx->gd_free = _php_image_output_ctxfree;
+ #else
+-		ctx->free = _php_image_output_ctxfree;
++		ctx->gd_free = _php_image_output_ctxfree;
+ #endif
+ 
+ #if APACHE && defined(CHARSET_EBCDIC)
+@@ -153,7 +153,7 @@
+ #if HAVE_LIBGD204
+ 	ctx->gd_free(ctx);
+ #else
+-	ctx->free(ctx);
++	ctx->gd_free(ctx);
+ #endif
+ 
+ 	if(fp) {
+--- php-5.3.29-orig/ext/gd/config.m4	2025-11-05 20:40:43
++++ php-5.3.29/ext/gd/config.m4	2025-11-05 22:10:05
+@@ -342,7 +342,8 @@
+  if test "$PHP_GD" != "no"; then
+   GD_MODULE_TYPE=external
+   extra_sources="gdcache.c libgd/gd_compat.c libgd/gd_filter.c libgd/gd_pixelate.c libgd/gd_arc.c \
+-                 libgd/gd_rotate.c libgd/gd_color.c"
++                 libgd/gd_rotate.c libgd/gd_color.c libgd/wbmp.c libgd/gd_wbmp.c libgd/gd_security.c \
++                 libgd/gdhelpers.c libgd/gd_topal.c libgd/gd_gif_in.c libgd/xbm.c libgd/gd_gif_out.c"
+ 
+ dnl Various checks for GD features
+   PHP_GD_ZLIB
+--- php-5.3.29-orig/ext/dom/dom_iterators.c	2025-11-05 20:40:42
++++ php-5.3.29/ext/dom/dom_iterators.c	2025-11-05 22:10:05
+@@ -91,7 +91,7 @@
+ 		iter->cur = 0;
+ 		iter->index = index;
+ 		iter->node = NULL;
+-		xmlHashScan(ht, itemHashScanner, iter);
++		xmlHashScan(ht, (xmlHashScanner)itemHashScanner, iter);
+ 		nodep = iter->node;
+ 		efree(iter);
+ 		return nodep;
+@@ -112,7 +112,7 @@
+ 		iter->cur = 0;
+ 		iter->index = index;
+ 		iter->notation = NULL;
+-		xmlHashScan(ht, itemHashScanner, iter);
++		xmlHashScan(ht, (xmlHashScanner)itemHashScanner, iter);
+ 		notep = iter->notation;
+ 		efree(iter);
+ 		return create_notation(notep->name, notep->PublicID, notep->SystemID);
+--- php-5.3.29-orig/ext/mbstring/php_mbregex.c	2025-11-05 20:40:43
++++ php-5.3.29/ext/mbstring/php_mbregex.c	2025-11-05 22:10:05
+@@ -454,7 +454,7 @@
+ 	OnigUChar err_str[ONIG_MAX_ERROR_MESSAGE_LEN];
+ 
+ 	found = zend_hash_find(&MBREX(ht_rc), (char *)pattern, patlen+1, (void **) &rc);
+-	if (found == FAILURE || (*rc)->options != options || (*rc)->enc != enc || (*rc)->syntax != syntax) {
++	if (found == FAILURE || onig_get_options(*rc) != options || onig_get_encoding(*rc) != enc || onig_get_syntax(*rc) != syntax) {
+ 		if ((err_code = onig_new(&retval, (OnigUChar *)pattern, (OnigUChar *)(pattern + patlen), options, enc, syntax, &err_info)) != ONIG_NORMAL) {
+ 			onig_error_code_to_str(err_str, err_code, err_info);
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "mbregex compile err: %s", err_str);
+--- php-5.3.29-orig/ext/tidy/tidy.c	2025-11-05 20:40:42
++++ php-5.3.29/ext/tidy/tidy.c	2025-11-05 22:10:05
+@@ -32,7 +32,7 @@
+ #include "safe_mode.h"
+ 
+ #include "tidy.h"
+-#include "buffio.h"
++#include "tidybuffio.h"
+ 
+ /* compatibility with older versions of libtidy */
+ #ifndef TIDY_CALL
+--- php-5.3.29-orig/main/reentrancy.c	2025-11-05 20:40:44
++++ php-5.3.29/main/reentrancy.c	2025-11-05 22:10:05
+@@ -130,21 +130,14 @@
+ {
+ #if defined(HAVE_OLD_READDIR_R)
+ 	int ret = 0;
+-	
+-	/* We cannot rely on the return value of readdir_r
+-	   as it differs between various platforms
+-	   (HPUX returns 0 on success whereas Solaris returns non-zero)
+-	 */
+-	entry->d_name[0] = '\0';
+-	readdir_r(dirp, entry);
+-	
+-	if (entry->d_name[0] == '\0') {
++
++	ret = readdir_r(dirp, entry, result);
++	if (ret != 0) {
+ 		*result = NULL;
+-		ret = errno;
++		return ret;
+ 	} else {
+-		*result = entry;
++		return 0;
+ 	}
+-	return ret;
+ #else
+ 	struct dirent *ptr;
+ 	int ret = 0;

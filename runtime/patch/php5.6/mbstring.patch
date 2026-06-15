@@ -1,0 +1,9 @@
+--- ext/mbstring/libmbfl/filters/mbfilter_utf8_mobile.c.bak	2022-12-30 12:05:15.000000000 +0800
++++ ext/mbstring/libmbfl/filters/mbfilter_utf8_mobile.c	2022-12-30 12:05:39.000000000 +0800
+@@ -38,6 +38,7 @@
+
+ extern int mbfl_filt_ident_utf8(int c, mbfl_identify_filter *filter);
+ extern int mbfl_filt_conv_utf8_wchar_flush(mbfl_convert_filter *filter);
++extern int mbfl_filt_put_invalid_char(int c, mbfl_convert_filter *filter);
+
+ extern const unsigned char mblen_table_utf8[];

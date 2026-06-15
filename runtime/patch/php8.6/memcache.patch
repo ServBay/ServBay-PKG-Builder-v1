@@ -1,0 +1,137 @@
+--- ./src/php_memcache.h.bak	2026-01-29 22:55:00
++++ ./src/php_memcache.h	2026-01-29 22:55:00
+@@ -20,6 +20,14 @@
+ #ifndef PHP_MEMCACHE_H
+ #define PHP_MEMCACHE_H
+
++/* PHP 8.6 compatibility: WRONG_PARAM_COUNT macros removed */
++#if PHP_VERSION_ID >= 80600
++#ifndef WRONG_PARAM_COUNT
++#define WRONG_PARAM_COUNT { zend_wrong_param_count(); return; }
++#define ZEND_WRONG_PARAM_COUNT() { zend_wrong_param_count(); return; }
++#endif
++#endif
++
+ extern zend_module_entry memcache_module_entry;
+ #define phpext_memcache_ptr &memcache_module_entry
+
+--- ./src/memcache_pool.c.bak	2025-11-06 12:58:55
++++ ./src/memcache_pool.c	2025-11-06 12:58:55
+@@ -425,7 +425,7 @@
+ 			PHP_VAR_SERIALIZE_DESTROY(value_hash);
+ 
+ 			if (!buf.s) {
+-				zval_dtor(&value_copy);
++				zval_ptr_dtor_nogc(&value_copy);
+ 				php_error_docref(NULL, E_WARNING, "Failed to serialize value");
+ 				return MMC_REQUEST_FAILURE;
+ 			}
+@@ -435,13 +435,13 @@
+ 
+ 			/* trying to save null or something went really wrong */
+ 			if (buffer->value.c == NULL || buffer->value.len == prev_len) {
+-				zval_dtor(&value_copy);
++				zval_ptr_dtor_nogc(&value_copy);
+ 				php_error_docref(NULL, E_WARNING, "Failed to serialize value");
+ 				return MMC_REQUEST_FAILURE;
+ 			}
+ 
+ 			*flags |= MMC_SERIALIZED;
+-			zval_dtor(&value_copy);
++			zval_ptr_dtor_nogc(&value_copy);
+ 
+ 			mmc_compress(pool, buffer, buffer->value.c + prev_len, buffer->value.len - prev_len, flags, 1);
+ 		}
+@@ -1750,7 +1750,7 @@
+ 
+ 		res = mmc_prepare_key_ex(Z_STRVAL(keytmp), Z_STRLEN(keytmp), result, result_len, MEMCACHE_G(key_prefix));
+ 
+-		zval_dtor(&keytmp);
++		zval_ptr_dtor_nogc(&keytmp);
+ 		return res;
+ 	}
+ }
+--- ./src/memcache.c.bak	2025-11-06 12:58:55
++++ ./src/memcache.c	2025-11-06 12:58:55
+@@ -2210,7 +2210,7 @@
+ 			return MMC_REQUEST_AGAIN;
+ 		}
+ 
+-		zval_dtor((zval *)param);
++		zval_ptr_dtor_nogc((zval *)param);
+ 		ZVAL_FALSE((zval *)param);
+ 		return MMC_REQUEST_FAILURE;
+ 	}
+--- ./src/memcache_session.c.bak	2025-11-06 12:58:55
++++ ./src/memcache_session.c	2025-11-06 12:58:55
+@@ -355,7 +355,7 @@
+ 				}
+ 
+ 				/* if missing value, skip this server and try next */
+-				zval_dtor(&dataresult);
++				zval_ptr_dtor_nogc(&dataresult);
+ 				mmc_queue_push(&skip_servers, mmc);
+ 				
+ 				/* if it is the last server in pool and connection was ok return success and empty string due to php70 changes */
+@@ -366,7 +366,7 @@
+ 				}
+ 			}
+ 			else {
+-				zval_dtor(&dataresult);
++				zval_ptr_dtor_nogc(&dataresult);
+ 
+ 				/* if missing lock, back off and retry same server */
+ 				last_index = prev_index;
+@@ -382,7 +382,7 @@
+ 		} while (skip_servers.len < MEMCACHE_G(session_redundancy) && skip_servers.len < pool->num_servers && remainingtime > 0);
+ 
+ 		mmc_queue_free(&skip_servers);
+-		zval_dtor(&dataresult);
++		zval_ptr_dtor_nogc(&dataresult);
+ 
+ 		return SUCCESS;
+ 	}
+--- ./src/memcache_binary_protocol.c.bak	2025-11-06 12:58:55
++++ ./src/memcache_binary_protocol.c	2025-11-06 12:58:55
+@@ -379,7 +379,7 @@
+ 				Z_STRVAL(keytmp), Z_STRLEN(keytmp), &value,
+ 				req->value.flags, req->value.cas, request->value_handler_param);
+ 
+-			zval_dtor(&keytmp);
++			zval_ptr_dtor_nogc(&keytmp);
+ 		}
+ 		else {
+ 			result = request->value_handler(
+@@ -450,7 +450,7 @@
+ 				mmc, request, &(request->readbuf), Z_STRVAL(keytmp), Z_STRLEN(keytmp),
+ 				req->value.flags, req->value.cas, req->value.length);
+ 
+-			zval_dtor(&keytmp);
++			zval_ptr_dtor_nogc(&keytmp);
+ 		}
+ 		else {
+ 			result = mmc_unpack_value(
+--- src/memcache_session.c.bak	2020-12-06 23:05:53
++++ src/memcache_session.c	2026-04-27 21:07:27
+@@ -25,6 +25,21 @@
+ 
+ #include <ctype.h>
+ #include "php.h"
++#ifndef INI_STR
++# define INI_STR(name) zend_ini_string((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_INT
++# define INI_INT(name) zend_ini_long((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_FLT
++# define INI_FLT(name) zend_ini_double((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_BOOL
++# define INI_BOOL(name) zend_ini_parse_bool(zend_ini_str((name), (size_t)strlen(name), 0))
++#endif
++#ifndef EMPTY_SWITCH_DEFAULT_CASE
++# define EMPTY_SWITCH_DEFAULT_CASE() default: ZEND_UNREACHABLE();
++#endif
+ #include "php_ini.h"
+ #include "php_variables.h"
+ 

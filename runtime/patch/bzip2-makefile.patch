@@ -1,0 +1,85 @@
+--- Makefile.ori	2023-07-02 09:58:08
++++ Makefile	2023-07-02 09:58:47
+@@ -25,6 +25,7 @@
+ 
+ # Where you want it installed when you do 'make install'
+ PREFIX=/usr/local
++BINDIR=/usr/local/bin
+ 
+ 
+ OBJS= blocksort.o  \
+@@ -70,43 +71,43 @@
+ 	@cat words3
+ 
+ install: bzip2 bzip2recover
+-	if ( test ! -d $(PREFIX)/bin ) ; then mkdir -p $(PREFIX)/bin ; fi
++	if ( test ! -d $(BINDIR) ) ; then mkdir -p $(BINDIR) ; fi
+ 	if ( test ! -d $(PREFIX)/lib ) ; then mkdir -p $(PREFIX)/lib ; fi
+-	if ( test ! -d $(PREFIX)/man ) ; then mkdir -p $(PREFIX)/man ; fi
+-	if ( test ! -d $(PREFIX)/man/man1 ) ; then mkdir -p $(PREFIX)/man/man1 ; fi
++	if ( test ! -d $(PREFIX)/share/man ) ; then mkdir -p $(PREFIX)/share/man ; fi
++	if ( test ! -d $(PREFIX)/share/man/man1 ) ; then mkdir -p $(PREFIX)/share/man/man1 ; fi
+ 	if ( test ! -d $(PREFIX)/include ) ; then mkdir -p $(PREFIX)/include ; fi
+-	cp -f bzip2 $(PREFIX)/bin/bzip2
+-	cp -f bzip2 $(PREFIX)/bin/bunzip2
+-	cp -f bzip2 $(PREFIX)/bin/bzcat
+-	cp -f bzip2recover $(PREFIX)/bin/bzip2recover
+-	chmod a+x $(PREFIX)/bin/bzip2
+-	chmod a+x $(PREFIX)/bin/bunzip2
+-	chmod a+x $(PREFIX)/bin/bzcat
+-	chmod a+x $(PREFIX)/bin/bzip2recover
+-	cp -f bzip2.1 $(PREFIX)/man/man1
+-	chmod a+r $(PREFIX)/man/man1/bzip2.1
++	cp -f bzip2 $(BINDIR)/bzip2
++	cp -f bzip2 $(BINDIR)/bunzip2
++	cp -f bzip2 $(BINDIR)/bzcat
++	cp -f bzip2recover $(BINDIR)/bzip2recover
++	chmod a+x $(BINDIR)/bzip2
++	chmod a+x $(BINDIR)/bunzip2
++	chmod a+x $(BINDIR)/bzcat
++	chmod a+x $(BINDIR)/bzip2recover
++	cp -f bzip2.1 $(PREFIX)/share/man/man1
++	chmod a+r $(PREFIX)/share/man/man1/bzip2.1
+ 	cp -f bzlib.h $(PREFIX)/include
+ 	chmod a+r $(PREFIX)/include/bzlib.h
+ 	cp -f libbz2.a $(PREFIX)/lib
+ 	chmod a+r $(PREFIX)/lib/libbz2.a
+-	cp -f bzgrep $(PREFIX)/bin/bzgrep
+-	ln -s -f $(PREFIX)/bin/bzgrep $(PREFIX)/bin/bzegrep
+-	ln -s -f $(PREFIX)/bin/bzgrep $(PREFIX)/bin/bzfgrep
+-	chmod a+x $(PREFIX)/bin/bzgrep
+-	cp -f bzmore $(PREFIX)/bin/bzmore
+-	ln -s -f $(PREFIX)/bin/bzmore $(PREFIX)/bin/bzless
+-	chmod a+x $(PREFIX)/bin/bzmore
+-	cp -f bzdiff $(PREFIX)/bin/bzdiff
+-	ln -s -f $(PREFIX)/bin/bzdiff $(PREFIX)/bin/bzcmp
+-	chmod a+x $(PREFIX)/bin/bzdiff
+-	cp -f bzgrep.1 bzmore.1 bzdiff.1 $(PREFIX)/man/man1
+-	chmod a+r $(PREFIX)/man/man1/bzgrep.1
+-	chmod a+r $(PREFIX)/man/man1/bzmore.1
+-	chmod a+r $(PREFIX)/man/man1/bzdiff.1
+-	echo ".so man1/bzgrep.1" > $(PREFIX)/man/man1/bzegrep.1
+-	echo ".so man1/bzgrep.1" > $(PREFIX)/man/man1/bzfgrep.1
+-	echo ".so man1/bzmore.1" > $(PREFIX)/man/man1/bzless.1
+-	echo ".so man1/bzdiff.1" > $(PREFIX)/man/man1/bzcmp.1
++	cp -f bzgrep $(BINDIR)/bzgrep
++	ln -s -f $(BINDIR)/bzgrep $(BINDIR)/bzegrep
++	ln -s -f $(BINDIR)/bzgrep $(BINDIR)/bzfgrep
++	chmod a+x $(BINDIR)/bzgrep
++	cp -f bzmore $(BINDIR)/bzmore
++	ln -s -f $(BINDIR)/bzmore $(BINDIR)/bzless
++	chmod a+x $(BINDIR)/bzmore
++	cp -f bzdiff $(BINDIR)/bzdiff
++	ln -s -f $(BINDIR)/bzdiff $(BINDIR)/bzcmp
++	chmod a+x $(BINDIR)/bzdiff
++	cp -f bzgrep.1 bzmore.1 bzdiff.1 $(PREFIX)/share/man/man1
++	chmod a+r $(PREFIX)/share/man/man1/bzgrep.1
++	chmod a+r $(PREFIX)/share/man/man1/bzmore.1
++	chmod a+r $(PREFIX)/share/man/man1/bzdiff.1
++	echo ".so man1/bzgrep.1" > $(PREFIX)/share/man/man1/bzegrep.1
++	echo ".so man1/bzgrep.1" > $(PREFIX)/share/man/man1/bzfgrep.1
++	echo ".so man1/bzmore.1" > $(PREFIX)/share/man/man1/bzless.1
++	echo ".so man1/bzdiff.1" > $(PREFIX)/share/man/man1/bzcmp.1
+ 
+ clean: 
+ 	rm -f *.o libbz2.a bzip2 bzip2recover \

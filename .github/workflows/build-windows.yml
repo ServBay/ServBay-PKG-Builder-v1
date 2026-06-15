@@ -1,0 +1,112 @@
+name: build-windows
+
+# POC: manual trigger now; workflow_call kept so B6 (check-updates orchestrator)
+# can invoke this as a reusable workflow once the dynamic matrix is wired in.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # TODO(B4): replace this hardcoded `include` with a dynamic matrix produced by
+      # runtime-windows/update_packages.py --emit-json and consumed via fromJSON(...).
+      # POC keeps a single entry so the link can be validated end-to-end.
+      matrix:
+        include:
+          - pkg: node
+            version: 24.15.0
+            arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # build_windows hard-depends on jq (check_command "jq" -> exit 1 if missing).
+      # wget for downloads, p7zip-full provides 7z for extract/compress.
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y wget p7zip-full jq
+
+      # build_windows resolves paths from $(pwd): it reads ./windows-packages.txt and
+      # writes ./dist-windows/<pkg>/<arch>/... and ./build_windows_packages.log.
+      # So it MUST run from inside runtime-windows/.
+      # Matrix values go through env (not inline ${{ }}) so they are passed as shell
+      # variables rather than interpolated into the script text.
+      - name: Build Windows package
+        working-directory: runtime-windows
+        env:
+          PKG: ${{ matrix.pkg }}
+          VERSION: ${{ matrix.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          chmod +x ./build_windows
+          ./build_windows "$ARCH" -p "${PKG}-${VERSION}"
+
+      # Produce the meta.json that the Uploader consumes. Filename/path mirror the
+      # actual build_windows output:
+      #   dist-windows/<pkg>/<arch>/<pkg>-<version>-windows-<arch>.7z
+      - name: Generate meta.json
+        id: meta
+        working-directory: runtime-windows
+        env:
+          PKG: ${{ matrix.pkg }}
+          VERSION: ${{ matrix.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          major="${VERSION%%.*}"
+          filename="${PKG}-${VERSION}-windows-${ARCH}.7z"
+          pkg_path="dist-windows/${PKG}/${ARCH}/${filename}"
+
+          if [[ ! -f "${pkg_path}" ]]; then
+            echo "::error::Expected package not found: runtime-windows/${pkg_path}"
+            echo "--- dist-windows tree ---"
+            find dist-windows -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          sha256="$(sha256sum "${pkg_path}" | awk '{print $1}')"
+
+          jq -n \
+            --arg name "${PKG}" \
+            --arg version "${VERSION}" \
+            --arg major "${major}" \
+            --arg arch "${ARCH}" \
+            --arg os "windows" \
+            --arg sha256 "${sha256}" \
+            --arg filename "${filename}" \
+            '{name:$name, version:$version, major:$major, arch:$arch, os:$os, sha256:$sha256, filename:$filename}' \
+            > "dist-windows/${PKG}/${ARCH}/meta.json"
+
+          {
+            echo "pkg_dir=runtime-windows/dist-windows/${PKG}/${ARCH}"
+            echo "filename=${filename}"
+          } >> "$GITHUB_OUTPUT"
+          echo "--- meta.json ---"
+          cat "dist-windows/${PKG}/${ARCH}/meta.json"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-windows-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          path: |
+            ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
+            ${{ steps.meta.outputs.pkg_dir }}/meta.json
+          if-no-files-found: error
+          retention-days: 7
+
+      # Always upload the build log so failures are diagnosable even when the
+      # package step fails before meta.json exists.
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows-${{ matrix.arch }}-${{ matrix.pkg }}-${{ matrix.version }}
+          path: runtime-windows/build_windows_packages.log
+          if-no-files-found: warn
+          retention-days: 7

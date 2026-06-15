@@ -1,0 +1,21 @@
+# --- 构建产物与临时文件 ---
+runtime/src/
+runtime/dist/
+runtime/logs/
+runtime/__pycache__/
+runtime/ollama_models.swift
+runtime-windows/dist-windows/
+runtime-windows/temp-windows-build/
+runtime-windows/*.log
+runtime-windows/release/
+runtime-windows/__pycache__/
+
+# --- 凭证：本仓库公开，严禁任何凭证落地 ---
+.env
+*.pem
+*.key
+id_rsa*
+
+# --- 系统 ---
+.DS_Store
+*.pyc

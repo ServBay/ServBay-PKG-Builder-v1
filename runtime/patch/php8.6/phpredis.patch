@@ -1,0 +1,1679 @@
+--- ./common.h.bak	2026-01-29 22:50:00
++++ ./common.h	2026-01-29 22:50:00
+@@ -1,6 +1,14 @@
+ #include "php.h"
+ #include "php_ini.h"
+
++/* PHP 8.6 compatibility: WRONG_PARAM_COUNT macros removed */
++#if PHP_VERSION_ID >= 80600
++#ifndef WRONG_PARAM_COUNT
++#define WRONG_PARAM_COUNT { zend_wrong_param_count(); return; }
++#define ZEND_WRONG_PARAM_COUNT() { zend_wrong_param_count(); return; }
++#endif
++#endif
++
+ #ifndef REDIS_COMMON_H
+ #define REDIS_COMMON_H
+
+--- ./redis_array.c.bak	2025-11-06 12:51:43
++++ ./redis_array.c	2025-11-06 12:51:43
+@@ -66,17 +66,17 @@
+ 
+     /* Redis objects */
+     for(i = 0; i< ra->count; i++) {
+-        zval_dtor(&ra->redis[i]);
++        zval_ptr_dtor_nogc(&ra->redis[i]);
+         zend_string_release(ra->hosts[i]);
+     }
+     efree(ra->redis);
+     efree(ra->hosts);
+ 
+     /* delete hash function */
+-    zval_dtor(&ra->z_fun);
++    zval_ptr_dtor_nogc(&ra->z_fun);
+ 
+     /* Distributor */
+-    zval_dtor(&ra->z_dist);
++    zval_ptr_dtor_nogc(&ra->z_dist);
+ 
+     /* Hashing algorithm */
+     if (ra->algorithm) zend_string_release(ra->algorithm);
+@@ -214,8 +214,8 @@
+     if (algorithm) zend_string_release(algorithm);
+     if (user) zend_string_release(user);
+     if (pass) zend_string_release(pass);
+-    zval_dtor(&z_dist);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_dist);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+ finish:
+ 
+@@ -277,10 +277,10 @@
+     /* multi/exec */
+     if(ra->z_multi_exec) {
+         call_user_function(&redis_ce->function_table, ra->z_multi_exec, &z_fun, return_value, argc, z_callargs);
+-        zval_dtor(return_value);
+-        zval_dtor(&z_fun);
++        zval_ptr_dtor_nogc(return_value);
++        zval_ptr_dtor_nogc(&z_fun);
+         for (i = 0; i < argc; ++i) {
+-            zval_dtor(&z_callargs[i]);
++            zval_ptr_dtor_nogc(&z_callargs[i]);
+         }
+         efree(z_callargs);
+         RETURN_ZVAL(getThis(), 1, 0);
+@@ -295,7 +295,7 @@
+         ra_index_multi(redis_inst, MULTI);
+         /* call using discarded temp value and extract exec results after. */
+         call_user_function(&redis_ce->function_table, redis_inst, &z_fun, return_value, argc, z_callargs);
+-        zval_dtor(return_value);
++        zval_ptr_dtor_nogc(return_value);
+ 
+         /* add keys to index. */
+         ra_index_key(key, key_len, redis_inst);
+@@ -309,7 +309,7 @@
+             /* check if we have an error. */
+             if (ra->prev && RA_CALL_FAILED(return_value, cmd)) { /* there was an error reading, try with prev ring. */
+                 /* Free previous return value */
+-                zval_dtor(return_value);
++                zval_ptr_dtor_nogc(return_value);
+ 
+                 /* ERROR, FALLBACK TO PREVIOUS RING and forward a reference to the first redis instance we were looking at. */
+                 ra_forward_call(INTERNAL_FUNCTION_PARAM_PASSTHRU, ra->prev, cmd, cmd_len, z_args, z_new_target ? z_new_target : redis_inst);
+@@ -323,9 +323,9 @@
+     }
+ 
+     /* cleanup */
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+     for (i = 0; i < argc; ++i) {
+-        zval_dtor(&z_callargs[i]);
++        zval_ptr_dtor_nogc(&z_callargs[i]);
+     }
+     efree(z_callargs);
+ }
+@@ -543,7 +543,7 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 0, NULL);
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ static void
+@@ -568,7 +568,7 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 1, z_args);
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ PHP_METHOD(RedisArray, info)
+@@ -629,8 +629,8 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 1, z_args);
+ 
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ PHP_METHOD(RedisArray, getOption)
+@@ -656,7 +656,7 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 1, z_args);
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ PHP_METHOD(RedisArray, setOption)
+@@ -685,8 +685,8 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 2, z_args);
+ 
+-    zval_dtor(&z_args[1]);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_args[1]);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ PHP_METHOD(RedisArray, select)
+@@ -712,7 +712,7 @@
+ 
+     multihost_distribute_call(ra, return_value, &z_fun, 1, z_args);
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ }
+ 
+ #define HANDLE_MULTI_EXEC(ra, cmd, cmdlen) do { \
+@@ -732,7 +732,7 @@
+         } \
+         /* call */\
+         ra_forward_call(INTERNAL_FUNCTION_PARAM_PASSTHRU, ra, cmd, cmdlen, &z_arg_array, NULL); \
+-        zval_dtor(&z_arg_array); \
++        zval_ptr_dtor_nogc(&z_arg_array); \
+         return; \
+     } \
+ } while(0)
+@@ -825,13 +825,13 @@
+         call_user_function(&redis_ce->function_table, &ra->redis[n], &z_fun, &z_ret, 1, &z_arg);
+ 
+         /* cleanup args array */
+-        zval_dtor(&z_arg);
++        zval_ptr_dtor_nogc(&z_arg);
+ 
+         /* Error out if we didn't get a proper response */
+         if (Z_TYPE(z_ret) != IS_ARRAY) {
+             /* cleanup */
+-            zval_dtor(&z_ret);
+-            zval_dtor(&z_tmp_array);
++            zval_ptr_dtor_nogc(&z_ret);
++            zval_ptr_dtor_nogc(&z_tmp_array);
+             RETVAL_FALSE;
+             goto cleanup;
+         }
+@@ -842,10 +842,10 @@
+             ZVAL_ZVAL(&z_arg, z_cur, 1, 0);
+             add_index_zval(&z_tmp_array, i, &z_arg);
+         }
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+     }
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     array_init(return_value);
+     /* copy temp array in the right order to return_value */
+@@ -857,7 +857,7 @@
+     }
+ 
+     /* cleanup */
+-    zval_dtor(&z_tmp_array);
++    zval_ptr_dtor_nogc(&z_tmp_array);
+ cleanup:
+     efree(argv);
+     efree(pos);
+@@ -954,7 +954,7 @@
+         }
+ 
+         if(!found) {
+-            zval_dtor(&z_argarray);
++            zval_ptr_dtor_nogc(&z_argarray);
+             continue; /* don't run empty MSETs */
+         }
+ 
+@@ -967,11 +967,11 @@
+             call_user_function(&redis_ce->function_table, &ra->redis[n], &z_fun, &z_ret, 1, &z_argarray);
+         }
+ 
+-        zval_dtor(&z_argarray);
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_argarray);
++        zval_ptr_dtor_nogc(&z_ret);
+     }
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     /* Free any keys that we needed to allocate memory for, because they weren't strings */
+     for(i = 0; i < argc; i++) {
+@@ -1027,7 +1027,7 @@
+     /* init data structures */
+     h_keys = Z_ARRVAL(z_keys);
+     if ((argc = zend_hash_num_elements(h_keys)) == 0) {
+-        if (free_zkeys) zval_dtor(&z_keys);
++        if (free_zkeys) zval_ptr_dtor_nogc(&z_keys);
+         efree(z_args);
+         RETURN_FALSE;
+     }
+@@ -1075,7 +1075,7 @@
+         }
+ 
+         if(!found) {    /* don't run empty DEL or UNLINK commands */
+-            zval_dtor(&z_argarray);
++            zval_ptr_dtor_nogc(&z_argarray);
+             continue;
+         }
+ 
+@@ -1089,11 +1089,11 @@
+         }
+         total += Z_LVAL(z_ret);    /* increment total */
+ 
+-        zval_dtor(&z_argarray);
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_argarray);
++        zval_ptr_dtor_nogc(&z_ret);
+     }
+ 
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     RETVAL_LONG(total);
+ 
+@@ -1103,7 +1103,7 @@
+     efree(argc_each);
+ 
+     if(free_zkeys) {
+-        zval_dtor(&z_keys);
++        zval_ptr_dtor_nogc(&z_keys);
+     }
+     efree(z_args);
+ }
+@@ -1147,7 +1147,7 @@
+ 
+     ZVAL_STRINGL(&z_fun, kw, kw_len);
+     call_user_function(&redis_ce->function_table, redis_inst, &z_fun, return_value, ZEND_NUM_ARGS(), z_args);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     ZVAL_ZVAL(z_cursor, &z_args[1], 0, 1);
+ }
+@@ -1193,7 +1193,7 @@
+ 
+     ZVAL_STRING(&z_fun, "SCAN");
+     call_user_function(&redis_ce->function_table, redis_inst, &z_fun, return_value, ZEND_NUM_ARGS() - 1, z_args);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     ZVAL_ZVAL(z_iter, &z_args[0], 0, 1);
+ }
+--- ./redis_array_impl.c.bak	2025-11-06 12:51:43
++++ ./redis_array_impl.c	2025-11-06 12:51:43
+@@ -202,7 +202,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zval(Z_ARRVAL(z_tmp), name, name_len, &z_fun, 1, 0);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find distributor */
+@@ -210,7 +210,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zval(Z_ARRVAL(z_tmp), name, name_len, &z_dist, 1, 0);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find hash algorithm */
+@@ -218,7 +218,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_string(Z_ARRVAL(z_tmp), name, name_len, &algorithm);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find index option */
+@@ -226,7 +226,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zend_bool(Z_ARRVAL(z_tmp), name, name_len, &b_index);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find autorehash option */
+@@ -234,7 +234,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zend_bool(Z_ARRVAL(z_tmp), name, name_len, &b_autorehash);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find retry interval option */
+@@ -242,7 +242,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_long(Z_ARRVAL(z_tmp), name, name_len, &l_retry_interval);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find pconnect option */
+@@ -250,7 +250,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zend_bool(Z_ARRVAL(z_tmp), name, name_len, &b_pconnect);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find lazy connect option */
+@@ -258,7 +258,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_zend_bool(Z_ARRVAL(z_tmp), name, name_len, &b_lazy_connect);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find connect timeout option */
+@@ -266,7 +266,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_double(Z_ARRVAL(z_tmp), name, name_len, &d_connect_timeout);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find read timeout option */
+@@ -274,7 +274,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_double(Z_ARRVAL(z_tmp), name, name_len, &read_timeout);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find consistent option */
+@@ -285,7 +285,7 @@
+             consistent = Z_TYPE_P(z_data) == IS_STRING &&
+                          redis_strncmp(Z_STRVAL_P(z_data), ZEND_STRL("1")) == 0;
+         }
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* find auth option */
+@@ -293,7 +293,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_auth(Z_ARRVAL(z_tmp), name, name_len, &user, &pass);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* create RedisArray object */
+@@ -309,10 +309,10 @@
+     if (user) zend_string_release(user);
+     if (pass) zend_string_release(pass);
+ 
+-    zval_dtor(&z_params_hosts);
+-    zval_dtor(&z_params_prev);
+-    zval_dtor(&z_dist);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_params_hosts);
++    zval_ptr_dtor_nogc(&z_params_prev);
++    zval_ptr_dtor_nogc(&z_dist);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     return ra;
+ }
+@@ -385,7 +385,7 @@
+ 
+     if (ra_load_hosts(ra, hosts, user, pass, retry_interval, b_lazy_connect) == NULL || !ra->count) {
+         for (i = 0; i < ra->count; ++i) {
+-            zval_dtor(&ra->redis[i]);
++            zval_ptr_dtor_nogc(&ra->redis[i]);
+             zend_string_release(ra->hosts[i]);
+         }
+         efree(ra->redis);
+@@ -435,8 +435,8 @@
+         out = zval_get_string(&z_ret);
+     }
+ 
+-    zval_dtor(&z_argv);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_argv);
++    zval_ptr_dtor_nogc(&z_ret);
+     return out;
+ }
+ 
+@@ -474,8 +474,8 @@
+ 
+     ret = (Z_TYPE(z_ret) == IS_LONG) ? Z_LVAL(z_ret) : -1;
+ 
+-    zval_dtor(&z_argv);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_argv);
++    zval_ptr_dtor_nogc(&z_ret);
+     return ret;
+ }
+ 
+@@ -573,8 +573,8 @@
+     ZVAL_STRINGL(&z_fun_multi, "MULTI", 5);
+     ZVAL_LONG(&z_args[0], multi_value);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_multi, &z_ret, 1, z_args);
+-    zval_dtor(&z_fun_multi);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_multi);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ static void
+@@ -604,9 +604,9 @@
+     /* run cmd */
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun, &z_ret, argc, z_args);
+ 
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_fun);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_fun);
++    zval_ptr_dtor_nogc(&z_ret);
+     efree(z_args);      /* free container */
+ }
+ 
+@@ -643,7 +643,7 @@
+     ra_index_change_keys("SADD", &z_keys, z_redis);
+ 
+     /* cleanup */
+-    zval_dtor(&z_keys);
++    zval_ptr_dtor_nogc(&z_keys);
+ }
+ 
+ void
+@@ -659,10 +659,10 @@
+ 
+     /* run SADD */
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_sadd, &z_ret, 2, z_args);
+-    zval_dtor(&z_fun_sadd);
+-    zval_dtor(&z_args[1]);
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_sadd);
++    zval_ptr_dtor_nogc(&z_args[1]);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ void
+@@ -673,7 +673,7 @@
+     /* run EXEC */
+     ZVAL_STRINGL(&z_fun_exec, "EXEC", 4);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_exec, &z_ret, 0, NULL);
+-    zval_dtor(&z_fun_exec);
++    zval_ptr_dtor_nogc(&z_fun_exec);
+ 
+     /* extract first element of exec array and put into return_value. */
+     if(Z_TYPE(z_ret) == IS_ARRAY) {
+@@ -686,7 +686,7 @@
+                 }
+         }
+     }
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* zval *zptr = &z_ret; */
+     /* php_var_dump(&zptr, 0); */
+@@ -701,8 +701,8 @@
+     ZVAL_STRINGL(&z_fun_discard, "DISCARD", 7);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_discard, &z_ret, 0, NULL);
+ 
+-    zval_dtor(&z_fun_discard);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_discard);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ void
+@@ -714,8 +714,8 @@
+     ZVAL_STRINGL(&z_fun_unwatch, "UNWATCH", 7);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_unwatch, &z_ret, 0, NULL);
+ 
+-    zval_dtor(&z_fun_unwatch);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_unwatch);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ zend_bool
+@@ -753,15 +753,15 @@
+     ZVAL_NULL(&z_ret);
+     ZVAL_STRINGL(&z_fun, "TYPE", 4);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun, &z_ret, 1, &z_arg);
+-    zval_dtor(&z_fun);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* run TYPE */
+     ZVAL_NULL(&z_ret);
+     ZVAL_STRINGL(&z_fun, "TTL", 3);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun, &z_ret, 1, &z_arg);
+-    zval_dtor(&z_fun);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* Get the result from the pipeline. */
+     ra_index_exec(z_from, &z_ret, 1);
+@@ -775,8 +775,8 @@
+             res[i++] = Z_LVAL_P(z_data);
+         } ZEND_HASH_FOREACH_END();
+     }
+-    zval_dtor(&z_arg);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_arg);
++    zval_ptr_dtor_nogc(&z_ret);
+     return success;
+ }
+ 
+@@ -794,10 +794,10 @@
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun_srem, &z_ret, 2, z_args);
+ 
+     /* cleanup */
+-    zval_dtor(&z_fun_srem);
+-    zval_dtor(&z_args[1]);
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_srem);
++    zval_ptr_dtor_nogc(&z_args[1]);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ 
+@@ -814,9 +814,9 @@
+     ZVAL_STRINGL(&z_fun_del, "DEL", 3);
+     ZVAL_STRINGL(&z_args[0], key, key_len);
+     call_user_function(&redis_ce->function_table, z_from, &z_fun_del, &z_ret, 1, z_args);
+-    zval_dtor(&z_fun_del);
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_del);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* remove key from index */
+     ra_remove_from_index(z_from, key, key_len);
+@@ -839,9 +839,9 @@
+         ZVAL_STRINGL(&z_args[0], key, key_len);
+         ZVAL_LONG(&z_args[1], ttl);
+         call_user_function(&redis_ce->function_table, z_to, &z_fun_expire, &z_ret, 2, z_args);
+-        zval_dtor(&z_fun_expire);
+-        zval_dtor(&z_args[0]);
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_fun_expire);
++        zval_ptr_dtor_nogc(&z_args[0]);
++        zval_ptr_dtor_nogc(&z_ret);
+     }
+ 
+     return 1;
+@@ -863,15 +863,15 @@
+     ZVAL_STRINGL(&z_args[2], "-1", 2);
+     ZVAL_BOOL(&z_args[3], 1);
+     call_user_function(&redis_ce->function_table, z_from, &z_fun_zrange, &z_ret, 4, z_args);
+-    zval_dtor(&z_fun_zrange);
+-    zval_dtor(&z_args[2]);
+-    zval_dtor(&z_args[1]);
+-    zval_dtor(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_fun_zrange);
++    zval_ptr_dtor_nogc(&z_args[2]);
++    zval_ptr_dtor_nogc(&z_args[1]);
++    zval_ptr_dtor_nogc(&z_args[0]);
+ 
+ 
+     if(Z_TYPE(z_ret) != IS_ARRAY) { /* key not found or replaced */
+         /* TODO: report? */
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+         return 0;
+     }
+ 
+@@ -906,13 +906,13 @@
+     ra_expire_key(key, key_len, z_to, ttl);
+ 
+     /* cleanup */
+-    zval_dtor(&z_fun_zadd);
+-    zval_dtor(&z_ret_dest);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_zadd);
++    zval_ptr_dtor_nogc(&z_ret_dest);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* Free the array itself */
+     for (i = 0; i < 1 + 2 * count; i++) {
+-        zval_dtor(&z_zadd_args[i]);
++        zval_ptr_dtor_nogc(&z_zadd_args[i]);
+     }
+     efree(z_zadd_args);
+ 
+@@ -928,12 +928,12 @@
+     ZVAL_STRINGL(&z_fun_get, "GET", 3);
+     ZVAL_STRINGL(&z_args[0], key, key_len);
+     call_user_function(&redis_ce->function_table, z_from, &z_fun_get, &z_ret, 1, z_args);
+-    zval_dtor(&z_fun_get);
++    zval_ptr_dtor_nogc(&z_fun_get);
+ 
+     if(Z_TYPE(z_ret) != IS_STRING) { /* key not found or replaced */
+         /* TODO: report? */
+-        zval_dtor(&z_args[0]);
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_args[0]);
++        zval_ptr_dtor_nogc(&z_ret);
+         return 0;
+     }
+ 
+@@ -942,21 +942,21 @@
+         ZVAL_STRINGL(&z_fun_set, "SETEX", 5);
+         ZVAL_LONG(&z_args[1], ttl);
+         ZVAL_STRINGL(&z_args[2], Z_STRVAL(z_ret), Z_STRLEN(z_ret)); /* copy z_ret to arg 1 */
+-        zval_dtor(&z_ret); /* free memory from our previous call */
++        zval_ptr_dtor_nogc(&z_ret); /* free memory from our previous call */
+         call_user_function(&redis_ce->function_table, z_to, &z_fun_set, &z_ret, 3, z_args);
+         /* cleanup */
+-        zval_dtor(&z_args[2]);
++        zval_ptr_dtor_nogc(&z_args[2]);
+     } else {
+         ZVAL_STRINGL(&z_fun_set, "SET", 3);
+         ZVAL_STRINGL(&z_args[1], Z_STRVAL(z_ret), Z_STRLEN(z_ret)); /* copy z_ret to arg 1 */
+-        zval_dtor(&z_ret); /* free memory from our previous return value */
++        zval_ptr_dtor_nogc(&z_ret); /* free memory from our previous return value */
+         call_user_function(&redis_ce->function_table, z_to, &z_fun_set, &z_ret, 2, z_args);
+         /* cleanup */
+-        zval_dtor(&z_args[1]);
++        zval_ptr_dtor_nogc(&z_args[1]);
+     }
+-    zval_dtor(&z_fun_set);
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_fun_set);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     return 1;
+ }
+@@ -969,27 +969,27 @@
+     ZVAL_STRINGL(&z_args[0], key, key_len);
+     ZVAL_STRINGL(&z_fun_hgetall, "HGETALL", 7);
+     call_user_function(&redis_ce->function_table, z_from, &z_fun_hgetall, &z_args[1], 1, z_args);
+-    zval_dtor(&z_fun_hgetall);
++    zval_ptr_dtor_nogc(&z_fun_hgetall);
+ 
+     if (Z_TYPE(z_args[1]) != IS_ARRAY) { /* key not found or replaced */
+         /* TODO: report? */
+-        zval_dtor(&z_args[1]);
+-        zval_dtor(&z_args[0]);
++        zval_ptr_dtor_nogc(&z_args[1]);
++        zval_ptr_dtor_nogc(&z_args[0]);
+         return 0;
+     }
+ 
+     /* run HMSET on target */
+     ZVAL_STRINGL(&z_fun_hmset, "HMSET", 5);
+     call_user_function(&redis_ce->function_table, z_to, &z_fun_hmset, &z_ret_dest, 2, z_args);
+-    zval_dtor(&z_fun_hmset);
+-    zval_dtor(&z_ret_dest);
++    zval_ptr_dtor_nogc(&z_fun_hmset);
++    zval_ptr_dtor_nogc(&z_ret_dest);
+ 
+     /* Expire if needed */
+     ra_expire_key(key, key_len, z_to, ttl);
+ 
+     /* cleanup */
+-    zval_dtor(&z_args[1]);
+-    zval_dtor(&z_args[0]);
++    zval_ptr_dtor_nogc(&z_args[1]);
++    zval_ptr_dtor_nogc(&z_args[0]);
+ 
+     return 1;
+ }
+@@ -1018,15 +1018,15 @@
+     call_user_function(&redis_ce->function_table, z_from, &z_fun_retrieve, &z_ret, list_count, z_retrieve_args);
+ 
+     /* cleanup */
+-    zval_dtor(&z_fun_retrieve);
++    zval_ptr_dtor_nogc(&z_fun_retrieve);
+     for(i = 0; i < list_count; ++i) {
+-        zval_dtor(&z_retrieve_args[i]);
++        zval_ptr_dtor_nogc(&z_retrieve_args[i]);
+     }
+     efree(z_retrieve_args);
+ 
+     if(Z_TYPE(z_ret) != IS_ARRAY) { /* key not found or replaced */
+         /* TODO: report? */
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+         return 0;
+     }
+ 
+@@ -1045,19 +1045,19 @@
+     } ZEND_HASH_FOREACH_END();
+ 
+     /* Clean up our input return value */
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     call_user_function(&redis_ce->function_table, z_to, &z_fun_sadd, &z_ret, count, z_sadd_args);
+ 
+     /* cleanup */
+-    zval_dtor(&z_fun_sadd);
++    zval_ptr_dtor_nogc(&z_fun_sadd);
+     for (i = 0; i < count; i++) {
+-        zval_dtor(&z_sadd_args[i]);
++        zval_ptr_dtor_nogc(&z_sadd_args[i]);
+     }
+     efree(z_sadd_args);
+ 
+     /* Clean up our output return value */
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     /* Expire if needed */
+     ra_expire_key(key, key_len, z_to, ttl);
+@@ -1150,8 +1150,8 @@
+     zend_call_function(z_cb, z_cb_cache);
+ 
+     /* cleanup */
+-    zval_dtor(&z_args[0]);
+-    zval_dtor(z_ret);
++    zval_ptr_dtor_nogc(&z_args[0]);
++    zval_ptr_dtor_nogc(z_ret);
+ }
+ 
+ static void
+@@ -1172,8 +1172,8 @@
+     }
+     ZVAL_NULL(&z_ret);
+     call_user_function(&redis_ce->function_table, z_redis, &z_fun, &z_ret, 1, &z_argv);
+-    zval_dtor(&z_argv);
+-    zval_dtor(&z_fun);
++    zval_ptr_dtor_nogc(&z_argv);
++    zval_ptr_dtor_nogc(&z_fun);
+ 
+     if (Z_TYPE(z_ret) == IS_ARRAY) {
+         h_keys = Z_ARRVAL(z_ret);
+@@ -1181,7 +1181,7 @@
+     }
+ 
+     if (!count) {
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+         return;
+     }
+ 
+@@ -1203,7 +1203,7 @@
+     } ZEND_HASH_FOREACH_END();
+ 
+     /* cleanup */
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_ret);
+ }
+ 
+ void
+--- ./redis.c.bak	2025-11-06 12:51:43
++++ ./redis.c	2025-11-06 12:51:43
+@@ -2040,7 +2040,7 @@
+         REDIS_DISABLE_MODE(redis_sock, MULTI);
+         redis_sock->watching = 0;
+         if (ret < 0) {
+-            zval_dtor(&z_ret);
++            zval_ptr_dtor_nogc(&z_ret);
+             ZVAL_FALSE(&z_ret);
+         }
+     }
+@@ -2057,7 +2057,7 @@
+                 array_init(&z_ret);
+                 if (redis_sock_read_multibulk_multi_reply_loop(
+                     INTERNAL_FUNCTION_PARAM_PASSTHRU, redis_sock, &z_ret) != SUCCESS) {
+-                    zval_dtor(&z_ret);
++                    zval_ptr_dtor_nogc(&z_ret);
+                     ZVAL_FALSE(&z_ret);
+                 }
+             }
+@@ -2881,7 +2881,7 @@
+         /* Free our previous reply if we're back in the loop.  We know we are
+          * if our return_value is an array */
+         if (Z_TYPE_P(return_value) == IS_ARRAY) {
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(return_value);
+             ZVAL_NULL(return_value);
+         }
+ 
+--- ./cluster_library.c.bak	2025-11-06 12:51:43
++++ ./cluster_library.c	2025-11-06 12:51:43
+@@ -1954,12 +1954,12 @@
+         if ((z_tmp = zend_hash_index_find(Z_ARRVAL(z_tab), 0)) == NULL ||
+             strcasecmp(Z_STRVAL_P(z_tmp), sctx->kw) != 0
+         ) {
+-            zval_dtor(&z_tab);
++            zval_ptr_dtor_nogc(&z_tab);
+             efree(sctx);
+             RETURN_FALSE;
+         }
+ 
+-        zval_dtor(&z_tab);
++        zval_ptr_dtor_nogc(&z_tab);
+         pull = 1;
+     }
+ 
+@@ -1990,7 +1990,7 @@
+         {
+             is_pmsg = *Z_STRVAL_P(z_type) == 'p';
+         } else {
+-            zval_dtor(&z_tab);
++            zval_ptr_dtor_nogc(&z_tab);
+             continue;
+         }
+ 
+@@ -2029,14 +2029,14 @@
+         // If we have a return value, free it
+         zval_ptr_dtor(&z_ret);
+ 
+-        zval_dtor(&z_tab);
++        zval_ptr_dtor_nogc(&z_tab);
+     }
+ 
+     // We're no longer subscribing, due to an error
+     c->subscribed_slot = -1;
+ 
+     // Cleanup
+-    zval_dtor(&z_tab);
++    zval_ptr_dtor_nogc(&z_tab);
+     efree(sctx);
+ 
+     // Failure
+@@ -2060,8 +2060,8 @@
+         if (!cluster_zval_mbulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, pull, mbulk_resp_loop_raw, &z_tab) ||
+             (z_chan = zend_hash_index_find(Z_ARRVAL(z_tab), 1)) == NULL
+         ) {
+-            zval_dtor(&z_tab);
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(&z_tab);
++            zval_ptr_dtor_nogc(return_value);
+             RETURN_FALSE;
+         }
+ 
+@@ -2069,8 +2069,8 @@
+         if ((z_flag = zend_hash_index_find(Z_ARRVAL(z_tab), 2)) == NULL ||
+             Z_STRLEN_P(z_flag) != 2
+         ) {
+-            zval_dtor(&z_tab);
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(&z_tab);
++            zval_ptr_dtor_nogc(return_value);
+             RETURN_FALSE;
+         }
+ 
+@@ -2080,7 +2080,7 @@
+         // Add result
+         add_assoc_bool(return_value, Z_STRVAL_P(z_chan), flag[1] == '1');
+ 
+-        zval_dtor(&z_tab);
++        zval_ptr_dtor_nogc(&z_tab);
+         pull = 1;
+     }
+ }
+@@ -2272,7 +2272,7 @@
+ 
+             /* Call our specified callback */
+             if (cb(c->cmd_sock, &z_result, c->reply_len, ctx) == FAILURE) {
+-                zval_dtor(&z_result);
++                zval_ptr_dtor_nogc(&z_result);
+                 CLUSTER_RETURN_FALSE(c);
+             }
+         }
+@@ -2403,7 +2403,7 @@
+     c->cmd_sock->compression = c->flags->compression;
+ 
+     if (redis_read_stream_messages(c->cmd_sock, c->reply_len, &z_messages) < 0) {
+-        zval_dtor(&z_messages);
++        zval_ptr_dtor_nogc(&z_messages);
+         CLUSTER_RETURN_FALSE(c);
+     }
+ 
+@@ -2427,7 +2427,7 @@
+     } else {
+         array_init(&z_streams);
+         if (redis_read_stream_messages_multi(c->cmd_sock, c->reply_len, &z_streams) < 0) {
+-            zval_dtor(&z_streams);
++            zval_ptr_dtor_nogc(&z_streams);
+             CLUSTER_RETURN_FALSE(c);
+         }
+     }
+@@ -2449,7 +2449,7 @@
+     ZEND_ASSERT(ctx == NULL || ctx == PHPREDIS_CTX_PTR);
+ 
+     if (redis_read_xclaim_reply(c->cmd_sock, c->reply_len, ctx == PHPREDIS_CTX_PTR, &z_msg) < 0) {
+-        zval_dtor(&z_msg);
++        zval_ptr_dtor_nogc(&z_msg);
+         CLUSTER_RETURN_FALSE(c);
+     }
+ 
+@@ -2469,7 +2469,7 @@
+ 
+     array_init(&z_ret);
+     if (redis_read_xinfo_response(c->cmd_sock, &z_ret, c->reply_len) != SUCCESS) {
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+         CLUSTER_RETURN_FALSE(c);
+     }
+ 
+@@ -2504,7 +2504,7 @@
+ 
+     array_init(&z_ret);
+     if (cb(c->cmd_sock, &z_ret, c->reply_len) != SUCCESS) {
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+         CLUSTER_RETURN_FALSE(c);
+     }
+ 
+@@ -2547,7 +2547,7 @@
+ 
+     // Call our callback
+     if (cb(c->cmd_sock, z_ret, c->reply_len, NULL) == FAILURE) {
+-        zval_dtor(z_ret);
++        zval_ptr_dtor_nogc(z_ret);
+         return NULL;
+     }
+ 
+@@ -2573,7 +2573,7 @@
+             c->cmd_sock = SLOT_SOCK(c, fi->slot);
+ 
+             if (cluster_check_response(c, &c->reply_type) < 0) {
+-                zval_dtor(multi_resp);
++                zval_ptr_dtor_nogc(multi_resp);
+                 RETURN_FALSE;
+             }
+ 
+@@ -2588,7 +2588,7 @@
+     }
+ 
+     // Set our return array
+-    zval_dtor(return_value);
++    zval_ptr_dtor_nogc(return_value);
+     RETVAL_ZVAL(multi_resp, 0, 1);
+ }
+ 
+@@ -2704,7 +2704,7 @@
+     if (c->reply_type != TYPE_LINE) {
+         php_error_docref(0, E_ERROR,
+             "Invalid reply type returned for MSET command");
+-        zval_dtor(mctx->z_multi);
++        zval_ptr_dtor_nogc(mctx->z_multi);
+         efree(mctx->z_multi);
+         efree(mctx);
+         RETURN_FALSE;
+@@ -2713,9 +2713,9 @@
+     // Set our return if it's the last call
+     if (mctx->last) {
+         if (CLUSTER_IS_ATOMIC(c)) {
+-            ZVAL_BOOL(return_value, zval_is_true(mctx->z_multi));
++            ZVAL_BOOL(return_value, zend_is_true(mctx->z_multi));
+         } else {
+-            add_next_index_bool(&c->multi_resp, zval_is_true(mctx->z_multi));
++            add_next_index_bool(&c->multi_resp, zend_is_true(mctx->z_multi));
+         }
+         efree(mctx->z_multi);
+     }
+@@ -2914,7 +2914,7 @@
+                     zend_string *zstr = zval_get_string(z);
+                     add_assoc_double_ex(z_result, ZSTR_VAL(zstr), ZSTR_LEN(zstr), atof(line));
+                     zend_string_release(zstr);
+-                    zval_dtor(z);
++                    zval_ptr_dtor_nogc(z);
+                 } else {
+                     add_assoc_double_ex(z_result, key, key_len, atof(line));
+                 }
+@@ -2956,7 +2956,7 @@
+ 
+         // Clean up key context
+         zend_string_release(zstr);
+-        zval_dtor(&z_keys[i]);
++        zval_ptr_dtor_nogc(&z_keys[i]);
+     }
+ 
+     // Clean up our keys overall
+--- ./library.c.bak	2025-11-06 12:51:43
++++ ./library.c	2025-11-06 12:51:43
+@@ -520,7 +520,7 @@
+         zend_hash_str_update_mem(subs, Z_STRVAL_P(z_tmp), Z_STRLEN_P(z_tmp),
+                                     &sctx->cb, sizeof(sctx->cb));
+ 
+-        zval_dtor(&z_resp);
++        zval_ptr_dtor_nogc(&z_resp);
+     }
+ 
+     if (strcasecmp(sctx->kw, "ssubscribe") == 0) {
+@@ -574,7 +574,7 @@
+         ) {
+             is_pmsg = *Z_STRVAL_P(z_type)=='p';
+         } else {
+-            zval_dtor(&z_resp);
++            zval_ptr_dtor_nogc(&z_resp);
+             continue;
+         }
+ 
+@@ -623,7 +623,7 @@
+ 
+         // If we have a return value free it
+         zval_ptr_dtor(&z_ret);
+-        zval_dtor(&z_resp);
++        zval_ptr_dtor_nogc(&z_resp);
+     }
+ 
+     RETVAL_TRUE;
+@@ -635,7 +635,7 @@
+     zend_hash_destroy(subs);
+     efree(subs);
+ failure:
+-    zval_dtor(&z_resp);
++    zval_ptr_dtor_nogc(&z_resp);
+     RETVAL_FALSE;
+     return FAILURE;
+ }
+@@ -667,8 +667,8 @@
+             (z_chan = zend_hash_index_find(Z_ARRVAL(z_resp), 1)) == NULL
+         ) {
+             efree(sctx);
+-            zval_dtor(&z_resp);
+-            zval_dtor(&z_ret);
++            zval_ptr_dtor_nogc(&z_resp);
++            zval_ptr_dtor_nogc(&z_ret);
+             RETVAL_FALSE;
+             return FAILURE;
+         }
+@@ -682,7 +682,7 @@
+             add_assoc_bool_ex(&z_ret, Z_STRVAL_P(z_chan), Z_STRLEN_P(z_chan), 1);
+         }
+ 
+-        zval_dtor(&z_resp);
++        zval_ptr_dtor_nogc(&z_resp);
+     }
+ 
+     efree(sctx);
+@@ -1563,7 +1563,7 @@
+ 
+         for (i = 0;  i < elements; ++i) {
+             if (redis_sock_gets(redis_sock, inbuf, sizeof(inbuf), &len) < 0) {
+-                zval_dtor(zdst);
++                zval_ptr_dtor_nogc(zdst);
+                 return FAILURE;
+             }
+             add_next_index_long(zdst, atol(inbuf + 1));
+@@ -1734,7 +1734,7 @@
+     }
+ 
+     /* replace */
+-    zval_dtor(z_tab);
++    zval_ptr_dtor_nogc(z_tab);
+     ZVAL_ZVAL(z_tab, &z_ret, 0, 0);
+ }
+ 
+@@ -1750,7 +1750,7 @@
+          zend_hash_move_forward(Z_ARRVAL_P(z_tab))
+     ) {
+         if ((zv = zend_hash_get_current_data(Z_ARRVAL_P(z_tab))) == NULL) {
+-            zval_dtor(&z_ret);
++            zval_ptr_dtor_nogc(&z_ret);
+             return FAILURE;
+         }
+         if (Z_TYPE_P(zv) == IS_STRING) {
+@@ -1758,12 +1758,12 @@
+             zend_hash_move_forward(Z_ARRVAL_P(z_tab));
+             if ((zv = zend_hash_get_current_data(Z_ARRVAL_P(z_tab))) == NULL) {
+                 zend_string_release(zkey);
+-                zval_dtor(&z_ret);
++                zval_ptr_dtor_nogc(&z_ret);
+                 return FAILURE;
+             }
+             if (Z_TYPE_P(zv) == IS_ARRAY && array_zip_values_recursive(zv) != SUCCESS) {
+                 zend_string_release(zkey);
+-                zval_dtor(&z_ret);
++                zval_ptr_dtor_nogc(&z_ret);
+                 return FAILURE;
+             }
+             ZVAL_ZVAL(&z_sub, zv, 1, 0);
+@@ -1771,14 +1771,14 @@
+             zend_string_release(zkey);
+         } else {
+             if (Z_TYPE_P(zv) == IS_ARRAY && array_zip_values_recursive(zv) != SUCCESS) {
+-                zval_dtor(&z_ret);
++                zval_ptr_dtor_nogc(&z_ret);
+                 return FAILURE;
+             }
+             ZVAL_ZVAL(&z_sub, zv, 1, 0);
+             add_next_index_zval(&z_ret, &z_sub);
+         }
+     }
+-    zval_dtor(z_tab);
++    zval_ptr_dtor_nogc(z_tab);
+     ZVAL_ZVAL(z_tab, &z_ret, 0, 0);
+     return SUCCESS;
+ }
+@@ -1868,7 +1868,7 @@
+         int i;
+         for (i = 0; i < elements; i++) {
+             if (read_mbulk_header(redis_sock, &subele) < 0 || subele != 2) {
+-                zval_dtor(&zele);
++                zval_ptr_dtor_nogc(&zele);
+                 goto fail;
+             }
+             redis_mbulk_reply_loop(redis_sock, &zele, subele, UNSERIALIZE_KEYS);
+@@ -1884,7 +1884,7 @@
+     return SUCCESS;
+ 
+ fail:
+-    zval_dtor(zdst);
++    zval_ptr_dtor_nogc(zdst);
+     ZVAL_FALSE(zdst);
+ 
+     return FAILURE;
+@@ -1969,7 +1969,7 @@
+         } ZEND_HASH_FOREACH_END();
+ 
+         // Cleanup
+-        zval_dtor(&z_multi_result);
++        zval_ptr_dtor_nogc(&z_multi_result);
+     }
+ 
+     return SUCCESS;
+@@ -2077,7 +2077,7 @@
+     zv = zend_hash_str_find(Z_ARRVAL(z_ret), ZEND_STRL("version"));
+     redis_sock->hello.version = zv ? zval_get_string(zv) : ZSTR_EMPTY_ALLOC();
+ 
+-    zval_dtor(&z_ret);
++    zval_ptr_dtor_nogc(&z_ret);
+ 
+     if (ctx == PHPREDIS_CTX_PTR) {
+         ZVAL_STR_COPY(&z_ret, redis_sock->hello.server);
+@@ -2249,7 +2249,7 @@
+     if (read_mbulk_header(redis_sock, &messages) < 0 ||
+         redis_read_stream_messages(redis_sock, messages, &z_messages) < 0)
+     {
+-        zval_dtor(&z_messages);
++        zval_ptr_dtor_nogc(&z_messages);
+         if (IS_ATOMIC(redis_sock)) {
+             RETVAL_FALSE;
+         } else {
+@@ -2297,7 +2297,7 @@
+     return 0;
+ failure:
+     efree(id);
+-    zval_dtor(&z_messages);
++    zval_ptr_dtor_nogc(&z_messages);
+     return -1;
+ }
+ 
+@@ -2327,7 +2327,7 @@
+     return 0;
+ 
+ cleanup:
+-    zval_dtor(&z_rv);
++    zval_ptr_dtor_nogc(&z_rv);
+ failure:
+     if (IS_ATOMIC(redis_sock)) {
+         RETVAL_FALSE;
+@@ -2438,8 +2438,8 @@
+     return 0;
+ 
+ failure:
+-    zval_dtor(&z_msgs);
+-    zval_dtor(rv);
++    zval_ptr_dtor_nogc(&z_msgs);
++    zval_ptr_dtor_nogc(rv);
+     if (id) efree(id);
+ 
+     return -1;
+@@ -2519,7 +2519,7 @@
+         case TYPE_MULTIBULK:
+             array_init(&zv);
+             if (redis_read_xinfo_response(redis_sock, &zv, li) != SUCCESS) {
+-                zval_dtor(&zv);
++                zval_ptr_dtor_nogc(&zv);
+                 goto failure;
+             }
+             if (key) {
+@@ -2558,7 +2558,7 @@
+             }
+             return SUCCESS;
+         }
+-        zval_dtor(&z_ret);
++        zval_ptr_dtor_nogc(&z_ret);
+     }
+     if (IS_ATOMIC(redis_sock)) {
+         RETVAL_FALSE;
+@@ -2655,7 +2655,7 @@
+ 
+         res = cb(redis_sock, &zret, len);
+         if (res == FAILURE) {
+-            zval_dtor(&zret);
++            zval_ptr_dtor_nogc(&zret);
+             ZVAL_FALSE(&zret);
+         }
+     } else {
+@@ -2838,7 +2838,7 @@
+                 redis_sock->persistent_id = zval_get_string(val);
+                 redis_sock->persistent = 1;
+             } else {
+-                redis_sock->persistent = zval_is_true(val);
++                redis_sock->persistent = zend_is_true(val);
+             }
+         } else if (zend_string_equals_literal_ci(zkey, "retryInterval")) {
+             if (Z_TYPE_P(val) != IS_LONG && Z_TYPE_P(val) != IS_DOUBLE) {
+@@ -3597,7 +3597,7 @@
+ end:
+     // Cleanup z_keys
+     for (i = 0; Z_TYPE(z_keys[i]) != IS_NULL; ++i) {
+-        zval_dtor(&z_keys[i]);
++        zval_ptr_dtor_nogc(&z_keys[i]);
+     }
+     efree(z_keys);
+ 
+--- ./redis_commands.c.bak	2025-11-06 12:51:43
++++ ./redis_commands.c	2025-11-06 12:51:43
+@@ -486,7 +486,7 @@
+                 } else if (zend_string_equals_literal_ci(zkey, "port")) {
+                     port = zval_get_long(z_ele);
+                 } else if (zend_string_equals_literal_ci(zkey, "force")) {
+-                    force = zval_is_true(z_ele);
++                    force = zend_is_true(z_ele);
+                 }
+             }
+         } ZEND_HASH_FOREACH_END();
+@@ -632,7 +632,7 @@
+ 
+         if (key) {
+             if ((flags & REDIS_ZCMD_HAS_WITHSCORES) && zend_string_equals_literal_ci(key, "WITHSCORES"))
+-                dst->withscores = zval_is_true(zv);
++                dst->withscores = zend_is_true(zv);
+             else if ((flags & REDIS_ZCMD_HAS_LIMIT) && zend_string_equals_literal_ci(key, "LIMIT") &&
+                      Z_TYPE_P(zv) == IS_ARRAY)
+             {
+@@ -1092,7 +1092,7 @@
+                 if (zend_string_equals_literal_ci(zkey, "count")) {
+                     count = zval_get_long(z_ele);
+                 } else if (zend_string_equals_literal_ci(zkey, "withscores")) {
+-                    withscores = zval_is_true(z_ele);
++                    withscores = zend_is_true(z_ele);
+                 }
+             }
+         } ZEND_HASH_FOREACH_END();
+@@ -2475,13 +2475,13 @@
+                     expire = zval_get_long(z_ele);
+                     persist = 0;
+                 } else if (ZSTR_STRICMP_STATIC(zkey, "PERSIST")) {
+-                    persist = zval_is_true(z_ele);
++                    persist = zend_is_true(z_ele);
+                     exp_type = NULL;
+                 }
+             } else if (Z_TYPE_P(z_ele) == IS_STRING &&
+                        zend_string_equals_literal_ci(Z_STR_P(z_ele), "PERSIST"))
+             {
+-                persist = zval_is_true(z_ele);
++                persist = zend_is_true(z_ele);
+                 exp_type = NULL;
+             }
+         } ZEND_HASH_FOREACH_END();
+@@ -2769,14 +2769,14 @@
+         if (key) {
+             if (zend_string_equals_literal_ci(key, "LEN")) {
+                 dst->idx = 0;
+-                dst->len = zval_is_true(zv);
++                dst->len = zend_is_true(zv);
+             } else if (zend_string_equals_literal_ci(key, "IDX")) {
+                 dst->len = 0;
+-                dst->idx = zval_is_true(zv);
++                dst->idx = zend_is_true(zv);
+             } else if (zend_string_equals_literal_ci(key, "MINMATCHLEN")) {
+                 dst->minmatchlen = zval_get_long(zv);
+             } else if (zend_string_equals_literal_ci(key, "WITHMATCHLEN")) {
+-                dst->withmatchlen = zval_is_true(zv);
++                dst->withmatchlen = zend_is_true(zv);
+             } else {
+                 php_error_docref(NULL, E_WARNING, "Unknown LCS option '%s'", ZSTR_VAL(key));
+             }
+@@ -3562,7 +3562,7 @@
+                 if (zend_string_equals_literal_ci(zkey, "count")) {
+                     count = zval_get_long(z_ele);
+                 } else if (zend_string_equals_literal_ci(zkey, "withvalues")) {
+-                    withvalues = zval_is_true(z_ele);
++                    withvalues = zend_is_true(z_ele);
+                 }
+             } else if (Z_TYPE_P(z_ele) == IS_STRING) {
+                 if (zend_string_equals_literal_ci(Z_STR_P(z_ele), "WITHVALUES")) {
+@@ -3708,7 +3708,7 @@
+         if (slot) {
+             php_error_docref(NULL, E_WARNING,
+                 "SORT BY option is not allowed in Redis Cluster");
+-            zval_dtor(&z_argv);
++            zval_ptr_dtor_nogc(&z_argv);
+             return FAILURE;
+         }
+ 
+@@ -3738,7 +3738,7 @@
+         if (cross_slot) {
+             php_error_docref(0, E_WARNING,
+                 "Error, SORT key and STORE key have different slots!");
+-            zval_dtor(&z_argv);
++            zval_ptr_dtor_nogc(&z_argv);
+             return FAILURE;
+         }
+ 
+@@ -3759,7 +3759,7 @@
+         if (slot) {
+             php_error_docref(NULL, E_WARNING,
+                 "GET option for SORT disabled in Redis Cluster");
+-            zval_dtor(&z_argv);
++            zval_ptr_dtor_nogc(&z_argv);
+             return FAILURE;
+         }
+ 
+@@ -3788,7 +3788,7 @@
+             if (added == 0) {
+                 php_error_docref(NULL, E_WARNING,
+                     "Array of GET values requested, but none are valid");
+-                zval_dtor(&z_argv);
++                zval_ptr_dtor_nogc(&z_argv);
+                 return FAILURE;
+             }
+         }
+@@ -3797,7 +3797,7 @@
+     // ALPHA
+     if (((z_ele = zend_hash_str_find(ht_opts, "alpha", sizeof("alpha") - 1)) != NULL ||
+          (z_ele = zend_hash_str_find(ht_opts, "ALPHA", sizeof("ALPHA") - 1)) != NULL) &&
+-         zval_is_true(z_ele)
++         zend_is_true(z_ele)
+     ) {
+         add_next_index_stringl(&z_argv, "ALPHA", sizeof("ALPHA") - 1);
+     }
+@@ -3818,7 +3818,7 @@
+             ) {
+                 php_error_docref(NULL, E_WARNING,
+                     "LIMIT options on SORT command must be longs or strings");
+-                zval_dtor(&z_argv);
++                zval_ptr_dtor_nogc(&z_argv);
+                 return FAILURE;
+             }
+ 
+@@ -3860,7 +3860,7 @@
+ 
+     /* Clean up our arguments array.  Note we don't have to free any prefixed
+      * key as that we didn't duplicate the pointer if we prefixed */
+-    zval_dtor(&z_argv);
++    zval_ptr_dtor_nogc(&z_argv);
+ 
+     // Push our length and command
+     *cmd_len = cmdstr.len;
+@@ -4138,7 +4138,7 @@
+ 
+         z_tmp = zend_hash_index_find(Z_ARRVAL_P(optval), 1);
+         if (z_tmp) {
+-            opts->any = zval_is_true(z_tmp);
++            opts->any = zend_is_true(z_tmp);
+         }
+     } else {
+         if (Z_LVAL_P(optval) <= 0)
+@@ -4915,13 +4915,13 @@
+                     }
+                     prefix = z_ele;
+                 } else if (zend_string_equals_literal_ci(zkey, "bcast")) {
+-                    bcast = zval_is_true(z_ele);
+-                } else if (zend_string_equals_literal_ci(zkey, "optin")) {
+-                    optin = zval_is_true(z_ele);
++                    bcast = zend_is_true(z_ele);
++                } else if (zend_string_equals_literal_ci(zkey, "optin")) {
++                    optin = zend_is_true(z_ele);
+                 } else if (zend_string_equals_literal_ci(zkey, "optout")) {
+-                    optout = zval_is_true(z_ele);
++                    optout = zend_is_true(z_ele);
+                 } else if (zend_string_equals_literal_ci(zkey, "noloop")) {
+-                    noloop = zval_is_true(z_ele);
++                    noloop = zend_is_true(z_ele);
+                 }
+             }
+         } ZEND_HASH_FOREACH_END();
+@@ -4935,7 +4935,7 @@
+         ZVAL_STRICMP_STATIC(&z_args[0], "off")
+     )) {
+         redis_cmd_append_sstr(cmdstr, Z_STRVAL(z_args[0]), Z_STRLEN(z_args[0]));
+-    } else if (zval_is_true(&z_args[0])) {
++    } else if (zend_is_true(&z_args[0])) {
+         REDIS_CMD_APPEND_SSTR_STATIC(cmdstr, "ON");
+     } else {
+         REDIS_CMD_APPEND_SSTR_STATIC(cmdstr, "OFF");
+@@ -5010,7 +5010,7 @@
+             ZVAL_STRICMP_STATIC(&z_args[0], "no")
+         )) {
+             redis_cmd_append_sstr(&cmdstr, Z_STRVAL(z_args[0]), Z_STRLEN(z_args[0]));
+-        } else if (zval_is_true(&z_args[0])) {
++        } else if (zend_is_true(&z_args[0])) {
+             REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "YES");
+         } else {
+             REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "NO");
+@@ -5040,7 +5040,7 @@
+             ZVAL_STRICMP_STATIC(&z_args[0], "off")
+         )) {
+             redis_cmd_append_sstr(&cmdstr, Z_STRVAL(z_args[0]), Z_STRLEN(z_args[0]));
+-        } else if (zval_is_true(&z_args[0])) {
++        } else if (zend_is_true(&z_args[0])) {
+             REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "ON");
+         } else {
+             REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "OFF");
+@@ -5214,7 +5214,7 @@
+             if (zend_string_equals_literal_ci(zkey, "db")) {
+                 db = zval_get_long(zv);
+             } else if (zend_string_equals_literal_ci(zkey, "replace")) {
+-                replace = zval_is_true(zv);
++                replace = zend_is_true(zv);
+             }
+         } ZEND_HASH_FOREACH_END();
+     }
+@@ -6233,7 +6233,7 @@
+             }
+             break;
+         case REDIS_OPT_PACK_IGNORE_NUMBERS:
+-            redis_sock->pack_ignore_numbers = zval_is_true(val);
++            redis_sock->pack_ignore_numbers = zend_is_true(val);
+             RETURN_TRUE;
+         case REDIS_OPT_COMPRESSION_LEVEL:
+             val_long = zval_get_long(val);
+--- ./redis_session.c.bak	2025-11-06 12:51:43
++++ ./redis_session.c	2025-11-06 12:51:43
+@@ -421,17 +421,18 @@
+ PS_OPEN_FUNC(redis)
+ {
+     php_url *url;
+     zval params, context, *zv;
+     int i, j, path_len;
++    const char *_save_path = ZSTR_VAL(save_path);
+
+     redis_pool *pool = ecalloc(1, sizeof(*pool));
+
+-    for (i = 0, j = 0, path_len = strlen(save_path); i < path_len; i = j + 1) {
++    for (i = 0, j = 0, path_len = strlen(_save_path); i < path_len; i = j + 1) {
+         /* find beginning of url */
+-        while ( i< path_len && (isspace(save_path[i]) || save_path[i] == ','))
++        while ( i< path_len && (isspace(_save_path[i]) || _save_path[i] == ','))
+             i++;
+
+         /* find end of url */
+         j = i;
+-        while (j<path_len && !isspace(save_path[j]) && save_path[j] != ',')
++        while (j<path_len && !isspace(_save_path[j]) && _save_path[j] != ',')
+             j++;
+@@ -447,10 +448,10 @@
+             /* translate unix: into file: */
+-            if (!redis_strncmp(save_path+i, ZEND_STRL("unix:"))) {
++            if (!redis_strncmp(_save_path+i, ZEND_STRL("unix:"))) {
+                 int len = j-i;
+-                char *path = estrndup(save_path+i, len);
++                char *path = estrndup(_save_path+i, len);
+                 memcpy(path, "file:", sizeof("file:")-1);
+                 url = php_url_parse_ex(path, len);
+                 efree(path);
+             } else {
+-                url = php_url_parse_ex(save_path+i, j-i);
++                url = php_url_parse_ex(_save_path+i, j-i);
+             }
+@@ -459,5 +460,5 @@
+             if (!url) {
+-                char *path = estrndup(save_path+i, j-i);
++                char *path = estrndup(_save_path+i, j-i);
+                 php_error_docref(NULL, E_WARNING,
+                     "Failed to parse session.save_path (error at offset %d, url was '%s')", i, path);
+                 efree(path);
+@@ -494,7 +495,7 @@
+                     ZVAL_ZVAL(&context, zv, 1, 0);
+                 }
+ 
+-                zval_dtor(&params);
++                zval_ptr_dtor_nogc(&params);
+             }
+ 
+             if ((url->path == NULL && url->host == NULL) || weight <= 0 || timeout <= 0) {
+@@ -500,5 +501,5 @@
+             if ((url->path == NULL && url->host == NULL) || weight <= 0 || timeout <= 0) {
+-                char *path = estrndup(save_path+i, j-i);
++                char *path = estrndup(_save_path+i, j-i);
+                 php_error_docref(NULL, E_WARNING,
+                     "Failed to parse session.save_path (error at offset %d, url was '%s')", i, path);
+                 efree(path);
+@@ -955,7 +956,7 @@
+     /* We need seeds */
+     zv = REDIS_HASH_STR_FIND_TYPE_STATIC(Z_ARRVAL(z_conf), "seed", IS_ARRAY);
+     if (zv == NULL) {
+-        zval_dtor(&z_conf);
++        zval_ptr_dtor_nogc(&z_conf);
+         return FAILURE;
+     }
+ 
+@@ -972,7 +972,7 @@
+     if (timeout < 0 || read_timeout < 0) {
+         php_error_docref(NULL, E_WARNING,
+             "Can't set negative timeout values in session configuration");
+-        zval_dtor(&z_conf);
++        zval_ptr_dtor_nogc(&z_conf);
+         return FAILURE;
+     }
+ 
+@@ -1000,7 +1000,7 @@
+         if (user) zend_string_release(user); \
+         if (pass) zend_string_release(pass); \
+         free_seed_array(seeds, nseeds); \
+-        zval_dtor(&z_conf); \
++        zval_ptr_dtor_nogc(&z_conf); \
+ 
+     /* Extract at least one valid seed or abort */
+     seeds = cluster_validate_args(timeout, read_timeout, ht_seeds, &nseeds, NULL);
+--- ./redis_cluster.c.bak	2025-11-06 12:51:43
++++ ./redis_cluster.c	2025-11-06 12:51:43
+@@ -179,7 +179,7 @@
+     if ((z_value = zend_hash_str_find(Z_ARRVAL(z_seeds), name, name_len)) != NULL) {
+         ht_seeds = Z_ARRVAL_P(z_value);
+     } else {
+-        zval_dtor(&z_seeds);
++        zval_ptr_dtor_nogc(&z_seeds);
+         CLUSTER_THROW_EXCEPTION("Couldn't find seeds for cluster", 0);
+         return;
+     }
+@@ -189,7 +189,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_double(Z_ARRVAL(z_tmp), name, name_len, &timeout);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* Read timeout */
+@@ -197,7 +197,7 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_double(Z_ARRVAL(z_tmp), name, name_len, &read_timeout);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* Persistent connections */
+@@ -205,21 +205,21 @@
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_bool(Z_ARRVAL(z_tmp), name, name_len, &persistent);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     if ((iptr = INI_STR("redis.clusters.auth"))) {
+         array_init(&z_tmp);
+         sapi_module.treat_data(PARSE_STRING, estrdup(iptr), &z_tmp);
+         redis_conf_auth(Z_ARRVAL(z_tmp), name, name_len, &user, &pass);
+-        zval_dtor(&z_tmp);
++        zval_ptr_dtor_nogc(&z_tmp);
+     }
+ 
+     /* Attempt to create/connect to the cluster */
+     redis_cluster_init(c, ht_seeds, timeout, read_timeout, persistent, user, pass, NULL);
+ 
+     /* Clean up */
+-    zval_dtor(&z_seeds);
++    zval_ptr_dtor_nogc(&z_seeds);
+     if (user) zend_string_release(user);
+     if (pass) zend_string_release(pass);
+ }
+@@ -711,7 +711,7 @@
+     if (cluster_mkey_cmd(INTERNAL_FUNCTION_PARAM_PASSTHRU, "MGET",
+                         sizeof("MGET")-1, z_ret, cluster_mbulk_mget_resp) < 0)
+     {
+-        zval_dtor(z_ret);
++        zval_ptr_dtor_nogc(z_ret);
+         efree(z_ret);
+         RETURN_FALSE;
+     }
+@@ -742,7 +742,7 @@
+     if (cluster_mset_cmd(INTERNAL_FUNCTION_PARAM_PASSTHRU, "MSETNX",
+                          sizeof("MSETNX")-1, z_ret, cluster_msetnx_resp) ==-1)
+     {
+-        zval_dtor(z_ret);
++        zval_ptr_dtor_nogc(z_ret);
+         efree(z_ret);
+         RETURN_FALSE;
+     }
+@@ -820,7 +820,7 @@
+         {
+             php_error_docref(0, E_ERROR, "Can't send KEYS to %s:%d",
+                 ZSTR_VAL(node->sock->host), node->sock->port);
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(return_value);
+             efree(cmd);
+             RETURN_FALSE;
+         }
+@@ -2339,7 +2339,7 @@
+     do {
+         /* Free our return value if we're back in the loop */
+         if (Z_TYPE_P(return_value) == IS_ARRAY) {
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(return_value);
+             ZVAL_NULL(return_value);
+         }
+ 
+@@ -2511,7 +2511,7 @@
+     do {
+         /* Free our return value if we're back in the loop */
+         if (Z_TYPE_P(return_value) == IS_ARRAY) {
+-            zval_dtor(return_value);
++            zval_ptr_dtor_nogc(return_value);
+             ZVAL_NULL(return_value);
+         }
+ 
+--- common.h.bak
++++ common.h
+@@ -1,4 +1,19 @@
+ #include "php.h"
++#ifndef INI_STR
++# define INI_STR(name) zend_ini_string((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_INT
++# define INI_INT(name) zend_ini_long((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_FLT
++# define INI_FLT(name) zend_ini_double((name), (size_t)strlen(name), 0)
++#endif
++#ifndef INI_BOOL
++# define INI_BOOL(name) zend_ini_parse_bool(zend_ini_str((name), (size_t)strlen(name), 0))
++#endif
++#ifndef EMPTY_SWITCH_DEFAULT_CASE
++# define EMPTY_SWITCH_DEFAULT_CASE() default: ZEND_UNREACHABLE();
++#endif
+ #include "php_ini.h"
+ 
+ #ifndef REDIS_COMMON_H

@@ -1,0 +1,54 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# ServBay Node.js Command Alias Generator
+# -----------------------------------------------------------------------------
+# This script generates alias bash scripts for different Node.js commands
+# with GLOBAL_NODE_VERSION set. It creates scripts like 'node-20', 'npm-20',
+# which automatically set GLOBAL_NODE_VERSION and execute specific node.js command
+# with original arguments.
+#
+# Created on: Sat Dec 29, 2024
+# Version: 1.0.0
+#
+# Copyright (c) 2023 ServBay, LLC.
+# Author: Sam NG (sam@servbay.com)
+# -----------------------------------------------------------------------------
+
+# 定义输出目录
+OUTPUT_DIR="./script/alias/"
+
+# 定义要生成的 Node.js 版本列表
+declare -a NODE_VERSIONS=("12" "13" "14" "15" "16" "17" "18" "19" "20" "21" "22" "23")
+
+# 定义要生成别名的 Node.js 命令列表
+declare -a NODE_COMMANDS=("node" "npm" "npx" "pnpm" "pnpx" "corepack" "yarn" "yarnpkg")
+
+# 循环创建别名脚本
+for version in "${NODE_VERSIONS[@]}"; do
+  for command in "${NODE_COMMANDS[@]}"; do
+      # 别名脚本名称
+      ALIAS_SCRIPT_NAME="$command-$version"
+      ALIAS_SCRIPT_PATH="$OUTPUT_DIR/$ALIAS_SCRIPT_NAME"
+
+      # 别名脚本内容
+      ALIAS_SCRIPT_CONTENT="#!/bin/bash
+# This script is generated to use Node.js version $version with $command
+# 
+# Copyright (c) 2025 ServBay, LLC.
+# Author: Sam NG (sam@servbay.com)
+
+SCRIPT_DIR=\$(dirname \$(readlink -f \${BASH_SOURCE[0]}))
+GLOBAL_NODE_VERSION=$version \"\$SCRIPT_DIR/$command\" \"\$@\"
+"
+
+      # 将内容写入别名脚本文件
+      echo -n "$ALIAS_SCRIPT_CONTENT" > "$ALIAS_SCRIPT_PATH"
+
+      # 赋予执行权限
+      chmod +x "$ALIAS_SCRIPT_PATH"
+
+      echo "Generated alias script: $ALIAS_SCRIPT_PATH"
+  done
+done
+
+echo "Alias script generation complete."

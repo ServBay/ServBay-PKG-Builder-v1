@@ -1,0 +1,1844 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# ServBay Windows Package Build Script
+# -----------------------------------------------------------------------------
+#
+# Purpose:
+#   Automates the download, extraction, and re-packaging (into .7z format)
+#   of various software packages required for the ServBay environment on Windows.
+#   It reads package information from an external file and processes each entry.
+#
+# Usage:
+#   ./build_windows <architecture> [-p <packages>]
+#   Example: ./build_windows x64
+#   Example: ./build_windows x64 -p php-8.3.29,php-8.4.16,node-22.22.0
+#
+# Arguments:
+#   <architecture>: The target Windows architecture. Must be one of:
+#                   arm64, x86, x64.
+#   -p <packages>:  Optional. Comma-separated list of name-version pairs to build.
+#                   Only matching packages will be processed. If omitted, all
+#                   uncommented packages in the config file will be built.
+#
+# Input File:
+#   windows-packages.txt (in the same directory as the script)
+#   Format: One package per line, tab-separated columns:
+#           PackageName  Version  [OptionalFilename]
+#   Example:
+#           php     8.3.5   php-8.3.5-nts-Win32-vs16-x64.zip
+#           node    20.11.1
+#           mysql   8.0.36
+#           # Lines starting with # are ignored
+#
+# Dependencies:
+#   - wget: For downloading files.
+#   - 7z:   For extracting and compressing archives (p7zip package).
+#
+# Created on: Tue Apr 22, 2025
+# Version: 1.0.0
+#
+# Copyright (c) 2022-2025 ServBay, LLC.
+# Author: Sam Wu (sam@servbay.com)
+# -----------------------------------------------------------------------------
+
+# --- Configuration ---
+set -eo pipefail # Exit on error, treat unset variables as error, exit on pipe fail
+# set -x # Uncomment for detailed debugging
+
+# Input architecture (first positional argument)
+readonly INPUT_ARCH=$1
+# Package filter (set via -p flag, comma-separated name-version pairs)
+PACKAGE_FILTER=""
+# Package definition file
+readonly PACKAGE_FILE="windows-packages.txt"
+# Base directory for build operations
+readonly SERVBAY_BUILD_DIR=$(pwd)
+# Directory containing source files (if any, currently unused)
+# readonly SERVBAY_BUILD_SRC_DIR="${SERVBAY_BUILD_DIR}/src-windows"
+# Output directory for final package files
+readonly SERVBAY_BUILD_OUTPUT_DIR="${SERVBAY_BUILD_DIR}/dist-windows"
+# Temporary directory for intermediate files (created per package)
+readonly SERVBAY_BUILD_TEMP_BASE_DIR="${SERVBAY_BUILD_DIR}/temp-windows-build"
+# Log file path
+readonly LOG_FILE="${SERVBAY_BUILD_DIR}/build_windows_packages.log"
+# PHP Extensions definition file
+readonly PHP_EXTS_FILE="${SERVBAY_BUILD_DIR}/php-exts.json"
+# Cumulative PHP Extensions installation status log file for the entire build run
+readonly PHP_EXTENSIONS_STATUS_LOG_FILE="${SERVBAY_BUILD_DIR}/extensions_build_status.log"
+
+# 7z compression arguments (LZMA2, Max compression, Multi-threading)
+readonly Z_COMPRESS_ARGS="a -t7z -m0=lzma2 -mx=9 -mmt=on"
+
+# --- Helper Functions ---
+
+# Log messages with level
+# Usage: log_message <LEVEL> <Message...>
+# Example: log_message "INFO" "Starting build..."
+# log_message() {
+# Usage: log_message <LEVEL> <Message>
+# Example: log_message "INFO" "Starting build..."
+log_message() {
+    local level=$1
+    local message=$2
+    # Basic color coding for levels (optional)
+    local color_reset="\033[0m"
+    local color_info="\033[0;32m" # Green
+    local color_warn="\033[0;33m" # Yellow
+    local color_error="\033[0;31m" # Red
+
+    local color=""
+    case "$level" in
+        INFO) color="$color_info" ;;
+        WARN) color="$color_warn" ;;
+        ERROR) color="$color_error" ;;
+    esac
+
+    # Print to stderr to separate logs from potential script output
+    >&2 echo -e "${color}[${level}] $(date '+%Y-%m-%d %H:%M:%S') - ${message}${color_reset}"
+
+    # Append plain message to log file
+    local plain_log_entry="[${level}] $(date '+%Y-%m-%d %H:%M:%S') - ${message}"
+    echo "${plain_log_entry}" >> "$LOG_FILE"
+}
+
+
+# Check for required commands
+check_command() {
+    local cmd=$1
+    if ! command -v "$cmd" &> /dev/null; then
+        log_message "ERROR" "$cmd command not found. Please install it."
+        if [[ "$cmd" == "7z" ]]; then
+            log_message "INFO" "Try: brew install p7zip (macOS) or sudo apt-get install p7zip-full (Debian/Ubuntu)"
+        elif [[ "$cmd" == "jq" ]]; then
+            log_message "INFO" "Try: brew install jq (macOS) or sudo apt-get install jq (Debian/Ubuntu)"
+        fi
+        exit 1
+    fi
+}
+
+# Map input architecture to common conventions
+# Usage: map_arch <input_arch>
+map_arch() {
+    local arch_in=$1
+    case "$arch_in" in
+        x64) echo "x64";;        # Or sometimes amd64, x86_64
+        x86) echo "x86";;        # Or sometimes win32, i386
+        arm64) echo "arm64";;    # Or sometimes aarch64
+        *) log_message "ERROR" "Unsupported architecture: $arch_in"; exit 1 ;;
+    esac
+}
+# Get architecture string based on input
+# Validate input architecture early
+if [[ -z "$1" ]]; then
+    log_message "ERROR" "Architecture argument is required. Please use one of [arm64|x86|x64]."
+    echo "Usage: $0 <arm64|x86|x64>" >> "$LOG_FILE" # Also log usage error
+    echo "Usage: $0 <arm64|x86|x64>" >&2
+    exit 1
+fi
+# Check if map_arch returns a valid arch, otherwise it exits
+readonly ARCH=$(map_arch "$1")
+readonly ARCH_WIN_SUFFIX=$ARCH # Alias for clarity if needed
+
+# Parse optional arguments (-p for package filter)
+shift # Remove architecture argument
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -p|--packages)
+            PACKAGE_FILTER="$2"
+            shift 2
+            ;;
+        *)
+            log_message "WARN" "Unknown argument: $1"
+            shift
+            ;;
+    esac
+done
+
+# Download a file
+# Usage: download_file <url> <output_path>
+download_file() {
+    local url=$1
+    local output_path=$2
+    log_message "INFO" "Downloading $url to $output_path"
+    # Use --quiet for less verbose output, check exit code for success
+    wget --quiet --show-progress -c "$url" -O "$output_path"
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        log_message "ERROR" "Failed to download $url (wget exit code: $exit_code). Check $LOG_FILE for details."
+        # Clean up potentially incomplete download
+        rm -f "$output_path" 2>/dev/null || true
+        return 1
+    fi
+    log_message "INFO" "Download successful."
+    return 0
+}
+
+# Extract an archive
+# Usage: extract_archive <archive_path> <extract_dir>
+extract_archive() {
+    local archive_path=$1
+    local extract_dir=$2
+    local exit_code=0
+    local extract_output=""
+    local tool_used=""
+
+    # Check if archive file exists
+    if [[ ! -f "$archive_path" ]]; then
+        log_message "ERROR" "Archive file not found for extraction: $archive_path"
+        return 1
+    fi
+
+    log_message "INFO" "Extracting $archive_path to $extract_dir"
+
+    # Ensure extraction directory exists
+    mkdir -p "$extract_dir" || { log_message "ERROR" "Failed to create extraction directory: $extract_dir"; return 1; }
+
+    # Check file extension (basename) and use appropriate tool
+    local filename=$(basename "$archive_path")
+    case "$filename" in
+        *.tar.gz|*.tgz)
+            tool_used="tar (gzip)"
+            # -x: extract, -z: gzip, -f: file, -C: change to directory
+            tar -xzf "$archive_path" -C "$extract_dir" >> "$LOG_FILE" 2>&1
+            exit_code=$?
+            ;;
+        *.tar.bz2|*.tbz2)
+            tool_used="tar (bzip2)"
+            # -j: bzip2
+            tar -xjf "$archive_path" -C "$extract_dir" >> "$LOG_FILE" 2>&1
+            exit_code=$?
+            ;;
+        *.tar.xz|*.txz)
+            tool_used="tar (xz)"
+            # -J: xz
+            tar -xJf "$archive_path" -C "$extract_dir" >> "$LOG_FILE" 2>&1
+            exit_code=$?
+            ;;
+        *.zip|*.7z|*.rar|*.exe|*.tar) # Add other types 7z handles well, including plain .tar
+             tool_used="7z"
+             # -aoa: Overwrite existing files without prompt
+             7z x "$archive_path" -o"$extract_dir" -aoa >> "$LOG_FILE" 2>&1
+             exit_code=$?
+            ;;
+        *)
+            log_message "ERROR" "Unsupported archive type based on filename suffix: $filename"
+            return 1
+            ;;
+    esac
+
+    # Check exit code
+    if [[ $exit_code -ne 0 ]]; then
+        log_message "ERROR" "Failed to extract $archive_path using $tool_used (Exit code: $exit_code). Check $LOG_FILE for details."
+        return 1
+    # Optional: Check tar/7z output for specific error strings even if exit code is 0
+    # This requires reading the log file, might be complex. Relying on exit code for now.
+    fi
+
+    log_message "INFO" "Extraction successful using $tool_used."
+    return 0 # Explicitly return 0 on success
+}
+
+# Compress a directory's contents
+# Usage: compress_directory <source_dir> <output_archive>
+compress_directory() {
+    local source_dir=$1
+    local output_archive=$2
+    log_message "INFO" "Compressing contents of $source_dir to $output_archive"
+    # Ensure source directory exists
+    if [[ ! -d "$source_dir" ]]; then
+        log_message "ERROR" "Source directory for compression does not exist: $source_dir"
+        return 1
+    fi
+
+    # Change to source directory to avoid including parent folders in the archive
+    pushd "$source_dir" > /dev/null
+    if [[ $? -ne 0 ]]; then
+        log_message "ERROR" "Failed to change directory to $source_dir"
+        # Try to pop back even on failure
+        popd > /dev/null 2>&1 || true
+        return 1
+    fi
+
+    # Compress contents (dot .)
+    7z ${Z_COMPRESS_ARGS} "$output_archive" .
+    local exit_code=$?
+
+    # Pop back regardless of compression success/failure
+    popd > /dev/null
+
+    if [[ $exit_code -ne 0 ]]; then
+        log_message "ERROR" "Failed to compress $output_archive (Exit code: $exit_code)"
+        # Clean up potentially incomplete archive
+        rm -f "$output_archive" 2>/dev/null || true
+        return 1
+    fi
+    log_message "INFO" "Compression successful."
+    return 0
+}
+
+# Compress a directory's contents OR a single file
+# Usage: compress_item <source_item> <output_archive>
+compress_item() {
+    local source_item=$1 # Can be a directory or a file
+    local output_archive=$2
+    local source_basename=$(basename "$source_item")
+
+    # Check if source exists
+    if [[ ! -e "$source_item" ]]; then
+        log_message "ERROR" "Source item for compression does not exist: $source_item"
+        return 1
+    fi
+
+    if [[ -d "$source_item" ]]; then
+        log_message "INFO" "Compressing contents of directory $source_item to $output_archive"
+        # Change to source directory to avoid including parent folders in the archive
+        pushd "$source_item" > /dev/null
+        if [[ $? -ne 0 ]]; then
+            log_message "ERROR" "Failed to change directory to $source_item"
+            popd > /dev/null 2>&1 || true
+            return 1
+        fi
+        # Compress contents (dot .)
+        7z ${Z_COMPRESS_ARGS} "$output_archive" .
+        local exit_code=$?
+        popd > /dev/null # Pop back regardless of compression success/failure
+    elif [[ -f "$source_item" ]]; then
+        log_message "INFO" "Compressing file $source_item to $output_archive"
+        # Change to directory containing the file to control the path inside the archive
+        local source_dir=$(dirname "$source_item")
+        pushd "$source_dir" > /dev/null
+         if [[ $? -ne 0 ]]; then
+            log_message "ERROR" "Failed to change directory to $source_dir"
+            popd > /dev/null 2>&1 || true
+            return 1
+        fi
+        # Compress just the file
+        7z ${Z_COMPRESS_ARGS} "$output_archive" "$source_basename"
+        local exit_code=$?
+        popd > /dev/null # Pop back regardless of compression success/failure
+    else
+        log_message "ERROR" "Source item is not a file or directory: $source_item"
+        return 1
+    fi
+
+
+    if [[ $exit_code -ne 0 ]]; then
+        log_message "ERROR" "Failed to compress $source_basename into $output_archive (Exit code: $exit_code)"
+        # Clean up potentially incomplete archive
+        rm -f "$output_archive" 2>/dev/null || true
+        return 1
+    fi
+    log_message "INFO" "Compression successful."
+    return 0
+}
+
+# Clean up temporary files and directories for a specific package
+# Usage: cleanup_package_temp <package_temp_dir>
+cleanup_package_temp() {
+    local package_temp_dir=$1
+
+    if [[ -n "$package_temp_dir" && -d "$package_temp_dir" ]]; then
+        log_message "INFO" "Cleaning up temporary directory: $package_temp_dir"
+        rm -rf "$package_temp_dir"
+        if [[ $? -ne 0 ]]; then
+             log_message "WARN" "Failed to completely remove temporary directory: $package_temp_dir"
+        fi
+    fi
+}
+
+# Clean up the base temporary directory at the end
+# Usage: cleanup_base_temp <base_temp_dir>
+cleanup_base_temp() {
+     local base_temp_dir=$1
+     if [[ -n "$base_temp_dir" && -d "$base_temp_dir" ]]; then
+        log_message "INFO" "Cleaning up base temporary directory: $base_temp_dir"
+        rm -rf "$base_temp_dir"
+         if [[ $? -ne 0 ]]; then
+             log_message "WARN" "Failed to completely remove base temporary directory: $base_temp_dir"
+        fi
+    fi
+}
+
+# List of required PHP extensions
+readonly REQUIRED_PHP_EXTENSIONS_LIST=(
+    "imagick" "xdebug" "redis" "apcu" "yaml" "memcached" "mongodb" "memcache"
+    "sqlsrv" "pdo_sqlsrv" "msgpack" "protobuf" "grpc" "oauth" "igbinary" "imap"
+)
+
+# --- Package Build Functions ---
+
+# Generic build process for standard archive packages
+# Usage: Build_Package_Generic <pkg_name> <pkg_version> <download_url> <original_filename> <extract_subdir> [output_filename_base] [post_extract_cmds]
+#   <original_filename>: The actual filename of the downloaded archive (e.g., xyz.tar.gz)
+#   <extract_subdir>: Path *inside* the archive to compress (use "." if root)
+#   [output_filename_base]: Base name for the output .7z file (defaults to <pkg_name>-<pkg_version>)
+#   [post_extract_cmds]: Optional string of commands to run in extracted dir before compression (e.g., "rm -f file.pdb")
+Build_Package_Generic() {
+    local package_name=$1
+    local package_version=$2
+    local download_url=$3
+    local original_filename=$4
+    local extract_subdir=$5 # Subdirectory inside the archive to cd into before compressing, or "." for root
+    local output_filename_base=${6:-"${package_name}-${package_version}"} # Optional: base name for output file
+    local post_extract_cmds=${7:-""} # Optional: post-extraction commands
+
+    if [[ -z "$original_filename" ]]; then
+        log_message "ERROR" "[Build_Package_Generic] Original filename cannot be empty for $package_name $package_version."
+        return 1
+    fi
+
+    log_message "INFO" "=============================================="
+    log_message "INFO" "Building Generic Package: $package_name"
+    log_message "INFO" "Version: $package_version, Arch: $ARCH"
+    log_message "INFO" "Download URL: $download_url"
+    log_message "INFO" "Original Filename: $original_filename"
+    if [[ -n "$post_extract_cmds" ]]; then
+      log_message "INFO" "Post-Extract Commands: $post_extract_cmds"
+    fi
+    log_message "INFO" "=============================================="
+
+    local package_output_dir="${SERVBAY_BUILD_OUTPUT_DIR}/${package_name}/${ARCH}"
+    # Ensure temp dir name is filesystem-safe (replace potential slashes in version etc.)
+    local safe_version=$(echo "$package_version" | tr '/' '_')
+    local package_temp_dir="${SERVBAY_BUILD_TEMP_BASE_DIR}/${package_name}-${safe_version}-${ARCH}"
+    local package_temp_save_path="${package_temp_dir}/${original_filename}"
+    local package_save_filename="${package_output_dir}/${output_filename_base}-windows-${ARCH}.7z"
+    local package_unzip_dir="${package_temp_dir}/unzip"
+
+    # Create directories
+    mkdir -p "$package_output_dir"
+    # Clean potential previous temp dir for this specific package before creating
+    rm -rf "$package_temp_dir"
+    mkdir -p "$package_temp_dir" # Create base temp dir first
+    mkdir -p "$package_unzip_dir" # Create unzip dir within temp dir
+
+    local build_failed=0
+
+    # Download - Save with original filename in temp dir
+    if ! download_file "$download_url" "$package_temp_save_path"; then
+        build_failed=1
+    fi
+
+    # Extract (only if download succeeded) - Use the path with the original filename
+    if [[ $build_failed -eq 0 ]]; then
+        if ! extract_archive "$package_temp_save_path" "$package_unzip_dir"; then
+            build_failed=1
+        fi
+    fi
+
+    # Determine the directory to compress (only if extraction succeeded)
+    local dir_to_compress=""
+    if [[ $build_failed -eq 0 ]]; then
+        dir_to_compress="${package_unzip_dir}/${extract_subdir}"
+        # If extract_subdir is ".", use the unzip directory directly
+        if [[ "$extract_subdir" == "." ]]; then
+            dir_to_compress="$package_unzip_dir"
+        elif [[ ! -d "$dir_to_compress" ]]; then
+            # Handle cases where the top-level directory name might vary slightly
+            log_message "INFO" "Expected subdir '$extract_subdir' not found. Searching within '$package_unzip_dir'..."
+            local found_dirs
+            # Find directories, handle potential spaces/special chars in names correctly with null delimiter
+            if command -v mapfile >/dev/null; then
+                 mapfile -d '' found_dirs_array < <(find "$package_unzip_dir" -maxdepth 1 -mindepth 1 -type d -print0)
+                 local num_found=${#found_dirs_array[@]}
+            else
+                # Alternative for older bash without mapfile
+                local find_output=$(find "$package_unzip_dir" -maxdepth 1 -mindepth 1 -type d -print)
+                local num_found=$(echo "$find_output" | wc -l | xargs) # Count lines/dirs found
+                if [[ "$num_found" -eq 1 ]]; then
+                    found_dirs_array=("$find_output")
+                fi
+            fi
+
+            if [[ "$num_found" -eq 1 ]]; then
+                 # Remove null terminator if mapfile was used
+                 local found_dir=${found_dirs_array[0]%$'\0'}
+                 log_message "WARN" "Using automatically detected directory '$found_dir' instead."
+                 dir_to_compress="$found_dir"
+            elif [[ "$num_found" -gt 1 ]]; then
+                log_message "ERROR" "Multiple directories found in '$package_unzip_dir', cannot determine extraction root. Found:"
+                 if command -v mapfile >/dev/null; then
+                    printf " - %s\n" "${found_dirs_array[@]}"
+                 else
+                    echo "$find_output" # Less safe printing
+                 fi
+                build_failed=1
+            else # num_found is 0 or find failed
+                log_message "ERROR" "Extraction subdirectory '$extract_subdir' not found, and no other directory found in '$package_unzip_dir'!"
+                build_failed=1
+            fi
+        fi
+    fi
+
+    # *** NEW: Run Post-Extraction Commands (only if extraction succeeded and dir is valid) ***
+    if [[ $build_failed -eq 0 && -n "$post_extract_cmds" && -d "$dir_to_compress" ]]; then
+        log_message "INFO" "Running post-extraction commands in $dir_to_compress..."
+        pushd "$dir_to_compress" > /dev/null
+        if [[ $? -ne 0 ]]; then
+            log_message "ERROR" "Failed to change directory to $dir_to_compress for post-extraction commands."
+            popd > /dev/null 2>&1 || true
+            build_failed=1
+        else
+            # Execute the commands using eval (use with caution)
+            eval "$post_extract_cmds"
+            local cmd_exit_code=$?
+            popd > /dev/null # Pop back regardless of command success
+
+            if [[ $cmd_exit_code -ne 0 ]]; then
+                log_message "ERROR" "Post-extraction commands failed with exit code $cmd_exit_code."
+                build_failed=1
+            else
+                 log_message "INFO" "Post-extraction commands completed successfully."
+            fi
+        fi
+    fi
+
+    # Compress (only if all previous steps succeeded and directory to compress exists)
+    if [[ $build_failed -eq 0 ]]; then
+         if [[ ! -d "$dir_to_compress" ]]; then
+              log_message "ERROR" "Directory to compress '$dir_to_compress' does not exist (check post-extract commands?)."
+              build_failed=1
+         elif ! compress_directory "$dir_to_compress" "$package_save_filename"; then
+            build_failed=1
+        fi
+    fi
+
+    # Cleanup the specific package temp directory regardless of success/failure
+    cleanup_package_temp "$package_temp_dir"
+
+    # Check final status
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Successfully built package $package_name $package_version for $ARCH."
+        return 0 # Success
+    else
+        log_message "ERROR" "Failed build steps for package $package_name $package_version for $ARCH."
+        # Ensure partially created final file is removed on failure
+        rm -f "$package_save_filename" 2>/dev/null || true
+        return 1 # Failure
+    fi
+}
+
+# Build process for single-file tools (download and compress)
+# Usage: Build_Package_SingleFile <pkg_name> <pkg_version> <download_url> <original_filename> [output_filename_base]
+#   <original_filename>: The actual filename to save the download as (e.g., composer.phar)
+#   [output_filename_base]: Base name for the output .7z file (defaults to <pkg_name>-<pkg_version>)
+# Build_Package_SingleFile <pkg_name> <pkg_version> <download_url> <origin_filename> <rename_filename> [output_filename_base]
+Build_Package_SingleFile() {
+    local package_name=$1
+    local package_version=$2
+    local download_url=$3
+    local original_filename=$4 # The actual filename to save the download as
+    local rename_filename=${5:-"${original_filename}"}
+    local output_filename_base=${6:-"${package_name}-${package_version}"} # Optional: base name for output file
+
+
+    if [[ -z "$original_filename" ]]; then
+        log_message "ERROR" "[Build_Package_SingleFile] Original filename cannot be empty for $package_name $package_version."
+        return 1
+    fi
+
+    log_message "INFO" "=============================================="
+    log_message "INFO" "Building Single File Package: $package_name"
+    log_message "INFO" "Version: $package_version, Arch: $ARCH (N/A)"
+    log_message "INFO" "Download URL: $download_url, Save As: $rename_filename"
+    log_message "INFO" "Original Filename: $original_filename"
+    log_message "INFO" "=============================================="
+
+    # Output directory (arch-independent for these tools)
+    local package_output_dir="${SERVBAY_BUILD_OUTPUT_DIR}/${package_name}/$ARCH"
+    # Temporary directory for this package
+    local safe_version=$(echo "$package_version" | tr '/' '_')
+    local package_temp_dir="${SERVBAY_BUILD_TEMP_BASE_DIR}/${package_name}-${safe_version}-singlefile"
+    # Path to save the downloaded file temporarily
+    local package_temp_save_path="${package_temp_dir}/${rename_filename}"
+    # Final compressed output file path
+    local package_save_filename="${package_output_dir}/${output_filename_base}-windows-$ARCH.7z"
+
+    # Create directories
+    mkdir -p "$package_output_dir"
+    rm -rf "$package_temp_dir"
+    mkdir -p "$package_temp_dir"
+
+    local build_failed=0
+
+    # Download directly to the temporary location with original filename
+    if ! download_file "$download_url" "$package_temp_save_path"; then
+        build_failed=1
+    fi
+
+    # Compress the single downloaded file (only if download succeeded)
+    if [[ $build_failed -eq 0 ]]; then
+        # Use compress_item which handles single files
+        if ! compress_item "$package_temp_save_path" "$package_save_filename"; then
+            build_failed=1
+        fi
+    fi
+
+    # Cleanup the specific package temp directory regardless of success/failure
+    cleanup_package_temp "$package_temp_dir"
+
+     # Check final status
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Successfully built single-file package $package_name $package_version."
+        return 0 # Success
+    else
+        log_message "ERROR" "Failed build steps for single-file package $package_name $package_version."
+        # Ensure partially created final file is removed on failure
+        rm -f "$package_save_filename" 2>/dev/null || true
+        return 1 # Failure
+    fi
+}
+
+# PHP
+Build_Package_php() {
+    local package_name=$1
+    local package_version=$2
+    local package_filename=$3 # Provided in input file (only used for legacy PHP <= 8.0)
+    local output_filename_base="php-${package_version}"
+
+    log_message "INFO" "=============================================="
+    log_message "INFO" "Building PHP Package: $package_name"
+    log_message "INFO" "Version: $package_version, Arch: $ARCH"
+    log_message "INFO" "=============================================="
+
+    local package_output_dir="${SERVBAY_BUILD_OUTPUT_DIR}/${package_name}/${ARCH}"
+    local safe_version=$(echo "$package_version" | tr '/' '_')
+    local package_temp_dir="${SERVBAY_BUILD_TEMP_BASE_DIR}/${package_name}-${safe_version}-${ARCH}"
+    # Final compressed output file path for PHP
+    local final_php_package_file="${package_output_dir}/${output_filename_base}-windows-${ARCH}.7z"
+
+    # Create directories
+    mkdir -p "$package_output_dir"
+    rm -rf "$package_temp_dir"
+    mkdir -p "$package_temp_dir"
+
+    local build_failed=0
+    local package_major_version=${package_version%.*} # x.x
+
+    # Determine if this version uses pre-built packages from ServBay/PHP-Windows-Portable
+    # PHP 8.1+ uses pre-built packages with extensions already compiled in
+    # PHP 8.0 and below uses standard builds from windows.php.net with separate ext processing
+    local use_prebuilt=0
+    case "$package_major_version" in
+        5.*|7.*|8.0) use_prebuilt=0 ;;
+        *) use_prebuilt=1 ;;
+    esac
+
+    if [[ $use_prebuilt -eq 1 ]]; then
+        # PHP 8.1+ from ServBay custom build (extensions already included, pre-packaged as 7z)
+        local github_filename="php-${package_version}-windows-${ARCH}.7z"
+        local php_download_url="https://github.com/ServBay/PHP-Windows-Portable/releases/download/php-${package_version}-${ARCH}-nts/${github_filename}"
+        log_message "INFO" "Using pre-built package from ServBay/PHP-Windows-Portable"
+        log_message "INFO" "Download URL: $php_download_url"
+
+        # Download directly to final output location (no extraction/repackaging needed)
+        if ! download_file "$php_download_url" "$final_php_package_file"; then
+            build_failed=1
+            log_message "ERROR" "Failed to download pre-built PHP package."
+        else
+            log_message "INFO" "Successfully downloaded pre-built PHP package to $final_php_package_file"
+        fi
+    else
+        # Standard PHP builds from windows.php.net (PHP 8.0 and below) - need extraction, ext processing and repackaging
+        if [[ -z "$package_filename" ]]; then
+            log_message "ERROR" "Filename is required for PHP package in windows-packages.txt"
+            return 1
+        fi
+
+        log_message "INFO" "Original PHP Filename: $package_filename"
+
+        # Path for the main PHP archive
+        local php_archive_temp_path="${package_temp_dir}/${package_filename}"
+        # Directory where main PHP will be extracted
+        local php_extract_root_dir="${package_temp_dir}/php_root"
+        mkdir -p "$php_extract_root_dir"
+
+        local outdated_versions="5.3 5.4 5.5 5.6 7.0 7.1 7.2 7.3 "
+        local base_url="https://windows.php.net/downloads/releases/"
+        if [[ " $outdated_versions " =~ " $package_major_version " ]]; then
+            base_url="https://windows.php.net/downloads/releases/archives/"
+        fi
+        local php_download_url="${base_url}${package_filename}"
+
+        log_message "INFO" "PHP Download URL: $php_download_url"
+
+        if ! download_file "$php_download_url" "$php_archive_temp_path"; then
+            build_failed=1
+        fi
+
+        if [[ $build_failed -eq 0 ]]; then
+            # PHP zips from windows.php.net extract their contents directly
+            if ! extract_archive "$php_archive_temp_path" "$php_extract_root_dir"; then
+                build_failed=1
+            fi
+        fi
+
+        # --- 2. Process PHP Extensions ---
+        if [[ $build_failed -eq 0 ]]; then
+            local php_ext_target_dir="${php_extract_root_dir}/ext"
+            log_message "INFO" "PHP Ext Target Dir: $php_ext_target_dir"
+            mkdir -p "$php_ext_target_dir" || { log_message "ERROR" "Failed to create PHP ext directory: $php_ext_target_dir"; build_failed=1; }
+
+            if [[ ! -f "$PHP_EXTS_FILE" ]]; then
+                log_message "WARN" "PHP extensions definition file not found: $PHP_EXTS_FILE. Skipping extension installation logging."
+            elif [[ $build_failed -eq 0 ]]; then
+            local php_major_minor_ver=$(echo "$package_version" | cut -d. -f1-2)
+            log_message "INFO" "Processing extensions for PHP $php_major_minor_ver ($ARCH)..."
+
+            # Append header for this PHP version to the cumulative extensions status log
+            echo -e "\n[Addtional Extensions for PHP ${php_major_minor_ver} ($ARCH)]" >> "$PHP_EXTENSIONS_STATUS_LOG_FILE"
+            if [[ $? -ne 0 ]]; then
+                log_message "ERROR" "Failed to write header to PHP extensions status log: $PHP_EXTENSIONS_STATUS_LOG_FILE"
+            fi
+            for ext_name in "${REQUIRED_PHP_EXTENSIONS_LIST[@]}"; do
+                log_message "INFO" "Looking for extension: $ext_name for PHP $php_major_minor_ver ($ARCH)"
+                local ext_info_json
+                ext_info_json=$(jq -r --arg ext_name "$ext_name" --arg php_ver "$php_major_minor_ver" --arg arch_target "$ARCH" \
+                    '.[$ext_name]?[$php_ver]? | select(.arch == $arch_target) // empty' "$PHP_EXTS_FILE")
+
+                if [[ -z "$ext_info_json" ]]; then
+                    log_message "WARN" "PHP Extension Missing: ${ext_name} for PHP ${package_version} (${ARCH}). Not found in ${PHP_EXTS_FILE} for PHP $php_major_minor_ver."
+                    echo "; extension=${ext_name}" >> "$PHP_EXTENSIONS_STATUS_LOG_FILE"
+                    continue
+                fi
+
+                local ext_download_url=$(echo "$ext_info_json" | jq -r '.download_url')
+
+                if [[ -z "$ext_download_url" || "$ext_download_url" == "null" ]]; then
+                    log_message "WARN" "PHP Extension Data Incomplete: ${ext_name} for PHP ${package_version} (${ARCH}). No download_url."
+                    echo "; extension=${ext_name}" >> "$PHP_EXTENSIONS_STATUS_LOG_FILE"
+                    continue
+                fi
+
+                log_message "INFO" "Found ${ext_name}: ${ext_download_url}"
+
+                local ext_temp_process_dir="${package_temp_dir}/_ext_processing/${ext_name}"
+                rm -rf "$ext_temp_process_dir"
+                mkdir -p "$ext_temp_process_dir"
+
+                local ext_archive_filename=$(basename "$ext_download_url")
+                local ext_archive_path="${ext_temp_process_dir}/${ext_archive_filename}"
+                local ext_unzip_dir="${ext_temp_process_dir}/unzip"
+
+                local current_ext_install_ok=0 # Flag for current extension success
+
+                if download_file "$ext_download_url" "$ext_archive_path"; then
+                    if extract_archive "$ext_archive_path" "$ext_unzip_dir"; then
+                        # 特殊处理 memcached 和 imagick 扩展
+                        if [[ "$ext_name" == "memcached" || "$ext_name" == "imagick" ]]; then
+                            log_message "INFO" "Processing $ext_name extension with special rules..."
+                            local files_copied=0
+                            local php_ext_dll_name="php_${ext_name}.dll"
+
+                            # 拷贝 php_*.dll 到 ext 目录
+                            local php_ext_dll
+                            php_ext_dll=$(find "$ext_unzip_dir" -maxdepth 1 -name "$php_ext_dll_name" -print -quit)
+                            if [[ -n "$php_ext_dll" && -f "$php_ext_dll" ]]; then
+                                log_message "INFO" "Copying $php_ext_dll_name to $php_ext_target_dir/"
+                                if cp "$php_ext_dll" "$php_ext_target_dir/" >> "$LOG_FILE" 2>&1; then
+                                    files_copied=1
+                                else
+                                    log_message "ERROR" "Failed to copy $php_ext_dll_name for extension $ext_name."
+                                fi
+                            else
+                                log_message "WARN" "$php_ext_dll_name not found for $ext_name extension"
+                            fi
+
+                            # 拷贝其他 dll 和 ini 文件到 PHP 根目录（排除 php_*.dll）
+                            local other_files_list_tmp
+                            other_files_list_tmp=$(mktemp)
+                            # 分别查找 dll 和 ini，确保正确排除 php_*.dll
+                            find "$ext_unzip_dir" -maxdepth 1 -name '*.dll' ! -name "$php_ext_dll_name" -print0 > "$other_files_list_tmp"
+                            find "$ext_unzip_dir" -maxdepth 1 -name '*.ini' -print0 >> "$other_files_list_tmp"
+
+                            if [[ -s "$other_files_list_tmp" ]]; then
+                                while IFS= read -r -d $'\0' file_path <&3; do
+                                    local file_basename=$(basename "$file_path")
+                                    log_message "INFO" "Copying $file_basename to $php_extract_root_dir/"
+                                    if cp "$file_path" "$php_extract_root_dir/" >> "$LOG_FILE" 2>&1; then
+                                        files_copied=1
+                                    else
+                                        log_message "ERROR" "Failed to copy $file_basename for extension $ext_name."
+                                    fi
+                                done 3< "$other_files_list_tmp"
+                            fi
+                            rm -f "$other_files_list_tmp"
+
+                            # 对于 imagick，拷贝 config 文件夹到 PHP 根目录
+                            if [[ "$ext_name" == "imagick" ]]; then
+                                local config_dir="${ext_unzip_dir}/config"
+                                if [[ -d "$config_dir" ]]; then
+                                    log_message "INFO" "Copying config directory to $php_extract_root_dir/"
+                                    if cp -r "$config_dir" "$php_extract_root_dir/" >> "$LOG_FILE" 2>&1; then
+                                        files_copied=1
+                                    else
+                                        log_message "ERROR" "Failed to copy config directory for extension $ext_name."
+                                    fi
+                                else
+                                    log_message "WARN" "config directory not found for imagick extension"
+                                fi
+                            fi
+
+                            if [[ $files_copied -eq 0 ]]; then
+                                log_message "WARN" "No files found or successfully copied for $ext_name extension from $ext_archive_filename"
+                            else
+                                current_ext_install_ok=1
+                            fi
+                        else
+                            # 其他扩展保持原有处理逻辑
+                            local dll_files_list_tmp # Renamed to avoid conflict
+                            dll_files_list_tmp=$(mktemp)
+                            # Find DLLs and store them in a temporary file
+                            find "$ext_unzip_dir" -maxdepth 1 -name '*.dll' -print0 > "$dll_files_list_tmp"
+
+                            local dll_found=0
+                            # Check if any DLLs were found
+                            if [[ -s "$dll_files_list_tmp" ]]; then
+                                # Loop through the found DLLs from the temporary file
+                                while IFS= read -r -d $'\0' dll_file <&3; do
+                                    log_message "INFO" "Copying DLL: $dll_file to $php_ext_target_dir/"
+                                    if cp "$dll_file" "$php_ext_target_dir/" >> "$LOG_FILE" 2>&1; then
+                                        dll_found=1 # Mark as found if at least one copy succeeds for this extension
+                                    else
+                                        log_message "ERROR" "Failed to copy $dll_file for extension $ext_name."
+                                    fi
+                                done 3< "$dll_files_list_tmp"
+                            fi
+                            rm -f "$dll_files_list_tmp" # Clean up the temporary file
+
+                            if [[ $dll_found -eq 0 ]]; then
+                                log_message "WARN" "No DLLs found or successfully copied for extension $ext_name from $ext_archive_filename"
+                                # current_ext_install_ok remains 0
+                            else
+                                current_ext_install_ok=1 # At least one DLL was copied
+                            fi
+                        fi
+                    else
+                        log_message "ERROR" "Failed to extract extension $ext_name from $ext_archive_path"
+                        # current_ext_install_ok remains 0
+                    fi
+                else
+                    log_message "ERROR" "Failed to download extension $ext_name from $ext_download_url"
+                    # current_ext_install_ok remains 0
+                fi
+                # cleanup_package_temp "$ext_temp_process_dir" # Clean up individual extension temp dir
+
+                if [[ $current_ext_install_ok -eq 1 ]]; then
+                    echo "extension=${ext_name}" >> "$PHP_EXTENSIONS_STATUS_LOG_FILE"
+                else
+                    echo "; extension=${ext_name}" >> "$PHP_EXTENSIONS_STATUS_LOG_FILE"
+                fi
+            done
+        fi
+        fi
+
+        # --- 3. Compress Final PHP Package ---
+        if [[ $build_failed -eq 0 ]]; then
+            if ! compress_directory "$php_extract_root_dir" "$final_php_package_file"; then
+                build_failed=1
+            fi
+        fi
+    fi # End of legacy PHP processing (PHP 8.0 and below)
+
+    # --- Cleanup ---
+    cleanup_package_temp "$package_temp_dir"
+
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Successfully built PHP package $package_name $package_version for $ARCH."
+        return 0
+    else
+        log_message "ERROR" "Failed build steps for PHP package $package_name $package_version for $ARCH."
+        rm -f "$final_php_package_file" 2>/dev/null || true
+        return 1
+    fi
+}
+
+# Node.js
+Build_Package_node() {
+    local package_name=$1
+    local package_version=$2
+    # Node uses 'x64', 'x86', 'arm64'
+    local node_arch="$ARCH"
+    local package_filename="node-v${package_version}-win-${node_arch}.zip"
+    local base_url="https://nodejs.org/download/release/v${package_version}/"
+    local download_url="${base_url}${package_filename}"
+    # Node extracts into a versioned subdirectory
+    local extract_subdir="node-v${package_version}-win-${node_arch}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "node-${package_version}" ""
+}
+
+# Go
+Build_Package_go() {
+    local package_name=$1
+    local package_version=$2
+    # Go typically uses 'amd64', '386', 'arm64'
+    local go_arch=""
+    case "$ARCH" in
+        x64) go_arch="amd64" ;;
+        x86) go_arch="386" ;;
+        arm64) go_arch="arm64" ;;
+        *) log_message "ERROR" "Unsupported Go architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Handle potential RC versions (e.g., 1.21rc3 -> 1.21)
+    # local go_ver_base=$(echo "$package_version" | sed -E 's/rc[0-9]+$//') # sed -E might not be portable
+    local package_filename="go${package_version}.windows-${go_arch}.zip"
+    # Use base version for URL path if it's an RC
+    local base_url="https://mirrors.aliyun.com/golang/"
+
+    local download_url="${base_url}${package_filename}"
+    # Go extracts into a 'go' subdirectory
+    local extract_subdir="go"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "go-${package_version}" ""
+}
+
+# Python (Using portable builds from a specific source as example)
+Build_Package_python() {
+    local package_name=$1
+    local package_version=$2
+    # Example source: https://github.com/ServBay/Python-Windows-Portable
+    # Adjust URL and filename pattern as needed for your chosen source
+    local python_arch=""
+     case "$ARCH" in
+        x64) python_arch="x64" ;;
+        x86) python_arch="x86" ;; # Assumption, verify actual filename
+        arm64) python_arch="arm64" ;; # Assumption, verify actual filename
+        *) log_message "ERROR" "Unsupported Python architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="python-${package_version}-win-${python_arch}.zip"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/ServBay/Python-Windows-Portable/releases/download/python-${package_version}-win-${python_arch}/${package_filename}"
+    # Assume extracts into a versioned folder like 'python-2.7.18-win-x64'
+
+    local extract_subdir="${python_arch}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "python-${package_version}" ""
+}
+
+# OpenSSL (Using portable builds from a specific source as example)
+Build_Package_openssl() {
+    local package_name=$1
+    local package_version=$2
+    # Example source: https://github.com/ServBay/OpenSSL-Windows-Portable
+    # Adjust URL and filename pattern as needed for your chosen source
+    local openssl_arch=""
+     case "$ARCH" in
+        x64) openssl_arch="x64" ;;
+        x86) openssl_arch="x86" ;; # Assumption, verify actual filename
+        arm64) openssl_arch="arm64" ;; # Assumption, verify actual filename
+        *) log_message "ERROR" "Unsupported OpenSSL architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="openssl-${package_version}-win-${openssl_arch}.zip"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/ServBay/OpenSSL-Windows-Portable/releases/download/openssl-${package_version}-win-${openssl_arch}/${package_filename}"
+    # Assume extracts into a versioned folder like 'openssl-3.5.0-win-x64'
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "." "openssl-${package_version}" ""
+}
+
+# Ruby (Using RubyInstaller .7z archives as example)
+Build_Package_ruby() {
+    local package_name=$1
+    local package_version=$2
+    # Example: RubyInstaller uses x64, x86
+    local ruby_arch=""
+    case "$ARCH" in
+        x64) ruby_arch="x64" ;;
+        x86) ruby_arch="x86" ;;
+        arm64) log_message "WARN" "RubyInstaller may not have official arm64 builds. Skipping."; return 0 ;; # Or handle differently
+        *) log_message "ERROR" "Unsupported Ruby architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="rubyinstaller-${package_version}-1-${ruby_arch}.7z"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-${package_version}-1/${package_filename}"
+    # Assume extracts into a versioned folder like 'rubyinstaller-devkit-3.2.2-1-x64'
+    local extract_subdir="${package_filename%.7z}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "ruby-${package_version}" ""
+}
+
+# Rust (Using static archives as example)
+Build_Package_rust() {
+    local package_name=$1
+    local package_version=$2
+    # Rust uses target triples like 'x86_64-pc-windows-msvc', 'i686-pc-windows-msvc', 'aarch64-pc-windows-msvc'
+    local rust_arch_triple=""
+    case "$ARCH" in
+        x64) rust_arch_triple="x86_64-pc-windows-msvc" ;;
+        x86) rust_arch_triple="i686-pc-windows-msvc" ;;
+        arm64) rust_arch_triple="aarch64-pc-windows-msvc" ;;
+        *) log_message "ERROR" "Unsupported Rust architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS** - Often .tar.gz
+    local package_filename="rust-${package_version}-${rust_arch_triple}.tar.gz"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://static.rust-lang.org/dist/${package_filename}"
+    # Assume extracts into a versioned folder like 'rust-1.70.0-x86_64-pc-windows-msvc'
+    local extract_subdir="${package_filename%.tar.gz}"
+
+    # Note: Build_Package_Generic uses 7z, which handles .tar.gz
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "rust-${package_version}" ""
+}
+
+# OpenJDK (Using Azul Zulu as example, filename provided)
+Build_Package_openjdk() {
+    local package_name=$1
+    local package_version=$2
+    local package_filename=$3 # Provided in input file
+
+    if [[ -z "$package_filename" ]]; then
+        log_message "ERROR" "Filename is required for OpenJDK package in windows-packages.txt"
+        return 1
+    fi
+
+    # Example URL pattern for Azul Zulu, **ADJUST AS NEEDED**
+    # The filename itself contains version and arch info.
+    local base_url="https://cdn.azul.com/zulu/bin/"
+    local download_url="${base_url}${package_filename}"
+
+    # Zulu archives extract into a versioned subdirectory, e.g., "zulu21.30.15-ca-jdk21.0.1-win_x64"
+    local extract_subdir="${package_filename%.zip}" # Use filename base as subdir
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "openjdk-${package_version}" ""
+}
+
+# Apache Maven (binary distribution from archive.apache.org)
+Build_Package_maven() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3 # Optional explicit filename from windows-packages.txt
+
+    # Major version is the first digit (e.g. "3.9.9" -> "3", "4.0.0" -> "4")
+    local maven_major="${package_version%%.*}"
+
+    # Default Apache binary filename pattern: apache-maven-<version>-bin.zip
+    local package_filename="apache-maven-${package_version}-bin.zip"
+    if [[ -n "$provided_filename" ]]; then
+        package_filename="$provided_filename"
+    fi
+
+    # Apache archive layout: maven/maven-<major>/<version>/binaries/<filename>
+    local download_url="https://archive.apache.org/dist/maven/maven-${maven_major}/${package_version}/binaries/${package_filename}"
+
+    # The zip extracts into a top-level "apache-maven-<version>" directory
+    local extract_subdir="apache-maven-${package_version}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "maven-${package_version}" ""
+}
+
+# MySQL (Using Community Server ZIP archives as example)
+Build_Package_mysql() {
+    local package_name=$1
+    local package_version=$2
+    # MySQL uses 'x86', 'x64' (often in 32bit/64bit terms)
+    local mysql_arch_bit=""
+    case "$ARCH" in
+        x64) mysql_arch_bit="x64" ;;
+        x86) mysql_arch_bit="x86" ;;
+        arm64) log_message "WARN" "Official MySQL Community Server may not have arm64 ZIP archives. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported MySQL architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS** - May vary significantly
+    local package_filename="mysql-${package_version}-win${mysql_arch_bit}.zip" # Or mysql-${package_version}-winx64.zip
+    # Example URL pattern, **ADJUST THIS** - Finding direct ZIP links can be tricky
+    # Extract major.minor version (e.g., 8.0 from 8.0.36) for URL path
+    local mysql_major_minor=$(echo "$package_version" | cut -d. -f1-2)
+
+    # 5.1的文件名不一样
+    if [[ "$mysql_major_minor" == "5.1" ]]; then
+        package_filename="mysql-noinstall-${package_version}-win${mysql_arch_bit}.zip"
+    fi
+
+    local download_url="https://cdn.mysql.com/Downloads/MySQL-${mysql_major_minor}/${package_filename}" # Example for 8.0
+
+    # Assume extracts into a versioned folder like 'mysql-8.0.36-winx64'
+    local extract_subdir="${package_filename%.zip}"
+
+    # *** ADD Post-extract command to remove PDB file ***
+    # Adjust path if needed (e.g., could be in bin/ or lib/ depending on version/distro)
+    local post_cmds="rm -rf bin/*.pdb lib/*.pdb lib/plugin/debug"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "mysql-${package_version}" "$post_cmds"
+}
+
+# MariaDB (Using ZIP archives as example)
+Build_Package_mariadb() {
+    local package_name=$1
+    local package_version=$2
+    # MariaDB uses 'winx64', 'win32'
+    local mariadb_arch=""
+    case "$ARCH" in
+        x64) mariadb_arch="winx64" ;;
+        x86) mariadb_arch="win32" ;;
+        arm64) log_message "WARN" "MariaDB may not have official arm64 ZIP archives. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported MariaDB architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="mariadb-${package_version}-${mariadb_arch}.zip"
+    # Example URL pattern, **ADJUST THIS** - URL structure varies
+    # Need to determine the correct archive mirror/path
+    local download_url="https://archive.mariadb.org/mariadb-${package_version}/${mariadb_arch}-packages/${package_filename}" # Example URL structure
+
+    # Assume extracts into a versioned folder like 'mariadb-10.11.6-winx64'
+    local extract_subdir="${package_filename%.zip}"
+
+    local post_cmds="rm -rf StackBuilder pgAdmin*"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "mariadb-${package_version}" "$post_cmds"
+}
+
+# PostgreSQL (Using EDB ZIP archives as example, filename might be provided)
+Build_Package_postgresql() {
+    local package_name=$1
+    local package_version=$2
+    local package_filename=$3 # Optional filename from input
+
+    # PostgreSQL uses 'x64', 'x86'
+    local pg_arch=""
+    case "$ARCH" in
+        x64) pg_arch="x64" ;;
+        x86) pg_arch="x86" ;; # Often called 'windows-x86' or just 'windows' for 32-bit
+        arm64) log_message "WARN" "PostgreSQL EDB ZIP archives may not exist for arm64. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported PostgreSQL architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Construct filename if not provided (Example pattern, **ADJUST**)
+    if [[ -z "$package_filename" ]]; then
+        # Example: postgresql-16.1-1-windows-x64-binaries.zip - Versioning can be complex
+        # local pg_major_version=$(echo "$package_version" | cut -d. -f1)
+        # This is a guess, EDB naming is specific
+        package_filename="postgresql-${package_version}-1-windows-${pg_arch}-binaries.zip"
+        log_message "WARN" "Filename not provided for PostgreSQL, guessing: $package_filename"
+    fi
+
+    # Example URL pattern (EDB), **ADJUST THIS** - Requires login or specific links usually
+    local download_url="https://get.enterprisedb.com/postgresql/${package_filename}" # Placeholder URL
+
+    # EDB ZIPs extract into a 'pgsql' subdirectory
+    local extract_subdir="pgsql"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "postgresql-${package_version}" ""
+}
+
+# Nginx
+Build_Package_nginx() {
+    local package_name=$1
+    local package_version=$2
+
+    # Nginx Windows builds don't typically specify arch in filename (usually x86/x64 compatible)
+    # Verify if specific arch builds exist if needed. Assume generic build for now.
+     if [[ "$ARCH" == "arm64" ]]; then
+        log_message "WARN" "Official Nginx Windows builds might not support arm64. Skipping."
+        return 0
+    fi
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="nginx-${package_version}.zip"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://nginx.org/download/${package_filename}"
+
+    # Nginx extracts into a versioned folder like 'nginx-1.25.3'
+    local extract_subdir="${package_filename%.zip}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "nginx-${package_version}" ""
+}
+
+# Redis (Using unofficial Windows ports as example)
+Build_Package_redis() {
+    local package_name=$1
+    local package_version=$2
+
+    # Example source: tporadowski/redis - Uses x64
+    # Check your source for supported architectures
+    if [[ "$ARCH" != "x64" ]]; then
+        log_message "WARN" "This Redis Windows port example only supports x64. Skipping for $ARCH."
+        return 0
+    fi
+
+    # Example filename pattern, **ADJUST THIS** - Often .zip or .msi
+    local package_filename="Redis-${package_version}-Windows-x64-msys2.zip" # Example, actual name varies
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/redis-windows/redis-windows/releases/download/${package_version}/${package_filename}"
+
+    # Assume extracts directly into the target dir (content only, no single root folder)
+    local extract_subdir="${package_filename%.zip}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "redis-${package_version}" ""
+}
+
+# Git (Using Git-for-Windows portable zip)
+Build_Package_git() {
+    local package_name=$1
+    local package_version=$2
+
+    # Git for Windows uses '64-bit', '32-bit'
+    local git_arch_bit=""
+     case "$ARCH" in
+        x64) git_arch_bit="64-bit" ;;
+        x86) git_arch_bit="32-bit" ;;
+        arm64) log_message "WARN" "Git for Windows may not have official arm64 portable builds. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported Git architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="MinGit-${package_version}-${git_arch_bit}.zip"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/git-for-windows/git/releases/download/v${package_version}.windows.1/${package_filename}"
+
+    local extract_subdir="."
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "git-${package_version}" ""
+}
+
+# Composer (Downloads .phar file)
+Build_Package_composer() {
+    local package_name=$1
+    local package_version=$2 # Version might be 'latest' or a specific version number
+    local download_url="https://getcomposer.org/composer-stable.phar"
+    local original_filename="composer" # Filename to save as
+    local output_base="composer" # Base name for the .7z file
+
+    if [[ "$package_version" != "latest" && -n "$package_version" ]]; then
+         download_url="https://getcomposer.org/download/${package_version}/composer.phar"
+         # if package major version is 2.2, append 2.2 to the output base
+         if [[ "${package_version%.*}" =~ ^2\.2 ]]; then
+            original_filename="composer-${package_version%.*}" # Use versioned filename for download
+         fi
+         output_base="composer-${package_version}"
+         log_message "INFO" "Using specific Composer version URL: $download_url"
+    fi
+
+    # Call the updated single file builder
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$original_filename" "" "$output_base"
+}
+
+# Adminer (Downloads .php file)
+Build_Package_adminer() {
+    local package_name=$1
+    local package_version=$2 # Version might be 'latest' or specific
+    local download_url="https://www.adminer.org/latest-mysql-en.php"
+    local original_filename="adminer.php" # Filename to save as
+    local output_base="adminer" # Base name for the .7z file
+
+    if [[ "$package_version" != "latest" && -n "$package_version" ]]; then
+         download_url="https://github.com/vrana/adminer/releases/download/v${package_version}/adminer-${package_version}-mysql-en.php" # Example pattern
+         output_base="adminer-${package_version}" # Use versioned base for output
+         log_message "INFO" "Using specific Adminer version URL: $download_url"
+    fi
+
+    # Call the updated single file builder
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$original_filename" "" "$output_base"
+}
+
+# Memcached
+Build_Package_memcached() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3 # This might be empty from windows-packages.txt
+
+    # Determine architecture suffix for download URL and extraction folder
+    local memcached_arch_suffix=""
+    case "$ARCH" in
+        x64) memcached_arch_suffix="win64" ;;
+        x86) memcached_arch_suffix="win32" ;;
+        arm64) log_message "WARN" "Memcached from jefyt/memcached-windows does not provide arm64 builds. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported Memcached architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Construct the actual filename for download
+    local original_filename="memcached-${package_version}-${memcached_arch_suffix}-mingw.zip"
+    if [[ -n "$provided_filename" ]]; then
+        # If a filename was explicitly provided in windows-packages.txt, use it.
+        # This allows overriding the default construction if needed.
+        original_filename="$provided_filename"
+    fi
+
+    # Construct download URL
+    local download_url="https://github.com/jefyt/memcached-windows/releases/download/${package_version}_mingw/${original_filename}"
+
+    # The zip usually extracts into a folder named like 'memcached-1.6.8-win64-mingw'
+    local extract_subdir="${original_filename%.zip}"
+
+    # Call the generic build function
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$original_filename" "$extract_subdir" "memcached-${package_version}" ""
+}
+
+# Mailpit
+Build_Package_mailpit() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3 # This will be empty
+
+    # Determine architecture suffix for download URL
+    local mailpit_arch_suffix=""
+    case "$ARCH" in
+        x64) mailpit_arch_suffix="amd64" ;;
+        *) log_message "ERROR" "Unsupported Mailpit architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Construct the actual filename for download
+    local original_filename="mailpit-windows-${mailpit_arch_suffix}.zip"
+
+    # Construct download URL
+    local download_url="https://github.com/axllent/mailpit/releases/download/v${package_version}/${original_filename}"
+
+    # The zip extracts its contents (mailpit.exe) directly, so we compress the root of the extraction.
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$original_filename" "." "mailpit-${package_version}" ""
+}
+
+# Ollama
+Build_Package_ollama() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3 # This will be empty
+
+    # Determine architecture suffix for download URL
+    local ollama_arch=""
+    case "$ARCH" in
+        x64) ollama_arch="x64" ;;
+        x86) log_message "WARN" "Ollama from ServBay/Ollama-Windows-Portable does not provide x86 builds. Skipping."; return 0 ;;
+        arm64) log_message "WARN" "Ollama from ServBay/Ollama-Windows-Portable does not provide arm64 builds. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported Ollama architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Construct the actual filename for download
+    local original_filename="ollama-${package_version}-win-${ollama_arch}.zip"
+
+    # Construct download URL
+    local download_url="https://github.com/ServBay/Ollama-Windows-Portable/releases/download/v${package_version}/${original_filename}"
+
+    # The zip extracts its contents (ollama.exe) directly, so we compress the root of the extraction.
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$original_filename" "." "ollama-${package_version}" ""
+}
+
+# phpMyAdmin
+Build_Package_phpmyadmin() {
+    local package_name=$1
+    local package_version=$2
+
+    local package_filename="phpMyAdmin-${package_version}-all-languages.zip" # Example, actual name varies
+    local download_url="https://files.phpmyadmin.net/phpMyAdmin/${package_version}/${package_filename}"
+
+    local extract_subdir="${package_filename%.zip}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "phpmyadmin-${package_version}" ""
+}
+
+# MinIO
+Build_Package_minio() {
+    local package_name=$1
+    local package_version=$2
+
+    # MinIO Windows builds don't typically specify arch in filename (usually x86/x64 compatible)
+    # Verify if specific arch builds exist if needed. Assume generic build for now.
+    if [[ "$ARCH" == "arm64" ]]; then
+        log_message "WARN" "Official MinIO Windows builds might not support arm64. Skipping."
+        return 0
+    fi
+
+    local package_filename="minio.exe"
+    local download_url="https://dl.min.io/server/minio/release/windows-amd64/${package_filename}"
+
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$package_filename" "" "$output_base"
+}
+
+# MeiliSearch
+Build_Package_meilisearch() {
+    local package_name=$1
+    local package_version=$2
+
+    local origin_filename="meilisearch-windows-amd64.exe" # origin download filename
+    local rename_filename="meilisearch.exe"
+    local download_url="https://github.com/meilisearch/meilisearch/releases/download/v${package_version}/${origin_filename}"
+
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$origin_filename" "$rename_filename" "$output_base"
+}
+
+# simple-acme with all DNS plugins
+Build_Package_simple_acme() {
+    local package_name=$1
+    local package_version=$2 # 例如: 2.3.5
+
+    # simple-acme 提供 x86, x64, arm64 三个架构
+    case "$ARCH" in
+        x64|x86|arm64) ;;
+        *) log_message "ERROR" "Unsupported simple-acme architecture: $ARCH"; return 1 ;;
+    esac
+
+    log_message "INFO" "=============================================="
+    log_message "INFO" "Building simple-acme Package: $package_name"
+    log_message "INFO" "Version: $package_version, Arch: $ARCH"
+    log_message "INFO" "=============================================="
+
+    # --- 通过 GitHub API 动态发现资产文件名（含构建号） ---
+    local api_url="https://api.github.com/repos/simple-acme/simple-acme/releases/tags/v${package_version}"
+    log_message "INFO" "Querying GitHub API for release assets: ${api_url}"
+    local release_json
+    release_json=$(curl -s "$api_url")
+    if [[ -z "$release_json" ]] || ! echo "$release_json" | jq -e '.assets | length > 0' &>/dev/null; then
+        log_message "ERROR" "Failed to fetch release info from GitHub API for v${package_version}"
+        return 1
+    fi
+
+    # 找到主程序文件名（匹配 win-${ARCH}.pluggable.zip）
+    local main_program_filename
+    main_program_filename=$(echo "$release_json" | jq -r ".assets[].name | select(test(\"win-${ARCH}\\\\.pluggable\\\\.zip$\"))" | head -1)
+
+    if [[ -z "$main_program_filename" ]]; then
+        log_message "ERROR" "Could not find main program asset for architecture $ARCH in release v${package_version}"
+        return 1
+    fi
+    log_message "INFO" "Found main program: $main_program_filename"
+
+    # 从 release assets 中动态发现所有 DNS 验证插件
+    local plugins_list=()
+    while IFS= read -r plugin_name; do
+        [[ -n "$plugin_name" ]] && plugins_list+=("$plugin_name")
+    done < <(echo "$release_json" | jq -r '.assets[].name | select(startswith("plugin.validation.dns."))')
+
+    log_message "INFO" "Found ${#plugins_list[@]} DNS validation plugins"
+
+    # --- 定义变量 ---
+    local output_filename_base="simple-acme-${package_version}"
+
+    # 定义构建过程中使用的路径
+    local package_output_dir="${SERVBAY_BUILD_OUTPUT_DIR}/${package_name}/${ARCH}"
+    local safe_version=$(echo "$package_version" | tr '/' '_')
+    local package_temp_dir="${SERVBAY_BUILD_TEMP_BASE_DIR}/${package_name}-${safe_version}-${ARCH}"
+    local main_archive_temp_path="${package_temp_dir}/${main_program_filename}"
+    local extract_root_dir="${package_temp_dir}/unzip"
+    local plugins_target_dir="${extract_root_dir}/plugins"
+    local final_package_file="${package_output_dir}/${output_filename_base}-windows-${ARCH}.7z"
+
+    # GitHub Releases 的基础下载 URL
+    local base_download_url="https://github.com/simple-acme/simple-acme/releases/download/v${package_version}"
+
+    # --- 开始构建流程 ---
+    local build_failed=0
+
+    # 创建所需的目录
+    mkdir -p "$package_output_dir"
+    rm -rf "$package_temp_dir"
+    mkdir -p "$package_temp_dir"
+    mkdir -p "$extract_root_dir"
+
+    # 1. 下载并解压主程序
+    log_message "INFO" "Downloading main program: ${main_program_filename}"
+    if ! download_file "${base_download_url}/${main_program_filename}" "$main_archive_temp_path"; then
+        build_failed=1
+    fi
+
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Extracting main program..."
+        # 主程序的 zip 文件直接包含其内容，所以解压到我们的根目录
+        if ! extract_archive "$main_archive_temp_path" "$extract_root_dir"; then
+            build_failed=1
+        fi
+    fi
+
+    # 2. 创建 plugins 目录，并下载和解压所有插件
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Creating plugins directory at: ${plugins_target_dir}"
+        mkdir -p "$plugins_target_dir" || { log_message "ERROR" "Failed to create plugins directory."; build_failed=1; }
+    fi
+
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Processing ${#plugins_list[@]} plugins..."
+        for plugin_filename in "${plugins_list[@]}"; do
+            local plugin_url="${base_download_url}/${plugin_filename}"
+            local plugin_archive_path="${package_temp_dir}/${plugin_filename}"
+
+            log_message "INFO" "Downloading plugin: ${plugin_filename}"
+            if download_file "$plugin_url" "$plugin_archive_path"; then
+                log_message "INFO" "Extracting ${plugin_filename} directly into ${plugins_target_dir}"
+                # 将插件压缩包的内容直接解压到最终的 plugins 文件夹中
+                if ! extract_archive "$plugin_archive_path" "$plugins_target_dir"; then
+                    log_message "ERROR" "Failed to extract plugin: ${plugin_filename}. Build will continue but this plugin will be missing."
+                fi
+            else
+                log_message "ERROR" "Failed to download plugin: ${plugin_filename}. Build will continue but this plugin will be missing."
+            fi
+        done
+    fi
+
+    # 3. 压缩最终的包
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Compressing final package to ${final_package_file}"
+        if ! compress_directory "$extract_root_dir" "$final_package_file"; then
+            build_failed=1
+        fi
+    fi
+
+    # 4. 清理临时文件
+    cleanup_package_temp "$package_temp_dir"
+
+    # --- 最终状态报告 ---
+    if [[ $build_failed -eq 0 ]]; then
+        log_message "INFO" "Successfully built simple-acme package $package_name $package_version for $ARCH."
+        return 0
+    else
+        log_message "ERROR" "Failed build steps for simple-acme package $package_name $package_version for $ARCH."
+        # 如果构建失败，删除可能已创建的不完整的最终文件
+        rm -f "$final_package_file" 2>/dev/null || true
+        return 1
+    fi
+}
+
+# cloudflared
+Build_Package_cloudflared() {
+    local package_name=$1
+    local package_version=$2
+
+    local origin_filename="cloudflared-windows-amd64.exe" # origin download filename
+    local rename_filename="cloudflared.exe"
+    local download_url="https://github.com/cloudflare/cloudflared/releases/download/${package_version}/${origin_filename}"
+
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$origin_filename" "$rename_filename" "$output_base"
+}
+
+# frp
+Build_Package_frp() {
+    local package_name=$1
+    local package_version=$2
+
+    local package_filename="frp_${package_version}_windows_amd64.zip"
+    local download_url="https://github.com/fatedier/frp/releases/download/v${package_version}/$package_filename"
+    local extract_subdir="${package_filename%.zip}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "frp-${package_version}" ""
+}
+
+# pinggy
+Build_Package_pinggy() {
+    local package_name=$1
+    local package_version=$2
+
+    local origin_filename="pinggy-win-x64.exe" # origin download filename
+    local rename_filename="pinggy.exe"
+    local download_url="https://github.com/Pinggy-io/cli-js/releases/download/v${package_version}/${origin_filename}"
+
+    Build_Package_SingleFile "$package_name" "$package_version" "$download_url" "$origin_filename" "$rename_filename" "$output_base"
+}
+
+# ngrok
+Build_Package_ngrok() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3
+
+    local package_filename="ngrok-v3-${package_version}-windows-amd64.zip"
+    local download_url="https://bin.ngrok.com/a/${provided_filename}/$package_filename"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "." "ngrok-${package_version}" ""
+}
+
+# bun
+Build_Package_bun() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3
+
+    local package_filename="bun-windows-x64-baseline.zip"
+    local download_url="https://github.com/oven-sh/bun/releases/download/bun-v${package_version}/${package_filename}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "bun-windows-x64-baseline" "bun-${package_version}" ""
+}
+
+# deno
+Build_Package_deno() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3
+
+    local package_filename="deno-x86_64-pc-windows-msvc.zip"
+    local download_url="https://github.com/denoland/deno/releases/download/v${package_version}/${package_filename}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "." "deno-${package_version}" ""
+}
+
+# caddy
+Build_Package_caddy() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3
+
+    local package_filename="caddy_${package_version}_windows_amd64.zip"
+    local download_url="https://github.com/caddyserver/caddy/releases/download/v${package_version}/${package_filename}"
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "." "caddy-${package_version}" ""
+}
+
+# MongoDB (Using official Windows MSI archives)
+Build_Package_mongodb() {
+    local package_name=$1
+    local package_version=$2
+    
+    # MongoDB uses 'x86_64' in their filenames
+    local mongodb_arch=""
+    case "$ARCH" in
+        x64) mongodb_arch="x86_64" ;;
+        x86) log_message "WARN" "MongoDB may not have official x86 builds. Skipping."; return 0 ;;
+        arm64) log_message "WARN" "MongoDB may not have official arm64 builds for Windows. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported MongoDB architecture mapping for: $ARCH"; return 1 ;;
+    esac
+    
+    # MongoDB major.minor version for URL construction
+    local mongodb_major_minor=$(echo "$package_version" | cut -d. -f1-2)
+    
+    # Example filename pattern
+    local package_filename="mongodb-windows-${mongodb_arch}-${package_version}.zip"
+    # Example URL pattern
+    local download_url="https://fastdl.mongodb.org/windows/${package_filename}"
+    
+    # MongoDB extracts into a versioned folder like 'mongodb-win32-x86_64-windows-6.0.5'
+    local extract_subdir="mongodb-win32-${mongodb_arch}-windows-${package_version}"
+    
+    # Remove unnecessary files (like .pdb debug files and vc_redist installer)
+    local post_cmds="rm -rf bin/*.pdb bin/vc_redist* bin/vcredist*"
+    
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "mongodb-${package_version}" "$post_cmds"
+}
+
+# mongosh (MongoDB Shell)
+Build_Package_mongosh() {
+    local package_name=$1
+    local package_version=$2
+    
+    # mongosh uses 'win32' and 'x64' in their filenames
+    local mongosh_arch=""
+    case "$ARCH" in
+        x64) mongosh_arch="x64" ;;
+        x86) mongosh_arch="win32" ;;
+        arm64) log_message "WARN" "mongosh may not have official arm64 builds for Windows. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported mongosh architecture mapping for: $ARCH"; return 1 ;;
+    esac
+    
+    # Example filename pattern
+    local package_filename="mongosh-${package_version}-win32-${mongosh_arch}.zip"
+    # Example URL pattern
+    local download_url="https://downloads.mongodb.com/compass/${package_filename}"
+    
+    # mongosh extracts into a versioned folder
+    local extract_subdir="mongosh-${package_version}-win32-${mongosh_arch}"
+    
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "mongosh-${package_version}" ""
+}
+
+# mongotools (MongoDB Database Tools)
+Build_Package_mongotools() {
+    local package_name=$1
+    local package_version=$2
+    
+    # mongotools uses 'x86_64' in their filenames
+    local mongotools_arch=""
+    case "$ARCH" in
+        x64) mongotools_arch="x86_64" ;;
+        x86) log_message "WARN" "MongoDB Database Tools may not have official x86 builds. Skipping."; return 0 ;;
+        arm64) log_message "WARN" "MongoDB Database Tools may not have official arm64 builds for Windows. Skipping."; return 0 ;;
+        *) log_message "ERROR" "Unsupported mongotools architecture mapping for: $ARCH"; return 1 ;;
+    esac
+    
+    # Example filename pattern
+    local package_filename="mongodb-database-tools-windows-${mongotools_arch}-${package_version}.zip"
+    # Example URL pattern
+    local download_url="https://fastdl.mongodb.org/tools/db/${package_filename}"
+    
+    # mongotools extracts into a versioned folder
+    local extract_subdir="mongodb-database-tools-windows-${mongotools_arch}-${package_version}"
+    
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "mongotools-${package_version}" ""
+}
+
+# Apache (Using portable builds from a specific source as example)
+Build_Package_apache() {
+    local package_name=$1
+    local package_version=$2
+    # Example source: https://github.com/ServBay/Apache-Windows-Portable
+    # Adjust URL and filename pattern as needed for your chosen source
+    local apache_arch=""
+     case "$ARCH" in
+        x64) apache_arch="x64" ;;
+        x86) apache_arch="x86" ;; # Assumption, verify actual filename
+        arm64) apache_arch="arm64" ;; # Assumption, verify actual filename
+        *) log_message "ERROR" "Unsupported Apache architecture mapping for: $ARCH"; return 1 ;;
+    esac
+
+    # Example filename pattern, **ADJUST THIS**
+    local package_filename="apache-${package_version}-win-${apache_arch}.zip"
+    # Example URL pattern, **ADJUST THIS**
+    local download_url="https://github.com/ServBay/Apache-Windows-Portable/releases/download/apache-${package_version}-win-${apache_arch}/${package_filename}"
+    # Assume extracts into a versioned folder like 'apache-2.7.18-win-x64'
+
+    local extract_subdir="."
+
+    Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "apache-${package_version}" ""
+}
+
+# --- Main Execution ---
+BUILD_WINDOWS_SH=$(pwd)/build_windows.sh
+# Initialize Log File (clear or create)
+echo "Initializing build log at $LOG_FILE..." > "$LOG_FILE"
+# Ensure log directory exists (though it's in PWD here)
+mkdir -p "$(dirname "$LOG_FILE")"
+
+log_message "INFO" "Starting Windows package build for architecture: $ARCH"
+log_message "INFO" "Build directory: $SERVBAY_BUILD_DIR"
+log_message "INFO" "Output directory: $SERVBAY_BUILD_OUTPUT_DIR"
+log_message "INFO" "Temporary directory: $SERVBAY_BUILD_TEMP_BASE_DIR"
+log_message "INFO" "Log file: $LOG_FILE"
+if [[ -n "$PACKAGE_FILTER" ]]; then
+    log_message "INFO" "Package filter: $PACKAGE_FILTER"
+fi
+
+# Check dependencies
+check_command "wget"
+check_command "7z"
+check_command "tar" # Add tar check
+check_command "gzip" # Tar dependency
+check_command "bzip2" # Tar dependency
+check_command "xz" # Tar dependency
+check_command "jq"   # For parsing JSON
+
+# Check if package file exists
+if [[ ! -f "$PACKAGE_FILE" ]]; then
+    log_message "ERROR" "Package definition file not found: $PACKAGE_FILE"
+    exit 1
+fi
+
+# Clean or Create temporary directory base
+# Check if base temp dir exists and remove it first
+if [ -d "$SERVBAY_BUILD_TEMP_BASE_DIR" ]; then
+    log_message "INFO" "Removing existing temporary base directory: $SERVBAY_BUILD_TEMP_BASE_DIR"
+    rm -rf "$SERVBAY_BUILD_TEMP_BASE_DIR"
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Failed to remove existing temporary base directory. Check permissions or processes using it."
+        exit 1
+    fi
+fi
+mkdir -p "$SERVBAY_BUILD_TEMP_BASE_DIR"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Failed to create temporary base directory: $SERVBAY_BUILD_TEMP_BASE_DIR"
+    exit 1
+fi
+log_message "INFO" "Created temporary base directory: $SERVBAY_BUILD_TEMP_BASE_DIR"
+
+
+# --- Process Package File ---
+build_errors=0
+total_packages=0
+built_packages=0
+processed_lines=0
+
+# Use awk to filter and then a while read loop for portability
+# Set IFS specifically for the read command to handle tabs correctly.
+# Use printf '\t' for portability instead of $'\t' if needed, but $'\t' is common in modern bash.
+# read -r prevents backslash interpretation
+# || [[ -n "$line" ]] handles the case where the last line might not have a newline
+while IFS=$'\t' read -r -a fields || [[ -n "${fields[0]}" ]]; do
+    ((processed_lines++))
+
+    # Check if fields array has at least 2 elements (name and version)
+    if [[ ${#fields[@]} -lt 2 ]]; then
+        # Read the raw line again if fields array is empty/incomplete, to log it
+        # This part is tricky as the original line might be lost depending on how read failed
+        # Let's assume if fields[0] is empty, the line was likely empty or whitespace
+        if [[ -z "${fields[0]}" ]]; then
+             log_message "WARN" "Skipping empty or whitespace line number $processed_lines."
+        else
+             # Log the first field if available, indicating potential format issue
+             log_message "WARN" "Skipping potentially malformed line $processed_lines (starts with: '${fields[0]}'). Ensure TAB separation."
+        fi
+        continue
+    fi
+
+    package_name="${fields[0]}"
+    package_version="${fields[1]}"
+    # Assign filename only if it exists (index 2)
+    package_filename=""
+    if [[ ${#fields[@]} -ge 3 ]]; then
+        package_filename="${fields[2]}"
+    fi
+
+    # Trim potential whitespace (using parameter expansion for portability)
+    # Note: IFS handling in read -a should prevent leading/trailing whitespace *within* fields if IFS is just tab.
+    # But let's keep it for safety, especially for the filename which might have spaces if not quoted.
+    package_name="${package_name#"${package_name%%[![:space:]]*}"}" # remove leading
+    package_name="${package_name%"${package_name##*[![:space:]]}"}" # remove trailing
+    package_version="${package_version#"${package_version%%[![:space:]]*}"}"
+    package_version="${package_version%"${package_version##*[![:space:]]}"}"
+    package_filename="${package_filename#"${package_filename%%[![:space:]]*}"}"
+    package_filename="${package_filename%"${package_filename##*[![:space:]]}"}"
+
+    # Re-check after trimming if name or version became empty
+    if [[ -z "$package_name" || -z "$package_version" ]]; then
+        log_message "WARN" "Skipping line $processed_lines after trimming; missing package name or version."
+        continue
+    fi
+
+    ((total_packages++)) # Increment count only for valid-looking lines
+
+    # Apply package filter if set (-p flag)
+    if [[ -n "$PACKAGE_FILTER" ]]; then
+        filter_key="${package_name}-${package_version}"
+        if [[ ",$PACKAGE_FILTER," != *",$filter_key,"* ]]; then
+            continue
+        fi
+    fi
+
+    # Construct function name
+    # Replace hyphens and dots with underscores for function names
+    build_function_name="Build_Package_$(echo "${package_name}" | tr '.-' '__')"
+
+    # Check if the build function exists
+    if declare -f "$build_function_name" > /dev/null; then
+        log_message "INFO" "Attempting to build: $package_name $package_version ($ARCH)"
+        # Call the function for the package
+        if "$build_function_name" "$package_name" "$package_version" "$package_filename"; then
+            # Success logged within the function
+            ((built_packages++))
+        else
+            # Error logged within the function
+            ((build_errors++))
+            # Optional: Stop on first error? Add 'exit 1' here if needed.
+        fi
+    else
+        log_message "WARN" "No build function defined for '$package_name' (tried '$build_function_name'). Skipping."
+        # Optionally count this as an error?
+        # ((build_errors++))
+    fi
+
+    # Clear fields array for the next iteration (good practice)
+    unset fields
+
+# Ensure awk prints the whole line
+done < <(awk '!/^#/ && NF {print $0}' "$PACKAGE_FILE")
+
+
+# Final Summary
+log_message "INFO" "=============================================="
+log_message "INFO" "Build process completed."
+log_message "INFO" "Attempted to process $total_packages package entries from $processed_lines lines read."
+log_message "INFO" "Successfully built packages: $built_packages"
+if [[ $build_errors -gt 0 ]]; then
+    log_message "ERROR" "$build_errors package(s) failed to build."
+    log_message "INFO" "Check log file for details: $LOG_FILE"
+    # cleanup_base_temp "$SERVBAY_BUILD_TEMP_BASE_DIR" # Optional: Leave temp dir on failure for debugging
+    exit 1 # Exit with error code if any builds failed
+else
+    log_message "INFO" "All attempted packages built successfully!"
+    log_message "INFO" "Log file available at: $LOG_FILE"
+    # Clean up base temp dir on success
+    cleanup_base_temp "$SERVBAY_BUILD_TEMP_BASE_DIR"
+    exit 0
+fi

@@ -1,0 +1,51 @@
+--- src/hnswvacuum.c.bak	2025-11-03 19:19:55
++++ src/hnswvacuum.c	2025-11-03 21:36:13
+@@ -49,7 +49,7 @@
+ 		OffsetNumber maxoffno;
+ 		bool		updated = false;
+ 
+-		vacuum_delay_point();
++		vacuum_delay_point(false);
+ 
+ 		buf = ReadBufferExtended(index, MAIN_FORKNUM, blkno, RBM_NORMAL, bas);
+ 		LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
+@@ -345,7 +345,7 @@
+ 		ListCell   *lc2;
+ 		MemoryContext oldCtx;
+ 
+-		vacuum_delay_point();
++		vacuum_delay_point(false);
+ 
+ 		oldCtx = MemoryContextSwitchTo(vacuumstate->tmpCtx);
+ 
+@@ -457,7 +457,7 @@
+ 		OffsetNumber offno;
+ 		OffsetNumber maxoffno;
+ 
+-		vacuum_delay_point();
++		vacuum_delay_point(false);
+ 
+ 		buf = ReadBufferExtended(index, MAIN_FORKNUM, blkno, RBM_NORMAL, bas);
+ 
+--- src/ivfbuild.c.bak	2025-11-03 21:37:31
++++ src/ivfbuild.c	2025-11-03 21:37:31
+@@ -360,7 +360,7 @@
+ 	buildstate->sortdesc = CreateTemplateTupleDesc(3);
+ 	TupleDescInitEntry(buildstate->sortdesc, (AttrNumber) 1, "list", INT4OID, -1, 0);
+ 	TupleDescInitEntry(buildstate->sortdesc, (AttrNumber) 2, "tid", TIDOID, -1, 0);
+-	TupleDescInitEntry(buildstate->sortdesc, (AttrNumber) 3, "vector", buildstate->tupdesc->attrs[0].atttypid, -1, 0);
++	TupleDescInitEntry(buildstate->sortdesc, (AttrNumber) 3, "vector", TupleDescAttr(buildstate->tupdesc, 0)->atttypid, -1, 0);
+ 
+ 	buildstate->slot = MakeSingleTupleTableSlot(buildstate->sortdesc, &TTSOpsVirtual);
+ 
+--- src/ivfvacuum.c.bak	2025-11-03 21:37:55
++++ src/ivfvacuum.c	2025-11-03 21:38:05
+@@ -64,7 +64,7 @@
+ 				OffsetNumber deletable[MaxOffsetNumber];
+ 				int			ndeletable;
+ 
+-				vacuum_delay_point();
++				vacuum_delay_point(false);
+ 
+ 				buf = ReadBufferExtended(index, MAIN_FORKNUM, searchPage, RBM_NORMAL, bas);
+ 

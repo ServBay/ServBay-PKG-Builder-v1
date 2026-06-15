@@ -1,0 +1,13 @@
+diff --git a/imap/src/osdep/unix/os_osx.h b/imap/src/osdep/unix/os_osx.h
+index 6fcb014..ce156d0 100644
+--- a/imap/src/osdep/unix/os_osx.h
++++ b/imap/src/osdep/unix/os_osx.h
+@@ -32,6 +32,7 @@
+ #include <utime.h>
+ #include <syslog.h>
+ #include <sys/file.h>
++#include <time.h>
++#include <utime.h>
+
+
+ /* Mac OS X gets this wrong as of Leopard */

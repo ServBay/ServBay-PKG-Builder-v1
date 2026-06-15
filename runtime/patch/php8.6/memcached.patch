@@ -1,0 +1,38 @@
+--- ./php_memcached.c.bak	2025-11-06 12:58:50
++++ ./php_memcached.c	2025-11-06 12:58:50
+@@ -1605,7 +1605,7 @@
+ 	}
+ 
+ 	if (!retval || EG(exception)) {
+-		zval_dtor(return_value);
++		zval_ptr_dtor_nogc(return_value);
+ 		RETURN_FROM_GET;
+ 	}
+ }
+@@ -1808,7 +1808,7 @@
+ 	status = php_memc_result_apply(intern, s_fetch_all_apply, 0, return_value);
+ 
+ 	if (s_memc_status_handle_result_code(intern, status) == FAILURE) {
+-		zval_dtor(return_value);
++		zval_ptr_dtor_nogc(return_value);
+ 		RETURN_FALSE;
+ 	}
+ }
+@@ -2845,7 +2845,7 @@
+ 	array_init(return_value);
+ 	status = memcached_server_cursor(intern->memc, callbacks, return_value, 1);
+ 	if (s_memc_status_handle_result_code(intern, status) == FAILURE) {
+-		zval_dtor(return_value);
++		zval_ptr_dtor_nogc(return_value);
+ 		RETURN_FALSE;
+ 	}
+ }
+@@ -2887,7 +2887,7 @@
+ 	 */
+ 	if (rc != MEMCACHED_CLIENT_ERROR && rc != MEMCACHED_SERVER_ERROR
+ 	    && s_memc_status_handle_result_code(intern, rc) == FAILURE) {
+-		zval_dtor(return_value);
++		zval_ptr_dtor_nogc(return_value);
+ 		RETURN_FALSE;
+ 	}
+ }

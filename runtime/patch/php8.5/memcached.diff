@@ -1,0 +1,22 @@
+--- php_memcached_private.h.bak	2025-09-22 02:44:09
++++ php_memcached_private.h	2025-09-22 02:44:22
+@@ -43,7 +43,7 @@
+ #include <ext/standard/info.h>
+ #include <zend_extensions.h>
+ #include <zend_exceptions.h>
+-#include <ext/standard/php_smart_string.h>
++#include <zend_smart_string.h>
+ #include <ext/standard/php_var.h>
+ #include <ext/standard/basic_functions.h>
+ 
+--- php_memcached.c.bak	2025-09-22 02:44:37
++++ php_memcached.c	2025-09-22 02:44:53
+@@ -3820,7 +3820,7 @@
+ 		}
+ 	}
+ 
+-	return zend_exception_get_default();
++	return zend_ce_exception;
+ }
+ 
+ 

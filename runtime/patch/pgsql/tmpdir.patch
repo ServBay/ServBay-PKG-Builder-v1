@@ -1,0 +1,11 @@
+--- ./src/include/pg_config_manual.h.bak	2025-01-31 14:46:18
++++ ./src/include/pg_config_manual.h	2025-01-31 14:46:48
+@@ -206,7 +206,7 @@
+  * support them yet.
+  */
+ #ifndef WIN32
+-#define DEFAULT_PGSOCKET_DIR  "/tmp"
++#define DEFAULT_PGSOCKET_DIR  "/Applications/ServBay/tmp"
+ #else
+ #define DEFAULT_PGSOCKET_DIR ""
+ #endif

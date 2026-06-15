@@ -1,0 +1,149 @@
+--- cmake/ssl.cmake.bak 2024-07-15 22:32:52
++++ cmake/ssl.cmake     2024-07-15 22:33:31
+@@ -93,6 +93,67 @@
+   UNSET(HAVE_SHA512_DIGEST_LENGTH CACHE)
+ ENDMACRO()
+
++# Fetch OpenSSL version number.
++# OpenSSL < 3:
++# #define OPENSSL_VERSION_NUMBER 0x1000103fL
++# Encoded as MNNFFPPS: major minor fix patch status
++#
++# OpenSSL 3:
++# #define OPENSSL_VERSION_NUMBER
++#   ( (OPENSSL_VERSION_MAJOR<<28)
++#     |(OPENSSL_VERSION_MINOR<<20)
++#     |(OPENSSL_VERSION_PATCH<<4)
++#     |_OPENSSL_VERSION_PRE_RELEASE )
++MACRO(FIND_OPENSSL_VERSION)
++  FOREACH(version_part
++      OPENSSL_VERSION_MAJOR
++      OPENSSL_VERSION_MINOR
++      OPENSSL_VERSION_PATCH
++      )
++    FILE(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" ${version_part}
++      REGEX "^#[\t ]*define[\t ]+${version_part}[\t ]+([0-9]+).*")
++    STRING(REGEX REPLACE
++      "^.*${version_part}[\t ]+([0-9]+).*" "\\1"
++      ${version_part} "${${version_part}}")
++  ENDFOREACH()
++  IF(OPENSSL_VERSION_MAJOR VERSION_EQUAL 3)
++    # OpenSSL 3
++    SET(OPENSSL_FIX_VERSION "${OPENSSL_VERSION_PATCH}")
++    MESSAGE(STATUS "VERSION_MAJOR is 3 so set FIX_VERSION to ${OPENSSL_FIX_VERSION}")
++  ELSE()
++    # Verify version number. Version information looks like:
++    #   #define OPENSSL_VERSION_NUMBER 0x1000103fL
++    # Encoded as MNNFFPPS: major minor fix patch status
++    FILE(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h"
++      OPENSSL_VERSION_NUMBER
++      REGEX "^#[ ]*define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x[0-9].*"
++      )
++    STRING(REGEX REPLACE
++      "^.*OPENSSL_VERSION_NUMBER[\t ]+0x([0-9]).*$" "\\1"
++      OPENSSL_VERSION_MAJOR "${OPENSSL_VERSION_NUMBER}"
++      )
++    STRING(REGEX REPLACE
++      "^.*OPENSSL_VERSION_NUMBER[\t ]+0x[0-9]([0-9][0-9]).*$" "\\1"
++      OPENSSL_VERSION_MINOR "${OPENSSL_VERSION_NUMBER}"
++      )
++    STRING(REGEX REPLACE
++      "^.*OPENSSL_VERSION_NUMBER[\t ]+0x[0-9][0-9][0-9]([0-9][0-9]).*$" "\\1"
++      OPENSSL_FIX_VERSION "${OPENSSL_VERSION_NUMBER}"
++      )
++  ENDIF()
++  SET(OPENSSL_MAJOR_VERSION ${OPENSSL_VERSION_MAJOR})
++  SET(OPENSSL_MINOR_VERSION ${OPENSSL_VERSION_MINOR})
++  SET(OPENSSL_VERSION "${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}.${OPENSSL_FIX_VERSION}")
++  SET(OPENSSL_VERSION ${OPENSSL_VERSION} CACHE INTERNAL "")
++  MESSAGE(STATUS "OPENSSL_VERSION (${WITH_SSL}) is ${OPENSSL_VERSION}")
++
++  #SET(OPENSSL_MAJOR_MINOR_FIX_VERSION "${OPENSSL_VERSION_MAJOR}")
++  #STRING_APPEND(OPENSSL_MAJOR_MINOR_FIX_VERSION ".${OPENSSL_VERSION_MINOR}")
++  #STRING_APPEND(OPENSSL_MAJOR_MINOR_FIX_VERSION ".${OPENSSL_FIX_VERSION}")
++  #MESSAGE(STATUS
++  #  "OPENSSL_VERSION (${WITH_SSL}) is ${OPENSSL_MAJOR_MINOR_FIX_VERSION}")
++ENDMACRO(FIND_OPENSSL_VERSION)
++
+ # MYSQL_CHECK_SSL
+ #
+ # Provides the following configure options:
+@@ -169,33 +230,15 @@
+     ENDIF()
+
+     IF(OPENSSL_INCLUDE_DIR)
+-      # Verify version number. Version information looks like:
+-      #   #define OPENSSL_VERSION_NUMBER 0x1000103fL
+-      # Encoded as MNNFFPPS: major minor fix patch status
+-      FILE(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h"
+-        OPENSSL_VERSION_NUMBER
+-        REGEX "^#[ ]*define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x[0-9].*"
+-        )
+-      STRING(REGEX REPLACE
+-        "^.*OPENSSL_VERSION_NUMBER[\t ]+0x([0-9]).*$" "\\1"
+-        OPENSSL_MAJOR_VERSION "${OPENSSL_VERSION_NUMBER}"
+-        )
+-      STRING(REGEX REPLACE
+-        "^.*OPENSSL_VERSION_NUMBER[\t ]+0x[0-9]([0-9][0-9]).*$" "\\1"
+-        OPENSSL_MINOR_VERSION "${OPENSSL_VERSION_NUMBER}"
+-        )
+-      STRING(REGEX REPLACE
+-        "^.*OPENSSL_VERSION_NUMBER[\t ]+0x[0-9][0-9][0-9]([0-9][0-9]).*$" "\\1"
+-        OPENSSL_FIX_VERSION "${OPENSSL_VERSION_NUMBER}"
+-        )
++      FIND_OPENSSL_VERSION()
+     ENDIF()
++
+     IF("${OPENSSL_MAJOR_VERSION}.${OPENSSL_MINOR_VERSION}.${OPENSSL_FIX_VERSION}" VERSION_GREATER "1.1.0")
+        ADD_DEFINITIONS(-DHAVE_TLSv13)
+     ENDIF()
+     IF(OPENSSL_INCLUDE_DIR AND
+        OPENSSL_LIBRARY   AND
+-       CRYPTO_LIBRARY      AND
+-       OPENSSL_MAJOR_VERSION STREQUAL "1"
++       CRYPTO_LIBRARY
+       )
+       SET(OPENSSL_FOUND TRUE)
+     ELSE()
+--- cmake/build_configurations/compiler_options.cmake.bak       2024-07-15 22:33:04
++++ cmake/build_configurations/compiler_options.cmake   2024-07-15 22:33:32
+@@ -47,7 +47,7 @@
+     IF(GXX_VERSION VERSION_EQUAL 6.0 OR GXX_VERSION VERSION_GREATER 6.0)
+       SET(COMMON_CXX_FLAGS             "${COMMON_CXX_FLAGS} -std=gnu++03")
+     ENDIF()
+-    SET(COMMON_CXX_FLAGS               "-g -fabi-version=2 -fno-omit-frame-pointer -fno-strict-aliasing")
++    SET(COMMON_CXX_FLAGS               "-g -fabi-version=2 -fno-omit-frame-pointer -fno-strict-aliasing --std=c++11")
+     # Disable inline optimizations for valgrind testing to avoid false positives
+     IF(WITH_VALGRIND)
+       SET(COMMON_CXX_FLAGS             "-fno-inline ${COMMON_CXX_FLAGS}")
+--- cmake/mysql_version.cmake.bak       2024-07-15 22:52:41
++++ cmake/mysql_version.cmake   2024-07-15 22:52:43
+@@ -31,7 +31,7 @@
+
+ # Generate "something" to trigger cmake rerun when VERSION changes
+ CONFIGURE_FILE(
+-  ${CMAKE_SOURCE_DIR}/VERSION
++  ${CMAKE_SOURCE_DIR}/MYSQL_VERSION
+   ${CMAKE_BINARY_DIR}/VERSION.dep
+ )
+
+@@ -39,7 +39,7 @@
+
+ MACRO(MYSQL_GET_CONFIG_VALUE keyword var)
+  IF(NOT ${var})
+-   FILE (STRINGS ${CMAKE_SOURCE_DIR}/VERSION str REGEX "^[ ]*${keyword}=")
++   FILE (STRINGS ${CMAKE_SOURCE_DIR}/MYSQL_VERSION str REGEX "^[ ]*${keyword}=")
+    IF(str)
+      STRING(REPLACE "${keyword}=" "" str ${str})
+      STRING(REGEX REPLACE  "[ ].*" ""  str "${str}")
+--- include/my_global.h.bak     2024-07-15 22:45:14
++++ include/my_global.h 2024-07-15 22:46:05
+@@ -175,7 +175,7 @@
+ #  if defined(__i386__) || defined(__ppc__)
+ #    define SIZEOF_CHARP 4
+ #    define SIZEOF_LONG 4
+-#  elif defined(__x86_64__) || defined(__ppc64__)
++#  elif defined(__x86_64__) || defined(__ppc64__) || defined(__arm64__) || defined(__aarch64__)
+ #    define SIZEOF_CHARP 8
+ #    define SIZEOF_LONG 8
+ #  else

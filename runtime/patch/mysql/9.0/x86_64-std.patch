@@ -1,0 +1,20 @@
+--- storage/ndb/plugin/ndb_binlog_purger.cc.bak	2024-07-24 18:25:28.000000000 +0800
++++ storage/ndb/plugin/ndb_binlog_purger.cc	2024-07-24 18:26:22.000000000 +0800
+@@ -76,7 +76,7 @@
+   std::unique_lock files_lock(m_purge_files_lock);
+ 
+   // Don't allow adding existing filename
+-  if (std::ranges::any_of(m_purge_files, [filename](const auto &request) {
++  if (std::any_of(m_purge_files.begin(), m_purge_files.end(), [filename](const auto &request) {
+         return request.filename == filename;
+       })) {
+     log_info("Binlog file '%s' was already submitted for purge, skipping",
+@@ -95,7 +95,7 @@
+ 
+   m_purge_files_finished_cond.wait(files_lock, [this, session]() {
+     return is_stop_requested() ||
+-           std::ranges::none_of(m_purge_files, [session](const auto &request) {
++           std::none_of(m_purge_files.begin(), m_purge_files.end(), [session](const auto &request) {
+              return request.session == session;
+            });
+   });

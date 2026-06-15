@@ -1,0 +1,20 @@
+diff --git a/storage/innobase/log/log0log.cc b/storage/innobase/log/log0log.cc
+index f5d9cf85c41f3..93f8db6bfc0a5 100644
+--- a/storage/innobase/log/log0log.cc
++++ b/storage/innobase/log/log0log.cc
+@@ -132,6 +132,7 @@ bool log_t::create()
+ #endif
+ 
+   latch.SRW_LOCK_INIT(log_latch_key);
++  lsn_lock.init();
+ 
+   last_checkpoint_lsn= FIRST_LSN;
+   log_capacity= 0;
+@@ -1330,6 +1331,7 @@ void log_t::close()
+ #endif
+ 
+   latch.destroy();
++  lsn_lock.destroy();
+ 
+   recv_sys.close();
+ 

@@ -1,0 +1,93 @@
+--- ./ext/zlib/zlib.c.bak	2025-04-24 14:40:16
++++ ./ext/zlib/zlib.c	2025-04-24 14:41:34
+@@ -1032,7 +1032,7 @@
+ 	PHP_MINFO(zlib),
+ 	"2.0",
+ 	PHP_MODULE_GLOBALS(zlib),
+-	ZEND_MODULE_GLOBALS_CTOR_N(zlib),
++	(void (*)(void *)) ZEND_MODULE_GLOBALS_CTOR_N(zlib),
+ 	NULL,
+ 	NULL,
+ 	STANDARD_MODULE_PROPERTIES_EX
+--- ./ext/fileinfo/libmagic/funcs.c.bak	2025-04-24 14:57:03
++++ ./ext/fileinfo/libmagic/funcs.c	2025-04-24 14:57:49
+@@ -437,7 +437,7 @@
+ 	return ms->o.buf == NULL ? 0 : strlen(ms->o.buf);
+ }
+ 
+-file_replace(struct magic_set *ms, const char *pat, const char *rep)
++int file_replace(struct magic_set *ms, const char *pat, const char *rep)
+ {
+ 	zval *patt;
+ 	int opts = 0;
+--- ./ext/dom/dom_iterators.c.bak	2025-04-24 14:54:52
++++ ./ext/dom/dom_iterators.c	2025-04-24 14:56:31
+@@ -91,7 +91,7 @@
+ 		iter->cur = 0;
+ 		iter->index = index;
+ 		iter->node = NULL;
+-		xmlHashScan(ht, itemHashScanner, iter);
++		xmlHashScan(ht, (xmlHashScanner)itemHashScanner, iter);
+ 		nodep = iter->node;
+ 		efree(iter);
+ 		return nodep;
+@@ -112,7 +112,7 @@
+ 		iter->cur = 0;
+ 		iter->index = index;
+ 		iter->notation = NULL;
+-		xmlHashScan(ht, itemHashScanner, iter);
++		xmlHashScan(ht, (xmlHashScanner)itemHashScanner, iter);
+ 		notep = iter->notation;
+ 		efree(iter);
+ 		return create_notation(notep->name, notep->PublicID, notep->SystemID);
+--- ./ext/gd/libgd/gd_jpeg.c.bak	2025-04-24 14:58:24
++++ ./ext/gd/libgd/gd_jpeg.c	2025-04-24 15:00:16
+@@ -722,7 +722,7 @@
+ 
+ 	src = (my_src_ptr) cinfo->src;
+ 	src->pub.init_source = init_source;
+-	src->pub.fill_input_buffer = fill_input_buffer;
++	src->pub.fill_input_buffer = (boolean (*)(j_decompress_ptr)) fill_input_buffer;
+ 	src->pub.skip_input_data = skip_input_data;
+ 	src->pub.resync_to_restart = jpeg_resync_to_restart;	/* use default method */
+ 	src->pub.term_source = term_source;
+@@ -842,7 +842,7 @@
+ 
+ 	dest = (my_dest_ptr) cinfo->dest;
+ 	dest->pub.init_destination = init_destination;
+-	dest->pub.empty_output_buffer = empty_output_buffer;
++	dest->pub.empty_output_buffer = (boolean (*)(j_compress_ptr)) empty_output_buffer;
+ 	dest->pub.term_destination = term_destination;
+ 	dest->outfile = outfile;
+ }
+--- ./main/reentrancy.c.bak	2025-04-24 15:03:35
++++ ./main/reentrancy.c	2025-04-24 15:46:14
+@@ -130,21 +130,14 @@
+ {
+ #if defined(HAVE_OLD_READDIR_R)
+ 	int ret = 0;
+-	
+-	/* We cannot rely on the return value of readdir_r
+-	   as it differs between various platforms
+-	   (HPUX returns 0 on success whereas Solaris returns non-zero)
+-	 */
+-	entry->d_name[0] = '\0';
+-	readdir_r(dirp, entry);
+-	
+-	if (entry->d_name[0] == '\0') {
+-		*result = NULL;
+-		ret = errno;
++
++	ret = readdir_r(dirp, entry, result);
++	if (ret != 0) {
++		*result = NULL;
++		return ret;
+ 	} else {
+-		*result = entry;
+-	}
+-	return ret;
++		return 0;
++	}	
+ #else
+ 	struct dirent *ptr;
+ 	int ret = 0;
