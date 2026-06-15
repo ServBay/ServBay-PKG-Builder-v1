@@ -288,8 +288,6 @@ do_bootstrap() {
 
     local workdir
     workdir="$(mktemp -d)"
-    # Clean up the temp download dir on any exit from this function's subshell.
-    trap 'rm -rf "${workdir}"' RETURN
 
     local runtime_url devlib_url
     runtime_url="$(build_url "${runtime_file}")"
@@ -317,6 +315,10 @@ do_bootstrap() {
         "${ARCH}" "${BASE_VERSION}" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
         > "${MARKER_FILE}"
 
+    # Clean up the temp dir here (NOT via a RETURN trap: bash RETURN traps are
+    # global and re-fire on main()'s return where workdir is unbound -> set -u
+    # abort; that was the line-326 "workdir: unbound variable" failure).
+    rm -rf "${workdir}"
     log_info "Base bootstrap complete for ${ARCH} (v${BASE_VERSION})."
 }
 
