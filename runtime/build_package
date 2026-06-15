@@ -4629,18 +4629,49 @@ else
                 PackageName="$testPackageName"
                 Version="$testVersion"
                 packageLine="$testLine"
+                read -r _ _ x86_64_Filename arm64_Filename <<< "$packageLine"
                 break
             fi
         done
 
+        # Fallback: no exact "<name> <version>" line in packages.conf. Reuse the same
+        # package's newest line (active OR commented) as a TEMPLATE and substitute its
+        # version into the filename columns. This keeps the filename format intact, so
+        # binary packages (e.g. node-v<ver>-darwin-arch.tar.gz) also resolve correctly,
+        # and lets you build a one-off newer version without first editing packages.conf.
+        if [[ -z "$packageLine" ]]; then
+            for ((i=1; i<numParts; i++)); do
+                local testPackageName="${(j:-:)parts[1,$i]}"
+                local testVersion="${(j:-:)parts[$((i+1)),$numParts]}"
+                # Pick the newest line of this package whose version ACTUALLY appears in
+                # its filename, so the substitution is meaningful. This skips dev/snapshot
+                # rows whose file is a commit hash (e.g. php 8.6.0-dev), where the version
+                # string is absent and replacement would be a no-op.
+                local _tn _tv _tx _ta tmplFound=""
+                while IFS= read -r tmplLine; do
+                    read -r _tn _tv _tx _ta <<< "${tmplLine#\#}"
+                    [[ -n "$_tv" && "$_tx" == *"$_tv"* ]] && tmplFound="${tmplLine#\#}"
+                done < <(grep -E "^#?[[:space:]]*${testPackageName}[[:space:]]" packages.conf)
+                if [[ -n "$tmplFound" ]]; then
+                    read -r _tn _tv _tx _ta <<< "$tmplFound"
+                    PackageName="$testPackageName"
+                    Version="$testVersion"
+                    x86_64_Filename="${_tx//$_tv/$Version}"
+                    arm64_Filename="${_ta//$_tv/$Version}"
+                    packageLine="template"
+                    log_message "WARN" "⚠️ ${packageName} not in packages.conf; using '${_tn} ${_tv}' as template → version ${Version} (${x86_64_Filename} / ${arm64_Filename})"
+                    break
+                fi
+            done
+        fi
+
         packageFullName="$packageName"
 
         if [[ -z "$packageLine" ]]; then
-            log_message "ERROR" "❓ Package $packageName not found in packages.conf"
+            log_message "ERROR" "❓ Package $packageName not found in packages.conf (and no same-package template to substitute)"
             failedPackages+=("$packageName")
             continue
         fi
-        read -r _ _ x86_64_Filename arm64_Filename <<< "$packageLine"
 
         sourceFilename=$([[ "$architecture" == "x86_64" ]] && echo "$x86_64_Filename" || echo "$arm64_Filename")
 
