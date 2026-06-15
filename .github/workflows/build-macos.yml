@@ -28,20 +28,24 @@ on:
 permissions:
   contents: read
 
-# Public-repo safe: only the (public) base-download location + version, injected
-# from repository Variables. NO credentials / hosts / buckets appear here.
-# The repo owner must configure these in Settings -> Variables before a real run:
-#   vars.BASE_DOWNLOAD_URL  base URL of the public bucket holding the ServBay base tarballs
-#   vars.BASE_VERSION       version of the base to fetch (e.g. "1.2.3")
+# Public-repo safe: the base lives in a public bucket; only its URL + per-arch
+# version come from repository Variables. NO credentials / hosts / buckets here.
+# Configure in Settings -> Variables before a real run:
+#   vars.BASE_DOWNLOAD_URL    base URL of the public bucket (e.g. https://dl.servbay.com)
+#   vars.BASE_VERSION_ARM64   arm64 base version (e.g. 1.1.20)
+#   vars.BASE_VERSION_X86_64  x86_64 base version (e.g. 1.0.20)
+# arm64 and x86_64 ship on INDEPENDENT base versions, hence two variables.
 env:
   BASE_DOWNLOAD_URL: ${{ vars.BASE_DOWNLOAD_URL }}
-  BASE_VERSION: ${{ vars.BASE_VERSION }}
 
 jobs:
   build:
     runs-on: ${{ matrix.runner }}
     # Single job per arch; 6h is the hard GitHub-hosted ceiling, 300 min stays under it.
     timeout-minutes: 300
+    # arm64 and x86_64 ship on independent base versions -> pick per-arch.
+    env:
+      BASE_VERSION: ${{ matrix.arch == 'arm64' && vars.BASE_VERSION_ARM64 || vars.BASE_VERSION_X86_64 }}
     strategy:
       fail-fast: false
       # The package comes from the workflow inputs (pkg + version); this matrix
