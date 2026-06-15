@@ -1746,7 +1746,7 @@ processed_lines=0
 # read -r prevents backslash interpretation
 # || [[ -n "$line" ]] handles the case where the last line might not have a newline
 while IFS=$'\t' read -r -a fields || [[ -n "${fields[0]}" ]]; do
-    ((processed_lines++))
+    processed_lines=$((processed_lines + 1))
 
     # Check if fields array has at least 2 elements (name and version)
     if [[ ${#fields[@]} -lt 2 ]]; then
@@ -1786,7 +1786,7 @@ while IFS=$'\t' read -r -a fields || [[ -n "${fields[0]}" ]]; do
         continue
     fi
 
-    ((total_packages++)) # Increment count only for valid-looking lines
+    total_packages=$((total_packages + 1)) # Increment count only for valid-looking lines
 
     # Apply package filter if set (-p flag)
     if [[ -n "$PACKAGE_FILTER" ]]; then
@@ -1806,10 +1806,10 @@ while IFS=$'\t' read -r -a fields || [[ -n "${fields[0]}" ]]; do
         # Call the function for the package
         if "$build_function_name" "$package_name" "$package_version" "$package_filename"; then
             # Success logged within the function
-            ((built_packages++))
+            built_packages=$((built_packages + 1))
         else
             # Error logged within the function
-            ((build_errors++))
+            build_errors=$((build_errors + 1))
             # Optional: Stop on first error? Add 'exit 1' here if needed.
         fi
     else
