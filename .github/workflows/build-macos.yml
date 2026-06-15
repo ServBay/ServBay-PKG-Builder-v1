@@ -1,7 +1,7 @@
 name: build-macos
 
-# POC: manual trigger now; workflow_call kept so B6 (check-updates orchestrator)
-# can invoke this as a reusable workflow once the dynamic matrix is wired in.
+# Manual dispatch now; workflow_call lets an orchestrator reuse this once a
+# dynamic matrix is wired in.
 on:
   workflow_dispatch:
   workflow_call:
@@ -25,10 +25,10 @@ jobs:
     timeout-minutes: 300
     strategy:
       fail-fast: false
-      # TODO(B4): replace this hardcoded `include` with a dynamic matrix produced by
-      # runtime/update_packages.py --emit-json and consumed via fromJSON(...).
+      # TODO: replace this hardcoded `include` with a dynamic matrix produced by
+      # update_packages.py --emit-json and consumed via fromJSON(...).
       # Runner mapping is fixed by arch: x86_64 -> macos-15-intel, arm64 -> macos-15.
-      # POC keeps the two nginx entries so the link can be validated end-to-end.
+      # Two nginx entries kept here to validate the build end-to-end.
       matrix:
         include:
           - arch: x86_64
@@ -114,13 +114,12 @@ jobs:
             sudo mv /Applications/ServBay-1.0 /Applications/ServBay
           fi
 
-      # Produce the meta.json the Uploader consumes. Path/filename mirror the ACTUAL
-      # build_package output (core_pack_package):
+      # Produce the meta.json for the downstream upload step. Path/filename mirror the
+      # ACTUAL build_package output (core_pack_package):
       #   runtime/dist/packages/<pkg>/<pkg>-<version>.tar.gz
       # NOTE: build_package names the archive <pkg>-<version>.tar.gz (no -<os>-<arch>
-      # suffix), so meta.filename matches that real file verbatim. This differs from
-      # the docs' ideal <name>-<version>-<os>-<arch>.tar.gz; see report. The artifact
-      # name still carries os+arch, so x86_64/arm64 outputs never collide on download.
+      # suffix), so meta.filename matches that real file verbatim. The artifact name
+      # still carries os+arch, so x86_64/arm64 outputs never collide.
       - name: Generate meta.json
         id: meta
         working-directory: runtime

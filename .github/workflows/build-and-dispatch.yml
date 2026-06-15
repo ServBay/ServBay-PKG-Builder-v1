@@ -1,0 +1,39 @@
+name: build-and-dispatch
+
+# Orchestrator: build all targets, then signal the downstream repository to
+# fetch and publish this run's artifacts. Manual dispatch for now; a scheduled
+# entry point with a dynamic matrix can replace the manual trigger later.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    uses: ./.github/workflows/build-macos.yml
+
+  build-windows:
+    uses: ./.github/workflows/build-windows.yml
+
+  dispatch-downstream:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      # On full build success, fire a repository_dispatch in the downstream repo
+      # so it fetches this run's artifacts and publishes them. The target repo
+      # and token come from Secrets — no repo name or credential appears in this
+      # public workflow. All values go through env (never inlined into the run
+      # text) so nothing is interpolated into the shell command.
+      - name: Signal downstream to fetch & publish
+        env:
+          DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
+          TARGET_REPO: ${{ secrets.TARGET_REPO }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          curl --fail -sS -X POST \
+            -H "Authorization: Bearer ${DISPATCH_PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${TARGET_REPO}/dispatches" \
+            -d "{\"event_type\":\"builder-build-complete\",\"client_payload\":{\"run_id\":\"${RUN_ID}\"}}"

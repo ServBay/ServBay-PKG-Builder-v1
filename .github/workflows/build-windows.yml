@@ -1,7 +1,7 @@
 name: build-windows
 
-# POC: manual trigger now; workflow_call kept so B6 (check-updates orchestrator)
-# can invoke this as a reusable workflow once the dynamic matrix is wired in.
+# Manual dispatch now; workflow_call lets an orchestrator reuse this once a
+# dynamic matrix is wired in.
 on:
   workflow_dispatch:
   workflow_call:
@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # TODO(B4): replace this hardcoded `include` with a dynamic matrix produced by
-      # runtime-windows/update_packages.py --emit-json and consumed via fromJSON(...).
-      # POC keeps a single entry so the link can be validated end-to-end.
+      # TODO: replace this hardcoded `include` with a dynamic matrix produced by
+      # update_packages.py --emit-json and consumed via fromJSON(...).
+      # A single entry kept here to validate the build end-to-end.
       matrix:
         include:
           - pkg: node
@@ -47,7 +47,7 @@ jobs:
           chmod +x ./build_windows
           ./build_windows "$ARCH" -p "${PKG}-${VERSION}"
 
-      # Produce the meta.json that the Uploader consumes. Filename/path mirror the
+      # Produce the meta.json for the downstream upload step. Filename/path mirror the
       # actual build_windows output:
       #   dist-windows/<pkg>/<arch>/<pkg>-<version>-windows-<arch>.7z
       - name: Generate meta.json
