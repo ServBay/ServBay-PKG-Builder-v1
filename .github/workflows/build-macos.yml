@@ -106,6 +106,44 @@ jobs:
       #   - ~/go, ~/.cargo: only caddy uses Go in the whole package set — not worth a
       #     global toolchain cache. (If caddy build time ever hurts, cache it narrowly.)
 
+      # PHP-only: php's pgsql/pdo_pgsql extensions link libpq, which ships with the
+      # postgresql package (NOT in the compile base). Gate on pkg==php so every other
+      # package skips this and wastes no time. Fetch the prebuilt postgresql 16 release
+      # for this arch and lay it out EXACTLY like build_postgresql's prefix
+      # (postgresql/<major>/<version>, build_package:3581) so php's
+      # --with-pgsql=postgresql/current and the bundled pg_config resolve correctly,
+      # then copy libpq.dylib into common/lib (mirrors build_package:3666-3667 so the
+      # php runtime finds it via the common rpath). BASE_DOWNLOAD_URL is reused as the
+      # public bucket base. ARCH/versions go through env, never inline ${{ }}.
+      - name: Prepare libpq for PHP (php only)
+        if: ${{ inputs.pkg == 'php' }}
+        env:
+          ARCH: ${{ matrix.arch }}
+          PG_MAJOR: "16"
+          PG_VERSION: "16.13"
+        run: |
+          set -euo pipefail
+          if [ "$ARCH" = "arm64" ]; then
+            pg_url="${BASE_DOWNLOAD_URL}/packages/arm64/postgresql/postgresql-${PG_VERSION}.tar.gz"
+          else
+            pg_url="${BASE_DOWNLOAD_URL}/packages/postgresql/postgresql-${PG_VERSION}.tar.gz"
+          fi
+          echo "Fetching libpq provider: postgresql ${PG_VERSION} (${ARCH})"
+          pg_root="/Applications/ServBay/packages/postgresql"
+          # Tarball top dir is <version>/, so extract INTO postgresql/<major>/ to get
+          # postgresql/<major>/<version>/{bin,include,lib} (matches build_postgresql).
+          mkdir -p "${pg_root}/${PG_MAJOR}"
+          curl -fsSL "$pg_url" | tar -xzf - -C "${pg_root}/${PG_MAJOR}"
+          ln -sfn "${PG_MAJOR}/${PG_VERSION}" "${pg_root}/current"
+          common_lib="/Applications/ServBay/packages/common/lib"
+          mkdir -p "$common_lib"
+          cp -P "${pg_root}/${PG_MAJOR}/${PG_VERSION}/lib/libpq"*.dylib "$common_lib/"
+          install_name_tool -id "${common_lib}/libpq.5.dylib" "${common_lib}/libpq.5.dylib"
+          echo "libpq ready in common/lib:"
+          ls -la "${common_lib}/libpq"*.dylib
+          echo "postgresql/current ->"
+          ls -la "${pg_root}/current/"
+
       # build_package resolves paths from $(pwd): it reads ./packages.conf and writes
       # ./dist/packages/<pkg>/, ./src/, ./logs/. So it MUST run from inside runtime/.
       # Input values go through env (not inline ${{ }}) so they reach the script as
