@@ -129,13 +129,13 @@ jobs:
             pg_url="${BASE_DOWNLOAD_URL}/packages/postgresql/postgresql-${PG_VERSION}.tar.gz"
           fi
           echo "Fetching libpq provider: postgresql ${PG_VERSION} (${ARCH})"
-          pg_root="/Applications/ServBay/packages/postgresql"
+          pg_root="/Applications/ServBay/package/postgresql"
           # Tarball top dir is <version>/, so extract INTO postgresql/<major>/ to get
           # postgresql/<major>/<version>/{bin,include,lib} (matches build_postgresql).
           mkdir -p "${pg_root}/${PG_MAJOR}"
           curl -fsSL "$pg_url" | tar -xzf - -C "${pg_root}/${PG_MAJOR}"
           ln -sfn "${PG_MAJOR}/${PG_VERSION}" "${pg_root}/current"
-          common_lib="/Applications/ServBay/packages/common/lib"
+          common_lib="/Applications/ServBay/package/common/lib"
           mkdir -p "$common_lib"
           cp -P "${pg_root}/${PG_MAJOR}/${PG_VERSION}/lib/libpq"*.dylib "$common_lib/"
           install_name_tool -id "${common_lib}/libpq.5.dylib" "${common_lib}/libpq.5.dylib"
