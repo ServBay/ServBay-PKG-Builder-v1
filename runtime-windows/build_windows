@@ -65,9 +65,16 @@ readonly LOG_FILE="${SERVBAY_BUILD_DIR}/build_windows_packages.log"
 readonly PHP_EXTS_FILE="${SERVBAY_BUILD_DIR}/php-exts.json"
 # Cumulative PHP Extensions installation status log file for the entire build run
 readonly PHP_EXTENSIONS_STATUS_LOG_FILE="${SERVBAY_BUILD_DIR}/extensions_build_status.log"
+readonly PACKAGE_RECORDS_LIB="${SERVBAY_BUILD_DIR}/build_windows_package_records.sh"
 
 # 7z compression arguments (LZMA2, Max compression, Multi-threading)
 readonly Z_COMPRESS_ARGS="a -t7z -m0=lzma2 -mx=9 -mmt=on"
+
+if [[ ! -f "$PACKAGE_RECORDS_LIB" ]]; then
+    echo "Package records helper not found: $PACKAGE_RECORDS_LIB" >&2
+    exit 1
+fi
+source "$PACKAGE_RECORDS_LIB"
 
 # --- Helper Functions ---
 
@@ -1733,6 +1740,11 @@ if [ $? -ne 0 ]; then
 fi
 log_message "INFO" "Created temporary base directory: $SERVBAY_BUILD_TEMP_BASE_DIR"
 
+PACKAGE_RECORDS_FILE="${SERVBAY_BUILD_TEMP_BASE_DIR}/package-records.tsv"
+if ! resolve_windows_package_records "$PACKAGE_FILE" "$PACKAGE_FILTER" > "$PACKAGE_RECORDS_FILE"; then
+    log_message "ERROR" "Failed to resolve requested package records from $PACKAGE_FILE"
+    exit 1
+fi
 
 # --- Process Package File ---
 build_errors=0
@@ -1821,8 +1833,7 @@ while IFS=$'\t' read -r -a fields || [[ -n "${fields[0]}" ]]; do
     # Clear fields array for the next iteration (good practice)
     unset fields
 
-# Ensure awk prints the whole line
-done < <(awk '!/^#/ && NF {print $0}' "$PACKAGE_FILE")
+done < "$PACKAGE_RECORDS_FILE"
 
 
 # Final Summary
