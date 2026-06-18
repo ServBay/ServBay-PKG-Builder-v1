@@ -1,0 +1,230 @@
+name: check-updates
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Platforms to check'
+        type: choice
+        options: [all, macos, windows]
+        default: all
+      continue_build:
+        description: 'Build and dispatch after config update'
+        type: boolean
+        default: false
+      upload_dry_run:
+        description: 'Pass dry_run=true to Uploader'
+        type: boolean
+        default: true
+      full_rebuild:
+        description: 'Build all active config entries instead of only updates'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      macos_matrix: ${{ steps.plan.outputs.macos_matrix }}
+      macos_count: ${{ steps.plan.outputs.macos_count }}
+      windows_matrix: ${{ steps.plan.outputs.windows_matrix }}
+      windows_count: ${{ steps.plan.outputs.windows_count }}
+      should_build: ${{ steps.plan.outputs.should_build }}
+      upload_dry_run: ${{ steps.plan.outputs.upload_dry_run }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve run mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_CONTINUE_BUILD: ${{ inputs.continue_build }}
+          INPUT_UPLOAD_DRY_RUN: ${{ inputs.upload_dry_run }}
+          INPUT_FULL_REBUILD: ${{ inputs.full_rebuild }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            target="all"
+            continue_build="true"
+            upload_dry_run="false"
+            full_rebuild="false"
+          else
+            target="${INPUT_TARGET:-all}"
+            continue_build="${INPUT_CONTINUE_BUILD:-false}"
+            upload_dry_run="${INPUT_UPLOAD_DRY_RUN:-true}"
+            full_rebuild="${INPUT_FULL_REBUILD:-false}"
+          fi
+
+          case "$target" in all|macos|windows) ;; *) target="all" ;; esac
+          case "$continue_build" in true|false) ;; *) continue_build="false" ;; esac
+          case "$upload_dry_run" in true|false) ;; *) upload_dry_run="true" ;; esac
+          case "$full_rebuild" in true|false) ;; *) full_rebuild="false" ;; esac
+
+          {
+            echo "target=$target"
+            echo "continue_build=$continue_build"
+            echo "upload_dry_run=$upload_dry_run"
+            echo "full_rebuild=$full_rebuild"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "target=$target continue_build=$continue_build upload_dry_run=$upload_dry_run full_rebuild=$full_rebuild"
+
+      - name: Check package updates
+        env:
+          TARGET: ${{ steps.mode.outputs.target }}
+          FULL_REBUILD: ${{ steps.mode.outputs.full_rebuild }}
+          GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          printf '{"include":[]}\n' > macos-matrix.json
+          printf '{"include":[]}\n' > windows-matrix.json
+
+          all_flag=()
+          if [ "$FULL_REBUILD" = "true" ]; then
+            all_flag=(--all)
+          fi
+
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "macos" ]; then
+            python3 runtime/update_packages.py \
+              --conf runtime/packages.conf \
+              --emit-json-file macos-matrix.json \
+              "${all_flag[@]}"
+          fi
+
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "windows" ]; then
+            python3 runtime-windows/update_packages.py \
+              --conf runtime-windows/windows-packages.txt \
+              --emit-json-file windows-matrix.json \
+              "${all_flag[@]}"
+          fi
+
+          echo "--- macos matrix ---"
+          cat macos-matrix.json
+          echo "--- windows matrix ---"
+          cat windows-matrix.json
+
+      - name: Commit updated configs
+        id: commit
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- runtime/packages.conf runtime-windows/windows-packages.txt; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No package config changes."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runtime/packages.conf runtime-windows/windows-packages.txt
+          git commit -m "chore: update package configs"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare build plan
+        id: plan
+        env:
+          CONTINUE_BUILD: ${{ steps.mode.outputs.continue_build }}
+          UPLOAD_DRY_RUN: ${{ steps.mode.outputs.upload_dry_run }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          def compact_matrix(path):
+              data = json.loads(Path(path).read_text())
+              include = data.get("include", [])
+              return json.dumps({"include": include}, separators=(",", ":")), len(include)
+
+          macos_matrix, macos_count = compact_matrix("macos-matrix.json")
+          windows_matrix, windows_count = compact_matrix("windows-matrix.json")
+          print(f"macos_matrix={macos_matrix}")
+          print(f"macos_count={macos_count}")
+          print(f"windows_matrix={windows_matrix}")
+          print(f"windows_count={windows_count}")
+          PY
+
+          total_count="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          total = 0
+          for name in ("macos-matrix.json", "windows-matrix.json"):
+              total += len(json.loads(Path(name).read_text()).get("include", []))
+          print(total)
+          PY
+          )"
+
+          should_build="false"
+          if [ "$CONTINUE_BUILD" = "true" ] && [ "$total_count" -gt 0 ]; then
+            should_build="true"
+          fi
+          {
+            echo "should_build=$should_build"
+            echo "upload_dry_run=$UPLOAD_DRY_RUN"
+          } >> "$GITHUB_OUTPUT"
+          echo "total_count=$total_count should_build=$should_build upload_dry_run=$UPLOAD_DRY_RUN"
+
+  build-macos:
+    needs: check
+    if: ${{ needs.check.outputs.should_build == 'true' && needs.check.outputs.macos_count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.check.outputs.macos_matrix) }}
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      pkg: ${{ matrix.name }}
+      version: ${{ matrix.version }}
+      arch: ${{ matrix.arch }}
+      checkout_ref: main
+    secrets: inherit
+
+  build-windows:
+    needs: check
+    if: ${{ needs.check.outputs.should_build == 'true' && needs.check.outputs.windows_count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.check.outputs.windows_matrix) }}
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      pkg: ${{ matrix.name }}
+      version: ${{ matrix.version }}
+      arch: ${{ matrix.arch }}
+      checkout_ref: main
+    secrets: inherit
+
+  dispatch-downstream:
+    needs: [check, build-macos, build-windows]
+    if: >-
+      ${{ always()
+          && needs.check.outputs.should_build == 'true'
+          && needs.build-macos.result != 'failure' && needs.build-macos.result != 'cancelled'
+          && needs.build-windows.result != 'failure' && needs.build-windows.result != 'cancelled'
+          && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Signal downstream to fetch and publish
+        env:
+          DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
+          TARGET_REPO: ${{ secrets.TARGET_REPO }}
+          RUN_ID: ${{ github.run_id }}
+          DRY_RUN: ${{ needs.check.outputs.upload_dry_run }}
+        run: |
+          set -euo pipefail
+          : "${DISPATCH_PAT:?DISPATCH_PAT secret is not set}"
+          : "${TARGET_REPO:?TARGET_REPO secret is not set}"
+          curl --fail -sS -X POST \
+            -H "Authorization: Bearer ${DISPATCH_PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${TARGET_REPO}/dispatches" \
+            -d "{\"event_type\":\"builder-build-complete\",\"client_payload\":{\"run_id\":\"${RUN_ID}\",\"dry_run\":\"${DRY_RUN}\"}}"

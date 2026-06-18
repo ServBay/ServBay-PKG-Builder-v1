@@ -40,6 +40,11 @@ on:
         type: string
         required: false
         default: stable
+      upload_dry_run:
+        description: 'Pass dry_run=true to Uploader'
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: read
@@ -87,10 +92,11 @@ jobs:
           DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
           TARGET_REPO: ${{ secrets.TARGET_REPO }}
           RUN_ID: ${{ github.run_id }}
+          DRY_RUN: ${{ inputs.upload_dry_run }}
         run: |
           curl --fail -sS -X POST \
             -H "Authorization: Bearer ${DISPATCH_PAT}" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${TARGET_REPO}/dispatches" \
-            -d "{\"event_type\":\"builder-build-complete\",\"client_payload\":{\"run_id\":\"${RUN_ID}\"}}"
+            -d "{\"event_type\":\"builder-build-complete\",\"client_payload\":{\"run_id\":\"${RUN_ID}\",\"dry_run\":\"${DRY_RUN}\"}}"

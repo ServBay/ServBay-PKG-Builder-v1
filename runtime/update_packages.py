@@ -51,6 +51,72 @@ class PackageUpdater:
         self.dry_run = dry_run
         self.debug = debug
         self.updated_pkgs = set() # Track updated packages for build command output
+        self.updated_records = []  # Structured records for workflow matrix output.
+
+    def record_update(self, name: str, version: str):
+        """Record a package update once, preserving insertion order."""
+        record = {"name": name, "version": version}
+        if record not in self.updated_records:
+            self.updated_records.append(record)
+        self.updated_pkgs.add(f"{name}-{version}")
+
+    def active_package_records(self):
+        """Return active package records from packages.conf for full rebuilds."""
+        records = []
+        seen = set()
+        if not os.path.exists(self.conf_file):
+            return records
+
+        with open(self.conf_file, 'r') as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith('#'):
+                    continue
+                parts = stripped.split('\t')
+                if len(parts) < 2:
+                    continue
+                name = parts[0].strip()
+                version = parts[1].strip()
+                if not name or not version or name.lower() == 'package':
+                    continue
+                key = (name, version)
+                if key in seen:
+                    continue
+                seen.add(key)
+                records.append({"name": name, "version": version})
+        return records
+
+    def build_matrix(self, records):
+        """Build GitHub Actions matrix JSON for macOS package builds."""
+        include = []
+        seen = set()
+        for record in records:
+            name = record["name"]
+            version = record["version"]
+            for arch in ("x86_64", "arm64"):
+                key = ("macos", arch, name, version)
+                if key in seen:
+                    continue
+                seen.add(key)
+                include.append({
+                    "os": "macos",
+                    "arch": arch,
+                    "name": name,
+                    "version": version,
+                })
+        return {"include": include}
+
+    def emit_matrix(self, records, output_file=None, emit_stdout=False):
+        """Write matrix JSON for workflow consumption."""
+        matrix = self.build_matrix(records)
+        payload = json.dumps(matrix, ensure_ascii=False)
+        if output_file:
+            with open(output_file, 'w') as f:
+                f.write(payload)
+                f.write("\n")
+        if emit_stdout:
+            print(payload)
+        return matrix
 
     def verify_download(self, package, version, series=''):
         """通过 HTTP HEAD 请求验证版本是否存在于官方下载源。
@@ -1317,6 +1383,8 @@ class PackageUpdater:
             print("\n📋 DRY RUN - No changes will be made")
 
         updates_made = []
+        self.updated_records = []
+        self.updated_pkgs = set()
 
         # Process updates
         # Helper to get versions for a package
@@ -1344,6 +1412,7 @@ class PackageUpdater:
                             'series': series,
                             'latest': version
                         })
+                        self.record_update(package, version)
             else:
                 # Single version package
                 version = versions_data
@@ -1360,6 +1429,7 @@ class PackageUpdater:
                                 'current': newest_existing,
                                 'latest': version
                             })
+                            self.record_update(package, version)
                     except:
                         pass
 
@@ -1460,7 +1530,7 @@ class PackageUpdater:
                         processed_series.add(s_key)
 
                         # Register Update
-                        self.updated_pkgs.add(f"{current_package}-{new_ver}")
+                        self.record_update(current_package, new_ver)
 
                 # 2. Handle Leftovers (Orphaned / Unmatched)
                 for e in parsed_entries:
@@ -1554,7 +1624,7 @@ class PackageUpdater:
             print(f"./build_package -a x86_64 -p {pkg_list}")
             print(f"./build_package -a arm64 -p {pkg_list}")
 
-    def run(self):
+    def run(self, emit_json=False, emit_json_file=None, all_packages=False):
         """Main execution"""
         print(f"📂 Loading packages from {self.conf_file}...")
         self.load_packages()
@@ -1570,6 +1640,10 @@ class PackageUpdater:
 
         self.update_conf_file(latest_versions)
 
+        records = self.active_package_records() if all_packages else self.updated_records
+        if emit_json or emit_json_file:
+            self.emit_matrix(records, output_file=emit_json_file, emit_stdout=emit_json)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Update ServBay packages versions')
@@ -1580,6 +1654,12 @@ def main():
     parser.add_argument('--github-token', help='GitHub API token for higher rate limits')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug output')
+    parser.add_argument('--emit-json', action='store_true',
+                       help='Print build matrix JSON after checking updates')
+    parser.add_argument('--emit-json-file',
+                       help='Write build matrix JSON to the given file')
+    parser.add_argument('--all', action='store_true',
+                       help='Emit a full rebuild matrix from active config entries')
 
     args = parser.parse_args()
 
@@ -1587,7 +1667,7 @@ def main():
         os.environ['GITHUB_TOKEN'] = args.github_token
 
     updater = PackageUpdater(conf_file=args.conf, dry_run=args.dry_run, debug=args.debug)
-    updater.run()
+    updater.run(emit_json=args.emit_json, emit_json_file=args.emit_json_file, all_packages=args.all)
 
 
 if __name__ == "__main__":
