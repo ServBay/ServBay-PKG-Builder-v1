@@ -141,6 +141,7 @@ git	2.54.0
 ollama	0.21.2
 # memcached	1.6.8
 mailpit	1.29.7
+ai-gateway	1.0.0
 # minio	2025.10.15
 meilisearch	1.42.1
 simple-acme	2.3.6

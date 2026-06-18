@@ -154,6 +154,10 @@ jobs:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}
           ARCH: ${{ matrix.arch }}
+          # ai-gateway downloads its prebuilt asset from the PRIVATE gateway repo
+          # release via `gh release download`; DISPATCH_PAT has read access there.
+          # Public upstreams ignore this. Empty when the secret is unset.
+          GH_TOKEN: ${{ secrets.DISPATCH_PAT }}
         run: |
           chmod +x ./build_package
           ./build_package -a "$ARCH" -p "${PKG}-${VERSION}"

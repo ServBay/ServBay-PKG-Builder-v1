@@ -1304,6 +1304,67 @@ Build_Package_mailpit() {
     Build_Package_Generic "$package_name" "$package_version" "$download_url" "$original_filename" "." "mailpit-${package_version}" ""
 }
 
+# ServBay AI Gateway — private upstream, downloaded with `gh release download`
+# (authenticated via GH_TOKEN) rather than the anonymous Build_Package_Generic.
+# Lays the binary out as bin/servbay-ai-gateway.exe to match the macOS package
+# layout; the gateway self-creates its default config on first run (none bundled).
+Build_Package_ai_gateway() {
+    local package_name=$1
+    local package_version=$2
+    local provided_filename=$3 # unused (we construct the asset name)
+
+    : "${GH_TOKEN:?GH_TOKEN (PAT with ServBay/ServBay-AI-Gateway read) required for ai-gateway}"
+
+    case "$ARCH" in
+        x64) : ;;
+        *) log_message "ERROR" "ai-gateway only ships windows x64 (got: $ARCH)"; return 1 ;;
+    esac
+
+    local asset="servbay-ai-gateway-${package_version}-windows-x64.zip"
+    local package_output_dir="${SERVBAY_BUILD_OUTPUT_DIR}/${package_name}/${ARCH}"
+    local package_temp_dir="${SERVBAY_BUILD_TEMP_BASE_DIR}/${package_name}-${package_version}-${ARCH}"
+    local package_unzip_dir="${package_temp_dir}/unzip"
+    local stage_dir="${package_temp_dir}/stage"
+    local package_save_filename="${package_output_dir}/${package_name}-${package_version}-windows-${ARCH}.7z"
+
+    mkdir -p "$package_output_dir"
+    rm -rf "$package_temp_dir"
+    mkdir -p "$package_unzip_dir" "${stage_dir}/bin"
+
+    log_message "INFO" "Downloading ${asset} from private release v${package_version} via gh..."
+    if ! gh release download "v${package_version}" \
+        --repo ServBay/ServBay-AI-Gateway \
+        --pattern "${asset}" --pattern "${asset}.sha256" \
+        --dir "$package_temp_dir" --clobber; then
+        log_message "ERROR" "gh release download failed for ai-gateway v${package_version}"
+        return 1
+    fi
+
+    if ! ( cd "$package_temp_dir" && sha256sum -c "${asset}.sha256" ); then
+        log_message "ERROR" "SHA-256 mismatch for ${asset}"
+        return 1
+    fi
+
+    if ! extract_archive "${package_temp_dir}/${asset}" "$package_unzip_dir"; then
+        log_message "ERROR" "Failed to extract ${asset}"
+        return 1
+    fi
+
+    if [[ ! -f "${package_unzip_dir}/servbay-ai-gateway.exe" ]]; then
+        log_message "ERROR" "servbay-ai-gateway.exe not found in ${asset}"
+        return 1
+    fi
+    cp "${package_unzip_dir}/servbay-ai-gateway.exe" "${stage_dir}/bin/"
+
+    if ! compress_directory "$stage_dir" "$package_save_filename"; then
+        log_message "ERROR" "Failed to compress ai-gateway package"
+        return 1
+    fi
+
+    cleanup_package_temp "$package_temp_dir"
+    log_message "INFO" "ai-gateway windows package built: $package_save_filename"
+}
+
 # Ollama
 Build_Package_ollama() {
     local package_name=$1

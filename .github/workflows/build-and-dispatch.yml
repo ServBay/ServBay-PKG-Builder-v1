@@ -12,9 +12,13 @@ permissions:
 jobs:
   build-macos:
     uses: ./.github/workflows/build-macos.yml
+    # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
+    # its `gh release download`. Public upstreams ignore them.
+    secrets: inherit
 
   build-windows:
     uses: ./.github/workflows/build-windows.yml
+    secrets: inherit
 
   dispatch-downstream:
     needs: [build-macos, build-windows]

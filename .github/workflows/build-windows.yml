@@ -12,7 +12,7 @@ on:
         description: 'Self-compiled package'
         required: true
         type: choice
-        options: [ollama, python, openssl, apache, php]
+        options: [ollama, python, openssl, apache, php, ai-gateway]
         default: ollama
       version:
         description: 'Package version (ollama 0.21.2 / python 3.14.4 / php 8.4.20 ...)'
@@ -59,6 +59,9 @@ jobs:
       # those repos). So the skip-path (release already built, e.g. ollama v0.21.2)
       # works even before the PAT is configured.
       - name: Ensure upstream release ready
+        # ai-gateway has no upstream compile to dispatch — it downloads its own
+        # prebuilt asset from the private gateway release in Stage 2.
+        if: ${{ inputs.pkg != 'ai-gateway' }}
         env:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}
@@ -160,6 +163,10 @@ jobs:
         env:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}
+          # ai-gateway's Build_Package_ai_gateway downloads the private gateway
+          # release via `gh release download`; DISPATCH_PAT has read access there.
+          # Other (public) packages ignore this.
+          GH_TOKEN: ${{ secrets.DISPATCH_PAT }}
         run: |
           chmod +x ./build_windows
           ./build_windows "$ARCH" -p "${PKG}-${VERSION}"
