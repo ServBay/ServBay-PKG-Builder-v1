@@ -1,34 +1,87 @@
 name: build-and-dispatch
 
-# Orchestrator: build all targets, then signal the downstream repository to
-# fetch and publish this run's artifacts. Manual dispatch for now; a scheduled
-# entry point with a dynamic matrix can replace the manual trigger later.
+# Orchestrator: build the requested package(s), then signal the downstream
+# repository to fetch and publish this run's artifacts.
+#
+# macOS and Windows are independent: each takes its OWN package + version (they
+# need not match), because the mechanics differ — macOS compiles from source,
+# Windows repackages an already-built upstream / downloads a prebuilt release.
+# `targets` selects which platform(s) to run.
 on:
   workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Platforms to build'
+        type: choice
+        options: [both, macos, windows]
+        default: both
+      macos_pkg:
+        description: 'macOS package name (when building macOS)'
+        type: string
+        required: false
+        default: ''
+      macos_version:
+        description: 'macOS package version'
+        type: string
+        required: false
+        default: ''
+      windows_pkg:
+        description: 'Windows package name (when building Windows)'
+        type: string
+        required: false
+        default: ''
+      windows_version:
+        description: 'Windows package version'
+        type: string
+        required: false
+        default: ''
+      windows_version_type:
+        description: 'php only: stable | testing | development (ignored otherwise)'
+        type: string
+        required: false
+        default: stable
 
 permissions:
   contents: read
 
 jobs:
   build-macos:
+    if: ${{ inputs.targets == 'both' || inputs.targets == 'macos' }}
     uses: ./.github/workflows/build-macos.yml
+    with:
+      pkg: ${{ inputs.macos_pkg }}
+      version: ${{ inputs.macos_version }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
 
   build-windows:
+    if: ${{ inputs.targets == 'both' || inputs.targets == 'windows' }}
     uses: ./.github/workflows/build-windows.yml
+    with:
+      pkg: ${{ inputs.windows_pkg }}
+      version: ${{ inputs.windows_version }}
+      version_type: ${{ inputs.windows_version_type }}
     secrets: inherit
 
   dispatch-downstream:
     needs: [build-macos, build-windows]
+    # Fire when the platform(s) we actually ran succeeded — a platform skipped by
+    # `targets` is fine — and at least one produced artifacts. Never on a real
+    # failure/cancellation. `always()` is required so a skipped need doesn't skip
+    # this job too.
+    if: >-
+      ${{ always()
+          && needs.build-macos.result != 'failure' && needs.build-macos.result != 'cancelled'
+          && needs.build-windows.result != 'failure' && needs.build-windows.result != 'cancelled'
+          && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
-      # On full build success, fire a repository_dispatch in the downstream repo
-      # so it fetches this run's artifacts and publishes them. The target repo
-      # and token come from Secrets — no repo name or credential appears in this
-      # public workflow. All values go through env (never inlined into the run
-      # text) so nothing is interpolated into the shell command.
+      # On build success, fire a repository_dispatch in the downstream repo so it
+      # fetches this run's artifacts and publishes them. The target repo and token
+      # come from Secrets — no repo name or credential appears in this public
+      # workflow. All values go through env (never inlined into the run text) so
+      # nothing is interpolated into the shell command.
       - name: Signal downstream to fetch & publish
         env:
           DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
