@@ -535,7 +535,7 @@ get_package_verification_info() {
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/mailpit/bin/mailpit version | grep -i 'compiled with'"
             ;;
         "ai-gateway")
-            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/bin/servbay-ai-gateway --version"
+            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/ai-gateway/bin/servbay-ai-gateway --version"
             ;;
         "mongosh")
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/mongosh/2.0/bin/mongosh --version"
@@ -766,11 +766,11 @@ get_package_packing_info() {
             PACK_FILES=( "mailpit" )
             ;;
         "ai-gateway")
-            # Single-binary layout (like memcached/redis): pack bin/ at the root so
-            # the client extracts to {root}/package/ai-gateway/bin/servbay-ai-gateway.
+            # Package layout must match the ServBay clients:
+            # {root}/package/ai-gateway/bin/servbay-ai-gateway.
             # No config is bundled — the gateway self-creates its default on first run.
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
-            PACK_FILES=( "bin/servbay-ai-gateway" )
+            PACK_FILES=( "ai-gateway" )
             ;;
         "mongosh")
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
@@ -2398,8 +2398,9 @@ build_mailpit() {
 #   The upstream is our PRIVATE repo's GitHub Release, so this downloads the
 #   prebuilt asset with `gh release download` (authenticated via GH_TOKEN) rather
 #   than the generic anonymous downloader (get_download_url returns "" for it).
-#   The release asset is the bare binary; the package is just bin/servbay-ai-gateway
-#   (the gateway self-creates its default config on first run, so none is bundled).
+#   The release asset is the bare binary; the package layout is
+#   ai-gateway/bin/servbay-ai-gateway (the gateway self-creates its default
+#   config on first run, so none is bundled).
 # @param $1 string Package version.
 # @param $2 string Standardized source filename (ai-gateway-<ver>.tar.gz).
 # @param $3 string Temporary installation directory (optional).
@@ -2440,7 +2441,7 @@ build_ai_gateway() {
     unpack_package "$packageFullName" "$sourceFilename" "" "false"
     if [[ $? -ne 0 ]]; then return 1; fi
 
-    local bin_dir="${prefix}/bin"
+    local bin_dir="${prefix}/ai-gateway/bin"
     mkdir -p "$bin_dir"
 
     log_message "INFO" "Installing ai-gateway binary..."

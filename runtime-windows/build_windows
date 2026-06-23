@@ -1306,8 +1306,9 @@ Build_Package_mailpit() {
 
 # ServBay AI Gateway — private upstream, downloaded with `gh release download`
 # (authenticated via GH_TOKEN) rather than the anonymous Build_Package_Generic.
-# Lays the binary out as bin/servbay-ai-gateway.exe to match the macOS package
-# layout; the gateway self-creates its default config on first run (none bundled).
+# Lays the binary out as bin/servbay-ai-gateway.exe because the Windows client
+# extracts this archive directly into packages/ai-gateway. The gateway
+# self-creates its default config on first run (none bundled).
 Build_Package_ai_gateway() {
     local package_name=$1
     local package_version=$2
