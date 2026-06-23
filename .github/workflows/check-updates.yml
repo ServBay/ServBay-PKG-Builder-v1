@@ -215,13 +215,13 @@ jobs:
       - name: Signal downstream to fetch and publish
         env:
           DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
-          TARGET_REPO: ${{ secrets.TARGET_REPO }}
+          TARGET_REPO: ${{ vars.TARGET_REPO || secrets.TARGET_REPO }}
           RUN_ID: ${{ github.run_id }}
           DRY_RUN: ${{ needs.check.outputs.upload_dry_run }}
         run: |
           set -euo pipefail
           : "${DISPATCH_PAT:?DISPATCH_PAT secret is not set}"
-          : "${TARGET_REPO:?TARGET_REPO secret is not set}"
+          : "${TARGET_REPO:?TARGET_REPO variable/secret is not set}"
           curl --fail -sS -X POST \
             -H "Authorization: Bearer ${DISPATCH_PAT}" \
             -H "Accept: application/vnd.github+json" \
