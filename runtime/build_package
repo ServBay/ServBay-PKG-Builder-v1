@@ -3704,13 +3704,13 @@ build_postgresql() {
     make -j${CPU_NUMBER}
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostgreSQL make failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
-    log_message "INFO" "Installing PostgreSQL (make install-world)..."
-    local xml_catalog_file="/usr/local/etc/xml/catalog" # Default for x86
-    if [[ "$architecture" == "arm64" ]]; then
-        xml_catalog_file="/opt/homebrew/etc/xml/catalog"
-    fi
-    XML_CATALOG_FILES="$xml_catalog_file" make install-world
-    if [[ $? -ne 0 ]]; then log_message "ERROR" "PostgreSQL make install-world failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
+    # install-world-bin installs core + contrib but SKIPS docs. The CI runner has
+    # no docbook/xsltproc toolchain, so the old `install-world` failed building
+    # postgres-full.xml. ServBay ships the server + extensions, not the HTML/man
+    # manual, so dropping docs is intentional.
+    log_message "INFO" "Installing PostgreSQL (make install-world-bin, docs skipped)..."
+    make install-world-bin
+    if [[ $? -ne 0 ]]; then log_message "ERROR" "PostgreSQL make install-world-bin failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
     # 7. Build all configured modules.
     log_message "INFO" "Building PostgreSQL extensions..."
