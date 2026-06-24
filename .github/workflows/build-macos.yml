@@ -211,8 +211,12 @@ jobs:
         run: |
           set -euo pipefail
           major="${VERSION%%.*}"
-          filename="${PKG}-${VERSION}.tar.gz"
-          pkg_path="dist/packages/${PKG}/${filename}"
+          # build_package renames httpd -> apache (ServBay's published package
+          # name), so its on-disk output dir, filename and meta name are apache.
+          out_pkg="${PKG}"
+          [[ "${PKG}" == "httpd" ]] && out_pkg="apache"
+          filename="${out_pkg}-${VERSION}.tar.gz"
+          pkg_path="dist/packages/${out_pkg}/${filename}"
 
           if [[ ! -f "${pkg_path}" ]]; then
             echo "::error::Expected package not found: runtime/${pkg_path}"
@@ -224,9 +228,9 @@ jobs:
           sha256="$(shasum -a 256 "${pkg_path}" | awk '{print $1}')"
 
           # Emit meta.json via a heredoc (no jq dependency on the macOS runner).
-          cat > "dist/packages/${PKG}/meta.json" <<META
+          cat > "dist/packages/${out_pkg}/meta.json" <<META
           {
-            "name": "${PKG}",
+            "name": "${out_pkg}",
             "version": "${VERSION}",
             "major": "${major}",
             "arch": "${ARCH}",
@@ -237,11 +241,11 @@ jobs:
           META
 
           {
-            echo "pkg_dir=runtime/dist/packages/${PKG}"
+            echo "pkg_dir=runtime/dist/packages/${out_pkg}"
             echo "filename=${filename}"
           } >> "$GITHUB_OUTPUT"
           echo "--- meta.json ---"
-          cat "dist/packages/${PKG}/meta.json"
+          cat "dist/packages/${out_pkg}/meta.json"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
