@@ -3151,7 +3151,12 @@ build_ruby() {
     unpack_package "$libyaml_package_fullname" "$libyaml_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
-    # Configure, compile, and install libyaml
+    # Configure, compile, and install libyaml.
+    # libyaml 0.2.5's configure.ac uses the obsolete AC_PROG_LIBTOOL macro, which
+    # autoconf >= 2.70 (on the arm64 runner) rejects ("undefined or overquoted
+    # macro"), so ./bootstrap fails there. Modernize it to LT_INIT so autoreconf
+    # works regardless of the runner's autoconf version.
+    sed -i '' 's/AC_PROG_LIBTOOL/LT_INIT/g' configure.ac
     ./bootstrap
     ./configure --prefix="/tmp/libyaml" \
                 --libdir="${prefix}/lib" \
