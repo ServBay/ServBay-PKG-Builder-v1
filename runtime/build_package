@@ -1380,7 +1380,10 @@ _build_pgsql_mod_postgis() {
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
-    make -j${CPU_NUMBER} && make install
+    # -j1: PostGIS 3.x ignores --without-raster and builds the raster extension,
+    # whose Makefile races under parallel make (rules share rtpostgis.sql.tmp;
+    # one rm's it while another greps it -> "No such file or directory"). Serialize.
+    make -j1 && make install
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS make/install failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
     local extension_bindir=$($pg_config --bindir)
