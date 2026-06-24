@@ -118,7 +118,11 @@ jobs:
           # go: caddy builds via xcaddy. boost: pgRouting (a PostgreSQL module)
           # needs Boost headers, which are not in the ServBay base. Both were
           # present on the original physical Mac build hosts but not the leaner CI.
-          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost
+          # go: caddy builds via xcaddy. boost: pgRouting (a PostgreSQL module)
+          # needs Boost headers. libtool: provides the LT_INIT m4 macro that
+          # ruby's bundled libyaml needs at autoreconf time. None are in the
+          # ServBay base; they were present on the original physical Mac hosts.
+          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool
 
       # Caching policy (intentional, do not re-add per-package caches):
       # ONLY the runtime+devlib base (cached above) is worth caching — it is the one
