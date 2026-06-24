@@ -3557,10 +3557,15 @@ build_mariadb() {
         if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
     fi
 
-    local patch_versions_groonga_netdb=("11.4.8" "11.4.10" "11.8.3" "11.8.6" "12.0.2" "12.1.2")
-    if [[ " ${patch_versions_groonga_netdb[@]} " =~ " ${version} " ]] && [[ "$architecture" == "x86_64" ]]; then
-        _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mariadb/fix-groonga-netdb-11.4-x86_64.patch" "p0"
-        if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
+    # groonga's cmake misdetects <netdb.h> on x86_64 (every feature probe fails),
+    # leaving struct addrinfo incomplete and breaking mroonga. Force-include
+    # netdb.h on ALL x86_64 builds — the old per-version whitelist went stale on
+    # every MariaDB release (e.g. 11.8.8 was missing). Non-fatal: patch -N skips
+    # an already-patched tree, and a context mismatch on a differently-vendored
+    # groonga must warn rather than block the build.
+    if [[ "$architecture" == "x86_64" ]]; then
+        _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mariadb/fix-groonga-netdb-11.4-x86_64.patch" "p0" \
+            || log_message "WARN" "groonga-netdb x86_64 patch not applied for ${version} (already patched or vendored groonga differs)"
     fi
 
     # 4. Configure with CMake.
