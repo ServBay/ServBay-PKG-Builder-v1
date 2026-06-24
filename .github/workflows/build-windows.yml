@@ -105,17 +105,20 @@ jobs:
             python)
               REPO="ServBay/Python-Windows-Portable"; WF="package_python_install.yml"
               TAG="python-${VERSION}-win-${ARCH}"
-              DISPATCH_ARGS=(-f "python_version=${VERSION}" -f "python_arch=${ARCH}")
+              # Upstream builds x64 only and takes no arch input; passing one is a 422.
+              DISPATCH_ARGS=(-f "python_version=${VERSION}")
               ;;
             openssl)
               REPO="ServBay/OpenSSL-Windows-Portable"; WF="build-openssl-windows.yml"
               TAG="openssl-${VERSION}-win-${ARCH}"
-              DISPATCH_ARGS=(-f "openssl_version=${VERSION}" -f "openssl_arch=${ARCH}")
+              # Upstream builds x64 only and takes no arch input; passing one is a 422.
+              DISPATCH_ARGS=(-f "openssl_version=${VERSION}")
               ;;
             apache)
               REPO="ServBay/Apache-Windows-Portable"; WF="build-apache-windows.yml"
               TAG="apache-${VERSION}-win-${ARCH}"
-              DISPATCH_ARGS=(-f "apache_version=${VERSION}" -f "apache_arch=${ARCH}")
+              # Upstream builds x64 only and takes no arch input; passing one is a 422.
+              DISPATCH_ARGS=(-f "apache_version=${VERSION}")
               ;;
             php)
               REPO="ServBay/PHP-Windows-Portable"; WF="build.yml"

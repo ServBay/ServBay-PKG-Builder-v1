@@ -467,11 +467,8 @@ class PackageUpdater:
                 tag_name = tag.get('name', '').lstrip('v')
                 for serie in series:
                     if tag_name.startswith(serie + '.'):
-                        # For 3.14, include alpha/beta/rc since it's pre-release
-                        if serie == '3.14':
-                            series_versions[serie].append(tag_name)
-                        elif not any(x in tag_name for x in ['a', 'b', 'rc']):
-                            # For stable versions, exclude pre-releases
+                        # Exclude pre-releases (alpha/beta/rc); 3.14 is GA now.
+                        if not any(x in tag_name for x in ['a', 'b', 'rc']):
                             series_versions[serie].append(tag_name)
 
             # Get latest for each series
