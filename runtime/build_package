@@ -1424,8 +1424,13 @@ _build_pgsql_mod_pgrouting() {
     unpack_package "$mod_package_fullname" "$mod_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
+    # pgRouting needs Boost (>=1.56) headers, which are NOT in the ServBay base;
+    # they come from `brew install boost`. Point Boost_INCLUDE_DIR at the brew
+    # prefix include (arch-specific: /opt/homebrew on arm64, /usr/local on x86_64).
+    local brew_prefix="/usr/local"
+    [[ "$architecture" == "arm64" ]] && brew_prefix="/opt/homebrew"
     local cmake_args=(
-        "-DBoost_INCLUDE_DIR=${SERVBAY_COMMON_INCLUDE_PATH}"
+        "-DBoost_INCLUDE_DIR=${brew_prefix}/include"
         "-DCMAKE_MACOSX_RPATH=1"
         "-DCMAKE_INSTALL_RPATH=${SERVBAY_COMMON_LIB_PATH}"
         "-DPOSTGRESQL_PG_CONFIG=${pg_config}"
