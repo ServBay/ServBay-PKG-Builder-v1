@@ -12,9 +12,9 @@
 # php	8.1.34	php-8.1.34-windows-x64.zip
 # php	8.2.30	php-8.2.30-windows-x64.zip
 # php	8.3.30	php-8.3.30-windows-x64.7z
-php	8.4.20	php-8.4.20-windows-x64.7z
-# php	8.5.5	php-8.5.5-windows-x64.7z
-php	8.6.0-dev-20260427	php-8.6.0-dev-20260427-windows-x64.zip
+# php	8.4.20	php-8.4.20-windows-x64.7z
+php	8.5.7	php-8.5.7-windows-x64.zip
+# php	8.6.0-dev-20260427	php-8.6.0-dev-20260427-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -25,9 +25,9 @@ php	8.6.0-dev-20260427	php-8.6.0-dev-20260427-windows-x64.zip
 # node	19.9.0
 # node	20.20.2
 # node	21.7.3
-# node	22.22.2
+node	22.23.1
 # node	23.11.1
-node	24.15.0
+node	24.18.0
 # node	25.9.0
 # python	2.7.18
 # python	3.5.4
@@ -38,8 +38,8 @@ node	24.15.0
 # python	3.10.11
 # python	3.11.9
 # python	3.12.10
-# python	3.13.13
-python	3.14.4
+python	3.13.14
+python	3.14.6
 # go	1.11.13
 # go	1.12.17
 # go	1.13.15
@@ -54,27 +54,27 @@ python	3.14.4
 # go	1.22.12
 # go	1.23.12
 # go	1.24.13
-# go	1.25.9
-# go	1.26.2
+go	1.25.11
+go	1.26.4
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
-openjdk	8.0.492	zulu8.94.0.17-ca-jdk8.0.492-win_x64.zip
+# openjdk	8.0.492	zulu8.94.0.17-ca-jdk8.0.492-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
 # openjdk	10.0.2	zulu10.3+5-jdk10.0.2-win_x64.zip
-openjdk	11.0.31	zulu11.88.17-ca-jdk11.0.31-win_x64.zip
+# openjdk	11.0.31	zulu11.88.17-ca-jdk11.0.31-win_x64.zip
 # openjdk	12.0.2	zulu12.3.11-ca-jdk12.0.2-win_x64.zip
 # openjdk	13.0.14	zulu13.54.17-ca-jdk13.0.14-win_x64.zip
 # openjdk	14.0.2	zulu14.29.23-ca-jdk14.0.2-win_x64.zip
 # openjdk	15.0.10	zulu15.46.17-ca-jdk15.0.10-win_x64.zip
 # openjdk	16.0.2	zulu16.32.15-ca-jdk16.0.2-win_x64.zip
-openjdk	17.0.19	zulu17.66.19-ca-jdk17.0.19-win_x64.zip
+# openjdk	17.0.19	zulu17.66.19-ca-jdk17.0.19-win_x64.zip
 # openjdk	18.0.2.1	zulu18.32.13-ca-jdk18.0.2.1-win_x64.zip
 # openjdk	19.0.2	zulu19.32.13-ca-jdk19.0.2-win_x64.zip
 # openjdk	20.0.2	zulu20.32.11-ca-jdk20.0.2-win_x64.zip
-openjdk	21.0.11	zulu21.50.19-ca-jdk21.0.11-win_x64.zip
+# openjdk	21.0.11	zulu21.50.19-ca-jdk21.0.11-win_x64.zip
 # openjdk	22.0.2	zulu22.32.15-ca-jdk22.0.2-win_x64.zip
 # openjdk	23.0.2	zulu23.32.11-ca-jdk23.0.2-win_x64.zip
 # openjdk	24.0.2	zulu24.32.13-ca-jdk24.0.2-win_x64.zip
-openjdk	25.0.3	zulu25.34.17-ca-jdk25.0.3-win_x64.zip
+# openjdk	25.0.3	zulu25.34.17-ca-jdk25.0.3-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
 # maven	4.0.0	apache-maven-4.0.0-bin.zip
 # ruby	2.4.10
@@ -86,17 +86,17 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.2.11
 # ruby	3.3.11
 # ruby	3.4.9
-ruby	4.0.3
-rust	1.95.0
+ruby	4.0.5
+rust	1.96.0
 # mysql	5.1.73
 # mysql	5.5.62
 # mysql	5.6.51
 # mysql	5.7.44
-mysql	8.0.46
+# mysql	8.0.46
 # mysql	8.1.0
 # mysql	8.2.0
 # mysql	8.3.0
-mysql	8.4.9
+mysql	8.4.10
 # mysql	9.0.1
 # mysql	9.1.0
 # mysql	9.2.0
@@ -104,60 +104,60 @@ mysql	8.4.9
 # mysql	9.4.0
 # mariadb	10.4.34
 # mariadb	10.5.29
-# mariadb	10.6.25
+mariadb	10.6.27
 # mariadb	10.7.8
 # mariadb	10.8.8
 # mariadb	10.9.8
 # mariadb	10.10.7
-# mariadb	10.11.16
+mariadb	10.11.18
 # mariadb	11.0.6
 # mariadb	11.1.6
 # mariadb	11.2.6
 # mariadb	11.3.2
-# mariadb	11.4.10
+mariadb	11.4.12
 # mariadb	11.5.2
 # mariadb	11.6.2
 # mariadb	11.7.2
-# mariadb	11.8.6
+mariadb	11.8.8
 # mariadb	12.0.2
 # mariadb	12.1.2
 # postgresql	10.23	postgresql-10.23-1-windows-x64-binaries.zip
 # postgresql	11.22	postgresql-11.22-1-windows-x64-binaries.zip
 # postgresql	12.22	postgresql-12.22-1-windows-x64-binaries.zip
 # postgresql	13.23	postgresql-13.23-1-windows-x64-binaries.zip
-# postgresql	14.22	postgresql-14.22-1-windows-x64-binaries.zip
-# postgresql	15.17	postgresql-15.17-1-windows-x64-binaries.zip
-# postgresql	16.13	postgresql-16.13-1-windows-x64-binaries.zip
-# postgresql	17.9	postgresql-17.9-1-windows-x64-binaries.zip
-# postgresql	18.3	postgresql-18.3-1-windows-x64-binaries.zip
-nginx	1.30.0
-# redis	7.4.8
-composer	2.2.27
-composer	2.9.7
+postgresql	14.23	postgresql-14.23-1-windows-x64-binaries.zip
+postgresql	15.18	postgresql-15.18-1-windows-x64-binaries.zip
+postgresql	16.14	postgresql-16.14-1-windows-x64-binaries.zip
+postgresql	17.10	postgresql-17.10-1-windows-x64-binaries.zip
+postgresql	18.4	postgresql-18.4-1-windows-x64-binaries.zip
+nginx	1.31.2
+redis	7.4.9
+composer	2.2.28
+composer	2.10.1
 # adminer	5.4.2
-git	2.54.0
+# git	2.54.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-ollama	0.21.2
+ollama	0.30.10
 # memcached	1.6.8
-mailpit	1.29.7
+mailpit	1.30.2
 ai-gateway	1.0.0
 # minio	2025.10.15
-meilisearch	1.42.1
-simple-acme	2.3.6
-# cloudflared	2026.3.0
-frp	0.68.1
-pinggy	0.4.7
-ngrok	3.38.0	6K3r7R3NK2a
-bun	1.3.13
-deno	2.7.13
-apache	2.4.66
-# caddy	2.11.2
-# mongodb	4.4.30
-# mongodb	5.0.32
-# mongodb	6.0.27
-# mongodb	7.0.31
-# mongodb	8.0.20
-mongodb	8.2.7
-# mongosh	2.8.2
-mongotools	100.16.1
+meilisearch	1.48.2
+simple-acme	2.4.0
+cloudflared	2026.6.1
+frp	0.69.1
+pinggy	0.5.3
+ngrok	3.39.8	8CfTTG2KfSo
+bun	1.3.14
+deno	2.8.3
+apache	2.4.68
+caddy	2.11.4
+mongodb	4.4.31
+mongodb	5.0.34
+mongodb	6.0.29
+mongodb	7.0.37
+mongodb	8.0.26
+mongodb	8.2.11
+mongosh	2.8.3
+mongotools	100.17.0
