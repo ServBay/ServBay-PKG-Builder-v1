@@ -1017,6 +1017,80 @@ core_pack_package() {
 # @description Main orchestrator for post-build tasks.
 # @param $1 string Pkg name, $2 string Pkg version.
 ###
+###
+# @description Check whether OUR compiled binaries accidentally linked Homebrew
+# libraries (under /usr/local/* or /opt/homebrew/*). Such a binary would fail to
+# load on a user machine without Homebrew. Ported from runtime-v2. Scans a file
+# or a directory tree of Mach-O objects via otool.
+# @param $1 string File or directory to scan.
+# @param $2 string (optional) "strict" -> return 1 (build error) when found.
+# @return 0 if clean (or non-strict), 1 if Homebrew deps found in strict mode.
+###
+check_homebrew_dependencies() {
+    local check_path="$1"
+    local strict_mode="${2:-}"
+    local found_issues=0
+    local files_checked=0
+
+    local homebrew_patterns=(
+        "/usr/local/lib/"
+        "/usr/local/opt/"
+        "/usr/local/Cellar/"
+        "/opt/homebrew/lib/"
+        "/opt/homebrew/opt/"
+        "/opt/homebrew/Cellar/"
+    )
+
+    local files_to_check=()
+    local base_path=""
+    if [[ -f "$check_path" ]]; then
+        files_to_check+=("$check_path")
+        base_path="$(dirname "$check_path")"
+        log_message "INFO" "🔍 Checking Homebrew dependencies for file: $check_path"
+    elif [[ -d "$check_path" ]]; then
+        base_path="$check_path"
+        log_message "INFO" "🔍 Scanning for Homebrew dependencies in: $check_path"
+        while IFS= read -r -d '' file; do
+            files_to_check+=("$file")
+        done < <(find "$check_path" \( -type f \( -perm +111 -o -name "*.dylib" -o -name "*.so" -o -name "*.bundle" \) \) -print0 2>/dev/null)
+    else
+        log_message "ERROR" "check_homebrew_dependencies: Path not found: $check_path"
+        return 1
+    fi
+
+    local deps="" matches="" lib_path=""
+    for file in "${files_to_check[@]}"; do
+        file "$file" 2>/dev/null | grep -q "Mach-O" || continue
+        files_checked=$((files_checked + 1))
+        deps=$(otool -L "$file" 2>/dev/null | tail -n +2)
+        for pattern in "${homebrew_patterns[@]}"; do
+            matches=$(echo "$deps" | grep "$pattern" || true)
+            if [[ -n "$matches" ]]; then
+                if [[ $found_issues -eq 0 ]]; then
+                    log_message "WARN" "⚠️  Found Homebrew dependencies! These won't load on machines without Homebrew."
+                fi
+                log_message "WARN" "  File: ${file#$base_path/}"
+                echo "$matches" | while read -r line; do
+                    lib_path=$(echo "$line" | awk '{print $1}')
+                    log_message "WARN" "    → $lib_path"
+                done
+                found_issues=1
+            fi
+        done
+    done
+
+    log_message "INFO" "   Scanned $files_checked Mach-O file(s) for Homebrew deps"
+    if [[ $found_issues -eq 0 ]]; then
+        log_message "INFO" "✅ No Homebrew dependencies found"
+        return 0
+    fi
+    if [[ "$strict_mode" == "strict" ]]; then
+        log_message "ERROR" "Strict mode: treating Homebrew dependencies as error"
+        return 1
+    fi
+    return 0
+}
+
 post_build_process() {
     local packageName="$1"
     local packageVersion="$2"
@@ -1038,7 +1112,19 @@ post_build_process() {
     if [[ $? -ne 0 ]]; then
         return 1
     fi
-    
+
+    # Fail BEFORE packing if our compiled binaries linked Homebrew libs (they
+    # would not load on a user machine without Homebrew). Only OUR source-built
+    # packages are checked; download/official packages (node, go, mongodb, rust,
+    # dotnetsdk, the Go CLIs, composer.phar, etc.) are upstream-managed and exempt.
+    local _compiled_pkgs=" php mysql mariadb postgresql python ruby redis memcached nginx httpd caddy dnsmasq subversion git "
+    if [[ "$_compiled_pkgs" == *" ${packageName} "* ]]; then
+        if ! check_homebrew_dependencies "${PACK_INFO[source_dir]}" "strict"; then
+            log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} linked Homebrew libraries."
+            return 1
+        fi
+    fi
+
     core_pack_package "$packageName" "$packageVersion"
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "--- Post-build process FAILED for ${packageName}-${packageVersion} ---"
