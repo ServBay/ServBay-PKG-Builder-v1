@@ -563,15 +563,16 @@ get_package_verification_info() {
         "composer")
             # Composer 2.2 LTS 支持 PHP 5.3-7.1，使用 PHP 7.4 验证
             # Composer 2.x latest 支持 PHP 7.2+，使用 PHP 8.4 验证
-            local composer_bin php_bin
+            local composer_bin
             if [[ "$packageVersion" == 2.2.* ]]; then
                 composer_bin="composer-2.2"
-                php_bin="${SERVBAY_PACKAGE_FULL_PATH}/php/7.4/current/bin/php"
             else
                 composer_bin="composer"
-                php_bin="${SERVBAY_PACKAGE_FULL_PATH}/php/8.4/current/bin/php"
             fi
-            verify_command="${php_bin} ${SERVBAY_BIN_PATH}/${composer_bin} --version"
+            # composer.phar embeds its version (const VERSION = '<ver>'). grep it
+            # instead of running `php composer --version`: the CI build base has no
+            # php runtime to execute the phar, which used to fail this step.
+            verify_command="grep -a ${packageVersion} ${SERVBAY_BIN_PATH}/${composer_bin}"
             ;;
         "adminer")
             # Adminer is a single PHP file, no version command. Skip verification.
@@ -1181,6 +1182,13 @@ _get_mysql_cmake_args() {
                 "-DENABLED_LOCAL_INFILE=1"
                 "-DWITH_SYSTEM_LIBS=OFF"
                 "-DWITH_SSL=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}"
+                # Pin FindOpenSSL as well. MySQL Router's harness_tls runs its own
+                # find_package(OpenSSL); without OPENSSL_ROOT_DIR it picks up the CI
+                # runner's brew openssl@3, compiling tls_*_context.cc against 3.x
+                # headers while everything else links the base's 1.1.1u -> undefined
+                # OSSL_DECODER_*/OSSL_PARAM_*/SSL_CTX_set0_tmp_dh_pkey at link. 1.1.1u
+                # is fully sufficient once the whole build uses it consistently.
+                "-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}"
                 "-DWITH_LZ4=bundled"
                 "-DWITH_ZLIB=bundled"
                 "-DWITH_PROTOBUF=bundled"
