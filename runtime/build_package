@@ -3546,14 +3546,20 @@ build_mysql() {
     # 3. Prepare environment and apply patches based on version/arch.
     log_message "INFO" "Preparing build environment for MySQL v${version}..."
     unset CPPFLAGS
-    # Lead CFLAGS/CXXFLAGS with ServBay's OpenSSL + common includes so they win
+    # Lead CFLAGS/CXXFLAGS with ONLY ServBay's OpenSSL include so the harness wins
     # over the CI runner's brew openssl@3. MySQL Router's harness_tls runs its own
     # find_package(OpenSSL) (OPENSSL_ROOT_DIR only steers the top-level one) and
     # would otherwise compile tls_*_context.cc against brew 3.x headers while
-    # linking the base's 1.1.1u -> undefined OSSL_DECODER_*/OSSL_PARAM_* at link.
-    # cmake seeds CMAKE_C/CXX_FLAGS from these env vars, and a leading -I is
-    # searched before any target include dir, so the base headers always win.
-    local _servbay_inc="-I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include -I${SERVBAY_COMMON_INCLUDE_PATH}"
+    # linking the base's OpenSSL -> undefined OSSL_DECODER_*/OSSL_PARAM_* at link.
+    # cmake seeds CMAKE_C/CXX_FLAGS from this env var, and a leading -I is searched
+    # before any target include dir, so the base OpenSSL headers always win.
+    #
+    # Do NOT also add -I${SERVBAY_COMMON_INCLUDE_PATH} here: the base ships an older
+    # ICU under common/include/unicode (74 on arm64, 66 on x86_64), and a leading -I
+    # makes it win over MySQL's bundled ICU 77 (WITH_ICU=bundled). gen_keyword_list
+    # then compiles against icu_74/icu_66 headers but links the bundled icu_77 lib ->
+    # "Undefined symbols: icu_74::UnicodeString...". Only OpenSSL needs pinning here.
+    local _servbay_inc="-I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include"
     export CFLAGS="${_servbay_inc} -Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET}"
     export CXXFLAGS="${_servbay_inc} -Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion"
     
