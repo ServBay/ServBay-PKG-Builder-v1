@@ -2,7 +2,9 @@ name: check-updates
 
 on:
   schedule:
-    - cron: '0 18 * * 0'
+    # Daily at 18:00 UTC (02:00 Beijing). Checking daily keeps each run's update
+    # batch small, avoiding a large one-shot compile backlog vs a weekly cadence.
+    - cron: '0 18 * * *'
   workflow_dispatch:
     inputs:
       target:
