@@ -206,15 +206,36 @@ jobs:
 
   dispatch-downstream:
     needs: [check, build-macos, build-windows]
+    # A single failed matrix leg (one package that won't build) must NOT block
+    # publishing the packages that DID build. Fire whenever a build was requested
+    # and neither platform was cancelled, then decide by what actually produced an
+    # artifact (next step) rather than the aggregate build-* job result, which is
+    # 'failure' if ANY matrix leg failed.
     if: >-
       ${{ always()
           && needs.check.outputs.should_build == 'true'
-          && needs.build-macos.result != 'failure' && needs.build-macos.result != 'cancelled'
-          && needs.build-windows.result != 'failure' && needs.build-windows.result != 'cancelled'
-          && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success') }}
+          && needs.build-macos.result != 'cancelled'
+          && needs.build-windows.result != 'cancelled' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Count this run's package artifacts
+        id: artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Sum the per-page counts of pkg-* artifacts (both pkg-macos-* and
+          # pkg-windows-*). Failed packages produce no artifact, so a count > 0
+          # means at least one package built and is worth publishing.
+          count="$(gh api --paginate "repos/${REPO}/actions/runs/${RUN_ID}/artifacts" \
+            --jq '[.artifacts[] | select(.name | startswith("pkg-"))] | length' \
+            | awk '{s+=$1} END {print s+0}')"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+          echo "package artifacts produced by this run: ${count}"
       - name: Signal downstream to fetch and publish
+        if: ${{ steps.artifacts.outputs.count != '0' }}
         env:
           DISPATCH_PAT: ${{ secrets.DISPATCH_PAT }}
           TARGET_REPO: ${{ vars.TARGET_REPO || secrets.TARGET_REPO }}
