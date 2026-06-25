@@ -838,7 +838,12 @@ class PackageUpdater:
     def get_mongodb_versions(self) -> Dict[str, str]:
         """Get latest MongoDB versions from downloads.mongodb.org"""
         versions = {}
-        series_map = ['5.0', '6.0', '7.0', '8.0', '8.2']
+        # 5.0 is intentionally excluded: it is EOL. Source releases keep coming
+        # (current.json reports 5.0.34+) but macOS binaries are frozen at 5.0.31,
+        # so auto-tracking 5.0 only yields phantom versions whose .tgz returns 403
+        # and fails the build. 5.0 is pinned manually in packages.conf (commented,
+        # x86_64 binary for both arches via Rosetta).
+        series_map = ['6.0', '7.0', '8.0', '8.2']
 
         try:
             url = "https://downloads.mongodb.org/current.json"
