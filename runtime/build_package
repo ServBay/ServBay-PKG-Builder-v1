@@ -3688,6 +3688,11 @@ build_mariadb() {
         "-DENABLED_LOCAL_INFILE=1"
         "-DPLUGIN_TOKUDB=NO"
         "-DPLUGIN_ROCKSDB=NO"
+        # Disable ODBC in the CONNECT engine. On x86_64 cmake finds the CI runner's
+        # brew unixODBC (/usr/local/opt/unixodbc) and ha_connect.so links it, which
+        # would not load on a user machine without Homebrew. arm64 already ships
+        # CONNECT without ODBC (no unixODBC on that runner), so this aligns both.
+        "-DCONNECT_WITH_ODBC=OFF"
         "-DWITH_READLINE=NO"
         "-DWITH_UNIT_TESTS=OFF"
         "-DWITH_SSL=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}"
