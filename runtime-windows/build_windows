@@ -1184,23 +1184,23 @@ Build_Package_redis() {
     Build_Package_Generic "$package_name" "$package_version" "$download_url" "$package_filename" "$extract_subdir" "redis-${package_version}" ""
 }
 
-# Git (Using Git-for-Windows portable zip)
+# Git (Using Git for Windows PortableGit)
 Build_Package_git() {
     local package_name=$1
     local package_version=$2
 
-    # Git for Windows uses '64-bit', '32-bit'
+    # PortableGit includes Git Bash tools such as bash.exe and less.exe.
+    # MinGit is intentionally smaller, but it omits user-facing shell tools that
+    # ServBay expects to ship with the Windows Git package.
     local git_arch_bit=""
      case "$ARCH" in
         x64) git_arch_bit="64-bit" ;;
-        x86) git_arch_bit="32-bit" ;;
-        arm64) log_message "WARN" "Git for Windows may not have official arm64 portable builds. Skipping."; return 0 ;;
+        arm64) git_arch_bit="arm64" ;;
+        x86) log_message "WARN" "Git for Windows does not publish 32-bit PortableGit builds. Skipping."; return 0 ;;
         *) log_message "ERROR" "Unsupported Git architecture mapping for: $ARCH"; return 1 ;;
     esac
 
-    # Example filename pattern, **ADJUST THIS**
-    local package_filename="MinGit-${package_version}-${git_arch_bit}.zip"
-    # Example URL pattern, **ADJUST THIS**
+    local package_filename="PortableGit-${package_version}-${git_arch_bit}.7z.exe"
     local download_url="https://github.com/git-for-windows/git/releases/download/v${package_version}.windows.1/${package_filename}"
 
     local extract_subdir="."
