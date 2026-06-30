@@ -2909,7 +2909,7 @@ build_git() {
     fi
 
     log_message "INFO" "Compiling Git ${version}..."
-    make -j${CPU_NUMBER} CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}"
+    make -j${CPU_NUMBER} NO_RUST=1 CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}"
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Git 'make' failed."
         cd "$SERVBAY_BUILD_DIR"
@@ -2917,7 +2917,7 @@ build_git() {
     fi
 
     log_message "INFO" "Installing Git ${version}..."
-    make install
+    make install NO_RUST=1
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Git 'make install' failed."
         cd "$SERVBAY_BUILD_DIR"
