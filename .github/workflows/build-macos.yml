@@ -120,9 +120,13 @@ jobs:
           # present on the original physical Mac build hosts but not the leaner CI.
           # go: caddy builds via xcaddy. boost: pgRouting (a PostgreSQL module)
           # needs Boost headers. libtool: provides the LT_INIT m4 macro that
-          # ruby's bundled libyaml needs at autoreconf time. None are in the
-          # ServBay base; they were present on the original physical Mac hosts.
-          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool
+          # ruby's bundled libyaml needs at autoreconf time. re2c: PHP built from
+          # php-src git archives (alpha/dev versions, build_package:290) runs
+          # `buildconf --force`, which needs re2c to regenerate the lexers; stable
+          # php.net tarballs ship pre-generated ones so only source-archive builds
+          # hit this. None are in the ServBay base; they were present on the
+          # original physical Mac hosts.
+          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool re2c
 
       # Caching policy (intentional, do not re-add per-package caches):
       # ONLY the runtime+devlib base (cached above) is worth caching — it is the one
