@@ -4146,6 +4146,10 @@ _build_php_mod_imagick() {
         if [[ "$php_version_major" =~ ^(8.5|8.6)$ ]]; then
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/imagick.c.diff" "p0"
         fi
+        # PHP 8.6 dropped the XtOffsetOf macro; restore it for imagick's object accessors.
+        if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.6/imagick.patch" "p0"
+        fi
         "${php_bin_dir}/phpize"
         ./configure --with-php-config="${php_config}"
         make -j${CPU_NUMBER} && make install
