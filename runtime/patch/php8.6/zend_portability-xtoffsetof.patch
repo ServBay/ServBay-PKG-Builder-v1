@@ -1,0 +1,16 @@
+--- Zend/zend_portability.h
++++ Zend/zend_portability.h
+@@ -58,6 +58,13 @@
+ 
+ #include <stdarg.h>
+ #include <stddef.h>
++
++/* PHP 8.6 removed the historical XtOffsetOf macro; restore it centrally so
++   extensions built against this PHP keep compiling (imap, imagick, phpredis,
++   memcached, apcu, ... all still use it). */
++#ifndef XtOffsetOf
++# define XtOffsetOf(s_type, field) offsetof(s_type, field)
++#endif
+ 
+ #ifdef HAVE_DLFCN_H
+ # include <dlfcn.h>
