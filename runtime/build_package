@@ -4146,10 +4146,6 @@ _build_php_mod_imagick() {
         if [[ "$php_version_major" =~ ^(8.5|8.6)$ ]]; then
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/imagick.c.diff" "p0"
         fi
-        # PHP 8.6 dropped the XtOffsetOf macro; restore it for imagick's object accessors.
-        if [[ "$php_version_major" == "8.6" ]]; then
-            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.6/imagick.patch" "p0"
-        fi
         "${php_bin_dir}/phpize"
         ./configure --with-php-config="${php_config}"
         make -j${CPU_NUMBER} && make install
@@ -4439,6 +4435,12 @@ _get_php_build_config() {
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" )
             PHP_CONFIGURE_ARGS+=( "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             PHP_CONFIGURE_ARGS=( ${PHP_CONFIGURE_ARGS:#--with-imap*} ${PHP_CONFIGURE_ARGS:#--with-imap-ssl*} )
+            # PHP 8.6 (dev) keeps dropping legacy macros; restore them as core
+            # patches declared here so build_php stays untouched. XtOffsetOf was
+            # removed from Zend/zend_portability.h and is still used by many PECL
+            # extensions (phpredis/memcached/apcu/imap/imagick/...); one core patch
+            # covers them all. Add more php8.6/*.patch entries here as 8.6 evolves.
+            PHP_PATCHES=( "php8.6/zend_portability-xtoffsetof.patch:p0" )
             PHP_PRE_BUILD_CMDS=( "./buildconf --force" )
             PHP_MODS=( [phpredis]="6.2.0" [memcache]="8.0" [memcached]="3.2.0" [apcu]="5.1.24" [scws]="1.2.4-pre" [imagick]="3.7.0" [imap]="1.0.3" )
             ;;
