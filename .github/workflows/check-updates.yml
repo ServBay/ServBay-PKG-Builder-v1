@@ -201,6 +201,7 @@ jobs:
       pkg: ${{ matrix.name }}
       version: ${{ matrix.version }}
       arch: ${{ matrix.arch }}
+      version_type: ${{ matrix.version_type }}
       checkout_ref: main
     secrets: inherit
 

@@ -98,6 +98,21 @@ class WindowsPackageUpdater:
                 records.append({"name": name, "version": version})
         return records
 
+    @staticmethod
+    def _php_version_type(version: str) -> str:
+        """Map a PHP version string to PHP-Windows-Portable's build.yml type.
+
+        alpha/beta/RC -> testing (compiled from the php-src pre-release tag),
+        a *dev* snapshot -> development, everything else -> stable. build-windows.yml
+        turns this into the right dispatch arg (testing_tag / dev_version /
+        stable_version)."""
+        v = version.lower()
+        if any(x in v for x in ('alpha', 'beta', 'rc')):
+            return 'testing'
+        if 'dev' in v:
+            return 'development'
+        return 'stable'
+
     def build_matrix(self, records):
         """Build GitHub Actions matrix JSON for Windows package builds."""
         include = []
@@ -114,6 +129,10 @@ class WindowsPackageUpdater:
                 "arch": "x64",
                 "name": name,
                 "version": version,
+                # Only PHP consumes version_type (build-windows.yml). Emit it for
+                # every entry so the workflow matrix schema stays uniform; non-PHP
+                # packages get a harmless 'stable' that their branch ignores.
+                "version_type": self._php_version_type(version) if name == "php" else "stable",
             })
         return {"include": include}
 
@@ -296,52 +315,56 @@ class WindowsPackageUpdater:
         return versions
 
     def get_php_versions(self) -> Dict[str, str]:
-        """Get latest PHP versions for 8.1-8.6 from ServBay/PHP-Windows-Portable releases.
-        ServBay 自编译 PHP Windows 包，不再使用官方 windows.php.net 二进制。
-        Release tag 格式: php-{version}-x64-nts
-        Asset 文件名: php-{version}-windows-x64.zip"""
+        """Get latest PHP versions for 8.1-8.6 from the official php/php-src tags.
+
+        Mirrors the macOS updater (runtime/update_packages.py:get_php_versions):
+        detect the newest UPSTREAM version per series here, and build-windows.yml
+        then dispatches our own ServBay/PHP-Windows-Portable compile for it (the
+        same detect-upstream -> trigger-own-repo flow python/ollama already use).
+        The previous implementation read PHP-Windows-Portable's own releases, so it
+        could only ever "discover" versions we had already built and never picked up
+        a fresh upstream release.
+
+        Stable series take the newest non-prerelease tag; 8.6 (pre-GA) keeps the
+        newest tag including alpha/beta/RC, so a new 8.6.0alphaN is detected and
+        compiled as a `testing` build (see _php_version_type)."""
         versions = {}
         series = ['8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
 
-        all_releases = []
-        for page in range(1, 4):
+        all_tags = []
+        for page in range(1, 6):
             data = self.get_github_api(
-                f"https://api.github.com/repos/ServBay/PHP-Windows-Portable/releases?per_page=100&page={page}"
+                f"https://api.github.com/repos/php/php-src/tags?per_page=100&page={page}"
             )
             if data:
-                all_releases.extend(data)
+                all_tags.extend(data)
             else:
                 break
 
-        if all_releases:
+        if all_tags:
             series_versions = {s: [] for s in series}
-            for release in all_releases:
-                if release.get('draft', False):
-                    continue
-                tag = release.get('tag_name', '')
-                # Tag 格式: php-{version}-x64-nts，提取 version 部分
-                match = re.match(r'^php-(.+)-x64-nts$', tag)
-                if not match:
-                    continue
-                version = match.group(1)
+            for tag in all_tags:
+                tag_name = tag.get('name', '')
+                # php-src tags are like `php-8.6.0alpha1`; strip the `php-` prefix.
+                if tag_name.startswith('php-'):
+                    tag_name = tag_name[len('php-'):]
                 for serie in series:
-                    if version.startswith(serie + '.') or version.startswith(serie + '.0-dev'):
-                        series_versions[serie].append(version)
+                    if tag_name.startswith(serie + '.'):
+                        series_versions[serie].append(tag_name)
                         break
 
             for serie, version_list in series_versions.items():
-                if version_list:
-                    if serie in ['8.6']:  # Dev versions
-                        # dev 版本按字符串排序取最新
-                        version_list.sort()
-                        versions[f'php_{serie}'] = version_list[-1]
-                    else:
-                        # 稳定版本：排除 alpha/beta/rc/dev
-                        stable_versions = [v for v in version_list
-                                           if not any(x in v.lower() for x in ['alpha', 'beta', 'rc', 'dev'])]
-                        if stable_versions:
-                            stable_versions.sort(key=lambda x: tuple(map(int, x.split('.'))))
-                            versions[f'php_{serie}'] = stable_versions[-1]
+                if not version_list:
+                    continue
+                if serie == '8.6':  # pre-GA: keep alpha/beta/RC so new ones compile
+                    version_list.sort(key=lambda x: tuple(x.split('.')))
+                    versions[f'php_{serie}'] = version_list[-1]
+                else:
+                    stable_versions = [v for v in version_list
+                                       if not any(x in v.lower() for x in ['alpha', 'beta', 'rc'])]
+                    if stable_versions:
+                        stable_versions.sort(key=lambda x: tuple(map(int, x.split('.'))))
+                        versions[f'php_{serie}'] = stable_versions[-1]
 
         return versions
 
