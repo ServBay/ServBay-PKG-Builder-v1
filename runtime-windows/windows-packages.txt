@@ -10,11 +10,11 @@
 # php	7.4.33-1	php-7.4.33-nts-Win32-vc15-x64.zip
 # php	8.0.30-1	php-8.0.30-nts-Win32-vs16-x64.zip
 # php	8.1.34	php-8.1.34-windows-x64.zip
-# php	8.2.30	php-8.2.30-windows-x64.zip
-# php	8.3.30	php-8.3.30-windows-x64.7z
-# php	8.4.20	php-8.4.20-windows-x64.7z
-# php	8.5.7	php-8.5.7-windows-x64.zip
-# php	8.6.0-dev-20260427	php-8.6.0-dev-20260427-windows-x64.zip
+php	8.2.32	php-8.2.32-windows-x64.zip
+php	8.3.32	php-8.3.32-windows-x64.zip
+php	8.4.23	php-8.4.23-windows-x64.zip
+php	8.5.8	php-8.5.8-windows-x64.zip
+php	8.6.0alpha1	php-8.6.0alpha1-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -85,7 +85,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.1.7
 # ruby	3.2.11
 # ruby	3.3.11
-ruby	3.4.10
+# ruby	3.4.10
 # ruby	4.0.5
 # rust	1.96.0
 # mysql	5.1.73
@@ -132,13 +132,13 @@ ruby	3.4.10
 # postgresql	18.4	postgresql-18.4-1-windows-x64-binaries.zip
 # nginx	1.31.2
 # redis	7.4.9
-# composer	2.2.28
-# composer	2.10.1
+composer	2.2.29
+composer	2.10.2
 # adminer	5.4.2
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.30.11
+ollama	0.31.1
 # memcached	1.6.8
 # mailpit	1.30.3
 ai-gateway	1.0.0
@@ -150,7 +150,7 @@ ai-gateway	1.0.0
 # pinggy	0.5.3
 # ngrok	3.39.8	8CfTTG2KfSo
 # bun	1.3.14
-# deno	2.9.0
+deno	2.9.1
 # apache	2.4.68
 # caddy	2.11.4
 # mongodb	4.4.31
@@ -159,5 +159,5 @@ ai-gateway	1.0.0
 # mongodb	7.0.37
 # mongodb	8.0.26
 # mongodb	8.2.11
-mongosh	2.9.1
+mongosh	2.9.2
 # mongotools	100.17.0
