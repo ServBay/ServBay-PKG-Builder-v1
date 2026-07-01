@@ -1,6 +1,6 @@
---- php_imap.c.bak	2024-10-15 18:02:11
-+++ php_imap.c	2026-04-27 21:07:21
-@@ -32,6 +32,21 @@
+--- php_imap.c.bak
++++ php_imap.c
+@@ -32,6 +32,26 @@
  #endif
  
  #include "php.h"
@@ -18,6 +18,11 @@
 +#endif
 +#ifndef EMPTY_SWITCH_DEFAULT_CASE
 +# define EMPTY_SWITCH_DEFAULT_CASE() default: ZEND_UNREACHABLE();
++#endif
++
++/* PHP 8.6 removed the historical XtOffsetOf macro; restore it. */
++#ifndef XtOffsetOf
++# define XtOffsetOf(s_type, field) offsetof(s_type, field)
 +#endif
  #include "php_ini.h"
  #include "php_streams.h"
