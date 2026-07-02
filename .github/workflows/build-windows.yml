@@ -146,39 +146,26 @@ jobs:
           fi
 
           echo "release ${TAG} missing/empty; dispatching upstream build on ${REPO}..."
-          before_id="$(gh run list -R "$REPO" -w "$WF" -L 1 --json databaseId --jq '.[0].databaseId // 0')"
           gh workflow run "$WF" -R "$REPO" "${DISPATCH_ARGS[@]}"
 
-          # Wait for the new run to appear (~5min max).
-          run_id=""
-          for i in $(seq 1 30); do
-            sleep 10
-            cand="$(gh run list -R "$REPO" -w "$WF" -L 1 --json databaseId --jq '.[0].databaseId // 0')"
-            if [ -n "$cand" ] && [ "$cand" != "$before_id" ]; then run_id="$cand"; break; fi
-          done
-          [ -z "$run_id" ] && { echo "::error::new upstream run did not appear"; exit 1; }
-          echo "upstream run: https://github.com/${REPO}/actions/runs/${run_id}"
-
-          # Poll until completed (~90min max).
-          conclusion=""
+          # Poll THIS tag's release directly rather than tracking a run id. When several
+          # versions are dispatched in parallel (a nightly that finds php 8.2/8.3/8.4/8.5
+          # all bumped), matching the "latest run" races and can pick another version's
+          # run -- that falsely failed 8.2.32/8.3.32 on 2026-07-01 even though their
+          # upstream builds actually succeeded. The release tag is unique per
+          # version+arch, so waiting on it is race-free. ~90min budget (180 * 30s);
+          # public-repo runners are free, so idle waiting costs nothing.
+          echo "waiting for release ${TAG} to be published with assets..."
           for i in $(seq 1 180); do
-            status="$(gh run view "$run_id" -R "$REPO" --json status --jq '.status' 2>/dev/null || echo unknown)"
-            echo "[poll ${i}] status=${status}"
-            if [ "$status" = "completed" ]; then
-              conclusion="$(gh run view "$run_id" -R "$REPO" --json conclusion --jq '.conclusion')"
-              break
-            fi
             sleep 30
-          done
-          [ "$conclusion" = "success" ] || { echo "::error::upstream run ${run_id} conclusion=${conclusion}"; exit 1; }
-
-          # Re-check release assets (publish may lag the run a few seconds).
-          for i in $(seq 1 12); do
             asset_count="$(gh release view "$TAG" -R "$REPO" --json assets --jq '.assets | length' 2>/dev/null || echo 0)"
-            if [ "${asset_count:-0}" -ge 1 ]; then echo "OK release ${TAG} ready with ${asset_count} assets"; exit 0; fi
-            echo "waiting release ${TAG} assets... (${i})"; sleep 10
+            if [ "${asset_count:-0}" -ge 1 ]; then
+              echo "OK release ${TAG} ready with ${asset_count} assets"
+              exit 0
+            fi
+            echo "[wait ${i}/180] release ${TAG} not ready yet..."
           done
-          echo "::error::release ${TAG} has no assets after successful build"; exit 1
+          echo "::error::release ${TAG} not ready after ~90min"; exit 1
 
       # build_windows hard-depends on jq (check_command "jq" -> exit 1 if missing).
       # wget for downloads, p7zip-full provides 7z for extract/compress.
