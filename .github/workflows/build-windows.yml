@@ -198,7 +198,11 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          major="${VERSION%%.*}"
+          # major version is intentionally NOT computed here. It is derived downstream
+          # by upload_packages.py's get_package_metadata — the single source of truth
+          # for per-package major rules (php/mysql -> X.Y; node/openjdk -> X).
+          # Taking only the first dotted segment truncated e.g. php 8.6.0 to "8",
+          # which corrupted the DB major_version, the API response and install path.
           filename="${PKG}-${VERSION}-windows-${ARCH}.7z"
           pkg_path="dist-windows/${PKG}/${ARCH}/${filename}"
 
@@ -214,12 +218,11 @@ jobs:
           jq -n \
             --arg name "${PKG}" \
             --arg version "${VERSION}" \
-            --arg major "${major}" \
             --arg arch "${ARCH}" \
             --arg os "windows" \
             --arg sha256 "${sha256}" \
             --arg filename "${filename}" \
-            '{name:$name, version:$version, major:$major, arch:$arch, os:$os, sha256:$sha256, filename:$filename}' \
+            '{name:$name, version:$version, arch:$arch, os:$os, sha256:$sha256, filename:$filename}' \
             > "dist-windows/${PKG}/${ARCH}/meta.json"
 
           {
