@@ -3980,6 +3980,16 @@ _build_php_mod_memcache() {
             sed -i '' 's/PS_FUNCS(memcache);/PS_OPEN_FUNC(memcache); PS_CLOSE_FUNC(memcache); PS_READ_FUNC(memcache); PS_WRITE_FUNC(memcache); PS_DESTROY_FUNC(memcache); PS_GC_FUNC(memcache); PS_CREATE_SID_FUNC(memcache); PS_VALIDATE_SID_FUNC(memcache);/' src/php_memcache.h
             # PHP 8.6 changed save_path from const char* to zend_string*
             sed -i '' 's|path = save_path;|path = ZSTR_VAL(save_path);|' src/memcache_session.c
+            # PHP 8.6 rewrote PS_MOD(x) to reference the extension-provided
+            # ps_create_sid_##x / ps_validate_sid_##x (which were the core
+            # php_session_create_id / php_session_validate_sid /
+            # php_session_update_timestamp defaults in <=8.5). memcache 8.0 never
+            # implements the per-extension variants, so ps_mod_memcache ends up
+            # referencing undefined symbols; the .so still links under macOS
+            # -undefined dynamic_lookup but dlopen fails at runtime with
+            # "symbol not found in flat namespace '_ps_create_sid_memcache'".
+            # Expand PS_MOD manually with the core defaults to keep 8.5 semantics.
+            sed -i '' 's/PS_MOD(memcache)/"memcache", ps_open_memcache, ps_close_memcache, ps_read_memcache, ps_write_memcache, ps_delete_memcache, ps_gc_memcache, php_session_create_id, php_session_validate_sid, php_session_update_timestamp/' src/memcache_session.c
         fi
 
         "${php_bin_dir}/phpize"

@@ -32,14 +32,22 @@
    - 编译状态：✅ 成功
    - 说明：此补丁基于 memcached.diff 补丁后的代码生成
 
-5. **Memcache (8.0)** - `memcache.patch`
+5. **Memcache (8.0)** - `memcache.patch` + `build_package` 内联 sed
    - 补丁大小：2.8 KB
    - 前置补丁：`patch/php8.5/memcache.diff` (头文件修复)
-   - 修复内容：
+   - 修复内容（`.patch`）：
      - `zval_dtor()` → `zval_ptr_dtor_nogc()` (所有形式)
      - `zval_is_true()` → `zend_is_true()` (所有形式)
-   - 编译状态：✅ 成功
-   - 说明：此补丁基于 memcache.diff 补丁后的代码生成
+   - 修复内容（`build_package` 内联 sed，见 `_build_php_mod_memcache`）：
+     - `PS_FUNCS(memcache);` 手动展开为各 `PS_*_FUNC` 声明（绕开 8.6 PS_FUNCS 宏缺分号）
+     - `save_path` 由 `const char*` 变 `zend_string*`：`path = save_path;` → `path = ZSTR_VAL(save_path);`
+     - **`PS_MOD(memcache)` 手动展开为 8.5 语义**：8.6 把 `PS_MOD` 的 create_sid / validate_sid / update_timestamp
+       三个槽位从 core 默认函数改成要求扩展自带的 `ps_create_sid_##x` / `ps_validate_sid_##x`；memcache 8.0 从不实现
+       它们，导致 `ps_mod_memcache` 引用未定义符号。填回 core 默认 `php_session_create_id` /
+       `php_session_validate_sid` / `php_session_update_timestamp` 即可。
+   - 状态：✅ 编译 + `dlopen` 加载均通过（`php --ri memcache` 无 warning）
+   - ⚠️ 教训：仅"生成 .so"不代表可用。macOS 扩展用 `-undefined dynamic_lookup` 链接，缺符号在链接期
+     不报错，运行 `dlopen` 才炸。判定成功必须加一步 `php --ri <ext>` / `php -m` 加载冒烟测试。
 
 ### ⚠️ 部分支持（需要进一步工作）
 
@@ -70,6 +78,13 @@
 ### 3. 异常处理变更
 - `zend_exception_get_default()` → `zend_ce_exception`
 - **影响扩展**：Memcached
+
+### 4. Session save handler 宏变更（`ext/session/php_session.h`）
+- 8.5 及以前 `PS_MOD(x)` 的 create_sid / validate_sid / update_timestamp 槽位填 core 默认函数
+  （`php_session_create_id` / `php_session_validate_sid` / `php_session_update_timestamp`）
+- 8.6 改为引用扩展自带的 `ps_create_sid_##x` / `ps_validate_sid_##x`（第三槽为 `NULL`）
+- 后果：未实现这两个函数的旧 session handler 扩展会引用未定义符号，运行时 `dlopen` 失败
+- **影响扩展**：Memcache（8.0）。较新的 Memcached / PHPRedis 已自带这两个函数，不受影响
 
 ## 使用方法
 
