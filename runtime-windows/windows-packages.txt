@@ -148,7 +148,7 @@ ai-gateway	1.0.0
 # cloudflared	2026.6.1
 # frp	0.69.1
 # pinggy	0.5.3
-ngrok	3.39.9	m9v4MphCUjA
+# ngrok	3.39.9	m9v4MphCUjA
 # bun	1.3.14
 # deno	2.9.1
 # apache	2.4.68
