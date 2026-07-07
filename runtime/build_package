@@ -187,9 +187,7 @@ get_download_url() {
 
     case "$packageName" in
         "mariadb")
-            local url1="https://mirrors.cloud.tencent.com/mariadb/mariadb-${version}/source/${sourceFilename}"
-            local url2="https://archive.mariadb.org/mariadb-${version}/source/${sourceFilename}"
-            echo "${url1} ${url2}" ;;
+            echo "https://archive.mariadb.org/mariadb-${version}/source/${sourceFilename}" ;;
         "mysql")
             local version_major_mysql=$(echo "$version" | awk -F. '{print $1"."$2}')
             echo "https://cdn.mysql.com/Downloads/MySQL-${version_major_mysql}/${sourceFilename}" ;;
@@ -259,7 +257,7 @@ get_download_url() {
             echo "https://github.com/vrana/adminer/releases/download/v${version}/adminer-${version}.php" ;;
         "go")
             # The filename in packages.conf is assumed to be correct for the target arch
-            echo "https://mirrors.aliyun.com/golang/${sourceFilename}" ;;
+            echo "https://dl.google.com/go/${sourceFilename}" ;;
         "openjdk")
             # The filename from packages.conf is assumed to be the full name from the URL
             echo "https://cdn.azul.com/zulu/bin/${sourceFilename}" ;;
@@ -4680,9 +4678,9 @@ build_package() {
         # Add GOPATH/bin to PATH for Go tools like tscriptify
         export PATH="${GOPATH}/bin:${PATH}"
         export GO111MODULE=on
-        export GOPROXY=https://goproxy.cn
+        export GOPROXY=https://proxy.golang.org,direct
         "$GO_BIN" env -w GO111MODULE=on &>/dev/null
-        "$GO_BIN" env -w GOPROXY=https://goproxy.cn,direct &>/dev/null
+        "$GO_BIN" env -w GOPROXY=https://proxy.golang.org,direct &>/dev/null
     fi
 
     local build_function_name="build_${packageName//-/_}"
