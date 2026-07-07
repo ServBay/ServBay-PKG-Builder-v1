@@ -83,9 +83,9 @@ jobs:
       # those repos). So the skip-path (release already built, e.g. ollama v0.21.2)
       # works even before the PAT is configured.
       - name: Ensure upstream release ready
-        # ai-gateway has no upstream compile to dispatch — it downloads its own
-        # prebuilt asset from the private gateway release in Stage 2.
-        if: ${{ inputs.pkg != 'ai-gateway' }}
+        # ai-gateway and disk-cleaner have no upstream compile to dispatch — they
+        # download their own prebuilt assets from private releases in Stage 2.
+        if: ${{ inputs.pkg != 'ai-gateway' && inputs.pkg != 'disk-cleaner' }}
         env:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}

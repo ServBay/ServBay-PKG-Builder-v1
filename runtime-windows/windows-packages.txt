@@ -142,6 +142,7 @@ ollama	0.31.1
 # memcached	1.6.8
 # mailpit	1.30.3
 ai-gateway	1.0.0
+disk-cleaner	1.0.0
 # minio	2025.10.15
 # meilisearch	1.48.3
 # simple-acme	2.4.0

@@ -232,6 +232,11 @@ get_download_url() {
             # generic anonymous downloader skip it; build_ai_gateway() does an
             # authenticated `gh release download` (needs GH_TOKEN with repo read).
             echo "" ;;
+        "disk-cleaner")
+            # Private upstream (ServBay/ServBay-DiskCleaner). An empty URL makes the
+            # generic anonymous downloader skip it; build_diskcleaner() does an
+            # authenticated `gh release download` (needs GH_TOKEN with repo read).
+            echo "" ;;
         "mongosh")
             echo "https://downloads.mongodb.com/compass/${sourceFilename}" ;;
         "mongotools")
@@ -537,6 +542,9 @@ get_package_verification_info() {
         "ai-gateway")
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/ai-gateway/bin/servbay-ai-gateway --version"
             ;;
+        "disk-cleaner")
+            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/disk-cleaner/bin/servbay-diskcleaner --version"
+            ;;
         "mongosh")
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/mongosh/2.0/bin/mongosh --version"
             ;;
@@ -772,6 +780,13 @@ get_package_packing_info() {
             # No config is bundled — the gateway self-creates its default on first run.
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
             PACK_FILES=( "ai-gateway" )
+            ;;
+        "disk-cleaner")
+            # Package layout must match the ServBay clients:
+            # {root}/package/disk-cleaner/bin/servbay-diskcleaner.
+            # No config is bundled — the cleaner self-creates its default on first run.
+            PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
+            PACK_FILES=( "disk-cleaner" )
             ;;
         "mongosh")
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
@@ -2553,6 +2568,66 @@ build_ai_gateway() {
 
     cd "$SERVBAY_BUILD_DIR"
     log_message "INFO" "ai-gateway setup complete."
+}
+
+###
+# @description "Build" logic for ServBay DiskCleaner.
+#   The upstream is our PRIVATE repo's GitHub Release, so this downloads the
+#   prebuilt asset with `gh release download` (authenticated via GH_TOKEN) rather
+#   than the generic anonymous downloader (get_download_url returns "" for it).
+#   The release asset is the bare binary; the package layout is
+#   disk-cleaner/bin/servbay-diskcleaner (the cleaner self-creates its default
+#   config on first run, so none is bundled).
+# @param $1 string Package version.
+# @param $2 string Standardized source filename (disk-cleaner-<ver>.tar.gz).
+# @param $3 string Temporary installation directory (optional).
+###
+build_diskcleaner() {
+    local version=$1
+    local sourceFilename=$2
+    local installDir=$3
+    local packageFullName="disk-cleaner-${version}"
+    local prefix=${installDir:-$SERVBAY_PACKAGE_FULL_PATH}
+
+    : "${GH_TOKEN:?GH_TOKEN (PAT with ServBay/ServBay-DiskCleaner read) required for disk-cleaner}"
+
+    # macOS ships a universal asset (one binary for both arches → both slots).
+    local asset="servbay-diskcleaner-${version}-macos-universal.tar.gz"
+    local dlDir="${SERVBAY_BUILD_SRC_DIR}/disk-cleaner-dl"
+    rm -rf "$dlDir"; mkdir -p "$dlDir"
+
+    log_message "INFO" "Downloading ${asset} from private release v${version} via gh..."
+    if ! gh release download "v${version}" \
+        --repo ServBay/ServBay-DiskCleaner \
+        --pattern "${asset}" --pattern "${asset}.sha256" \
+        --dir "$dlDir" --clobber; then
+        log_message "ERROR" "gh release download failed for disk-cleaner v${version}"
+        return 1
+    fi
+
+    # Verify the checksum published alongside the asset.
+    if ! ( cd "$dlDir" && shasum -a 256 -c "${asset}.sha256" ); then
+        log_message "ERROR" "SHA-256 mismatch for ${asset}"
+        return 1
+    fi
+
+    # Hand the archive to unpack_package under the standardized name it expects.
+    mv "${dlDir}/${asset}" "${SERVBAY_BUILD_SRC_DIR}/${sourceFilename}"
+
+    # Flat archive (bare binary at the root) → no --strip-components.
+    unpack_package "$packageFullName" "$sourceFilename" "" "false"
+    if [[ $? -ne 0 ]]; then return 1; fi
+
+    local bin_dir="${prefix}/disk-cleaner/bin"
+    mkdir -p "$bin_dir"
+
+    log_message "INFO" "Installing disk-cleaner binary..."
+    # We are currently inside the unpacked directory.
+    cp servbay-diskcleaner "$bin_dir/"
+    chmod +x "${bin_dir}/servbay-diskcleaner"
+
+    cd "$SERVBAY_BUILD_DIR"
+    log_message "INFO" "disk-cleaner setup complete."
 }
 
 ###
