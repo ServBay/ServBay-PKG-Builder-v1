@@ -988,7 +988,10 @@ class WindowsPackageUpdater:
             'bun': ('oven-sh', 'bun'),
             'deno': ('denoland', 'deno'),
             'rust': ('rust-lang', 'rust'),
-            # memcached: 单独处理（jefyt/memcached-windows tag 格式特殊）
+            # memcached: latest version comes from upstream memcached/memcached
+            # tags; the Windows binary is built on demand by our fork
+            # ServBay/Memcached-Windows-Portable (see build-windows.yml Stage 1).
+            'memcached': ('memcached', 'memcached'),
             'nginx': ('nginx', 'nginx'),
             'adminer': ('vrana', 'adminer'),
             'phpmyadmin': ('phpmyadmin', 'phpmyadmin'),
@@ -1051,24 +1054,6 @@ class WindowsPackageUpdater:
             else:
                 print("✗ Failed")
             time.sleep(self.api_delay)
-
-        # Memcached Windows: 暂时跳过检测（jefyt/memcached-windows 已无人维护）
-        # if 'memcached' in self.packages:
-        #     print("  Checking memcached...", end=' ')
-        #     sys.stdout.flush()
-        #     data = self.get_github_api("https://api.github.com/repos/jefyt/memcached-windows/releases/latest")
-        #     if data:
-        #         tag = data.get('tag_name', '')  # 例如: 1.6.8_mingw
-        #         match = re.match(r'^(\d+\.\d+\.\d+)', tag)
-        #         if match:
-        #             ver = match.group(1)
-        #             latest_versions['memcached'] = ver
-        #             print(f"✓ {ver}")
-        #         else:
-        #             print("✗ Invalid tag format")
-        #     else:
-        #         print("✗ Failed")
-        #     time.sleep(self.api_delay)
 
         # Windows-specific packages
         # simple-acme

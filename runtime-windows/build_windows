@@ -1259,7 +1259,7 @@ Build_Package_memcached() {
     case "$ARCH" in
         x64) memcached_arch_suffix="win64" ;;
         x86) memcached_arch_suffix="win32" ;;
-        arm64) log_message "WARN" "Memcached from jefyt/memcached-windows does not provide arm64 builds. Skipping."; return 0 ;;
+        arm64) log_message "WARN" "Memcached from ServBay/Memcached-Windows-Portable does not provide arm64 builds. Skipping."; return 0 ;;
         *) log_message "ERROR" "Unsupported Memcached architecture mapping for: $ARCH"; return 1 ;;
     esac
 
@@ -1272,7 +1272,10 @@ Build_Package_memcached() {
     fi
 
     # Construct download URL
-    local download_url="https://github.com/jefyt/memcached-windows/releases/download/${package_version}_mingw/${original_filename}"
+    # Upstream is the ServBay-owned fork ServBay/Memcached-Windows-Portable, whose
+    # release workflow publishes tag `memcached-<version>-win-<arch>` with asset
+    # `memcached-<version>-win{64,32}-mingw.zip`.
+    local download_url="https://github.com/ServBay/Memcached-Windows-Portable/releases/download/memcached-${package_version}-win-${ARCH}/${original_filename}"
 
     # The zip usually extracts into a folder named like 'memcached-1.6.8-win64-mingw'
     local extract_subdir="${original_filename%.zip}"
