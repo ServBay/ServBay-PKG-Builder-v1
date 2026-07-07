@@ -131,6 +131,11 @@ jobs:
               esac
               DISPATCH_ARGS=(-f "version_type=${VERSION_TYPE}" "${VER_ARG[@]}" -f "arch=${ARCH}" -f "thread_safe=nts")
               ;;
+            memcached)
+              REPO="ServBay/Memcached-Windows-Portable"; WF="build-memcached-windows.yml"
+              TAG="memcached-${VERSION}-win-${ARCH}"
+              DISPATCH_ARGS=(-f "memcached_version=${VERSION}" -f "arch=${ARCH}")
+              ;;
             *)
               echo "pkg=${PKG} does not require an upstream Windows-Portable workflow; skip Stage 1."
               exit 0
