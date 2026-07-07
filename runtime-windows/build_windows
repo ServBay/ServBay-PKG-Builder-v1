@@ -1371,7 +1371,7 @@ Build_Package_ai_gateway() {
 # Lays the binary out as bin/servbay-diskcleaner.exe because the Windows client
 # extracts this archive directly into packages/disk-cleaner. The cleaner
 # self-creates its default config on first run (none bundled).
-Build_Package_diskcleaner() {
+Build_Package_disk_cleaner() {
     local package_name=$1
     local package_version=$2
     local provided_filename=$3 # unused (we construct the asset name)
