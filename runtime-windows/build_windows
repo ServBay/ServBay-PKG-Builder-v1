@@ -892,7 +892,7 @@ Build_Package_go() {
     # local go_ver_base=$(echo "$package_version" | sed -E 's/rc[0-9]+$//') # sed -E might not be portable
     local package_filename="go${package_version}.windows-${go_arch}.zip"
     # Use base version for URL path if it's an RC
-    local base_url="https://mirrors.aliyun.com/golang/"
+    local base_url="https://dl.google.com/go/"
 
     local download_url="${base_url}${package_filename}"
     # Go extracts into a 'go' subdirectory
