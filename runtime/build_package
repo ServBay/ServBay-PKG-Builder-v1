@@ -234,7 +234,7 @@ get_download_url() {
             echo "" ;;
         "disk-cleaner")
             # Private upstream (ServBay/ServBay-DiskCleaner). An empty URL makes the
-            # generic anonymous downloader skip it; build_diskcleaner() does an
+            # generic anonymous downloader skip it; build_disk_cleaner() does an
             # authenticated `gh release download` (needs GH_TOKEN with repo read).
             echo "" ;;
         "mongosh")
@@ -2582,7 +2582,7 @@ build_ai_gateway() {
 # @param $2 string Standardized source filename (disk-cleaner-<ver>.tar.gz).
 # @param $3 string Temporary installation directory (optional).
 ###
-build_diskcleaner() {
+build_disk_cleaner() {
     local version=$1
     local sourceFilename=$2
     local installDir=$3
