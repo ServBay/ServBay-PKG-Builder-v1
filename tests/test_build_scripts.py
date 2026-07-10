@@ -60,7 +60,7 @@ class BuildScriptTests(unittest.TestCase):
         self.assertIn('CGO_CFLAGS="$mlx_cgo_cflags"', build_ollama)
         self.assertIn('CGO_CXXFLAGS="$mlx_cgo_cxxflags"', build_ollama)
         self.assertIn('CGO_LDFLAGS="$mlx_cgo_ldflags"', build_ollama)
-        self.assertIn('lipo -verify_arch "$cmake_arch" "$payload"', build_ollama)
+        self.assertIn('lipo "$payload" -verify_arch "$cmake_arch"', build_ollama)
         self.assertIn('llama-server" --version', build_ollama)
         self.assertIn('payload_dir="dist/darwin-${ollama_arch}"', build_ollama)
         self.assertIn(

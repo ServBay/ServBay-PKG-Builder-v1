@@ -2865,7 +2865,7 @@ build_ollama() {
                 cd "$SERVBAY_BUILD_DIR"
                 return 1
             fi
-            if ! lipo -verify_arch "$cmake_arch" "$payload"; then
+            if ! lipo "$payload" -verify_arch "$cmake_arch"; then
                 log_message "ERROR" "Ollama payload has the wrong architecture (${cmake_arch} required): ${payload}"
                 cd "$SERVBAY_BUILD_DIR"
                 return 1
