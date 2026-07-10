@@ -555,7 +555,15 @@ get_package_verification_info() {
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/mongodb/${version_major}/${packageVersion}/bin/mongod --version"
             ;;
         "ollama")
-            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/ollama/ollama -v"
+            local ollama_major=${packageVersion%%.*}
+            local ollama_version_remainder=${packageVersion#*.}
+            local ollama_minor=${ollama_version_remainder%%.*}
+            if [[ "$ollama_major" == <-> && "$ollama_minor" == <-> ]] &&
+               (( ollama_major > 0 || (ollama_major == 0 && ollama_minor >= 30) )); then
+                verify_command="test -x ${SERVBAY_PACKAGE_FULL_PATH}/ollama/lib/ollama/llama-server && test -x ${SERVBAY_PACKAGE_FULL_PATH}/ollama/lib/ollama/llama-quantize && ${SERVBAY_PACKAGE_FULL_PATH}/ollama/lib/ollama/llama-server --version >/dev/null && ${SERVBAY_PACKAGE_FULL_PATH}/ollama/ollama -v"
+            else
+                verify_command="${SERVBAY_PACKAGE_FULL_PATH}/ollama/ollama -v"
+            fi
             ;;
         "minio")
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/minio/bin/minio -v"
@@ -2726,13 +2734,6 @@ build_ollama() {
     local packageFullName="ollama-${version}"
     local prefix=${installDir:-$SERVBAY_PACKAGE_FULL_PATH}
 
-    # 0. Install tscriptify tool required for go generate
-    log_message "INFO" "Installing/updating tscriptify tool..."
-    if ! "$GO_BIN" install github.com/tkrajina/typescriptify-golang-structs/tscriptify@latest; then
-        log_message "ERROR" "Failed to install tscriptify. Please check your Go environment."
-        return 1
-    fi
-
     # Unpack the source code. This changes the current directory.
     unpack_package "$packageFullName" "$sourceFilename"
     if [[ $? -ne 0 ]]; then return 1; fi
@@ -2752,36 +2753,165 @@ build_ollama() {
         log_message "WARN" "Ollama patch file not found, skipping: ${patch_file}"
     fi
 
-    # 2. Modify llama.go for correct 'go generate' pathing.
-    log_message "INFO" "Patching llama/llama.go for go generate..."
-    sed -i '' "s|//go:generate make -j|//go:generate make -C ../ -j|" "llama/llama.go"
-
-    # 2b. Remove the UI build step from go:generate (ServBay does not need ollama's web UI).
-    log_message "INFO" "Removing UI build from go generate (npm run build)..."
-    sed -i '' 's|^//go:generate npm|// go:generate npm|' "app/ui/ui.go"
-
-    # 3. Run Go code generation.
-    log_message "INFO" "Running 'go generate' for Ollama..."
-    go generate ./...
-    if [[ $? -ne 0 ]]; then
-        log_message "ERROR" "Ollama 'go generate' failed."
-        cd "$SERVBAY_BUILD_DIR"
-        return 1
-    fi
-
-    # 4. Build the Ollama binary.
-    log_message "INFO" "Building Ollama binary..."
-    # Create target directories first
+    # Create the ServBay runtime directories shared by both build layouts.
     mkdir -p "${prefix}/ollama"
     mkdir -p "${prefix}/etc/ollama"
-    mkdir -p "${prefix}/db/ollama/models" # Assuming prefix is SERVBAY_BASE_FULL_PATH for this one
+    mkdir -p "${prefix}/db/ollama/models"
     mkdir -p "${prefix}/var/log/ollama"
 
-    go build -ldflags="-s -w -X 'github.com/ollama/ollama/version.Version=${version} (ServBay)' -X 'github.com/ollama/ollama/server.mode=release'" -o "${prefix}/ollama/ollama"
-    if [[ $? -ne 0 ]]; then
-        log_message "ERROR" "Ollama 'go build' failed."
-        cd "$SERVBAY_BUILD_DIR"
-        return 1
+    # Ollama 0.30 introduced a CMake superbuild and separate native helpers.
+    # Detect the upstream layout instead of hard-coding a version boundary so
+    # pre-releases and future releases follow their own complete build pipeline.
+    if [[ -f "CMakeLists.txt" && -f "llama/server/CMakeLists.txt" ]]; then
+        local ollama_arch
+        local cmake_arch
+        local mlx_cgo_cflags="-O3 -mmacosx-version-min=14.0"
+        local mlx_cgo_cxxflags="-O3 -mmacosx-version-min=14.0"
+        local mlx_cgo_ldflags
+        local mlx_extra_args=()
+        case "$architecture" in
+            x86_64)
+                ollama_arch="amd64"
+                cmake_arch="x86_64"
+                mlx_cgo_ldflags="-ldl -lc++ -framework Accelerate -mmacosx-version-min=14.0"
+                mlx_extra_args=( "-DMLX_ENABLE_X64_MAC=ON" )
+                ;;
+            arm64)
+                ollama_arch="arm64"
+                cmake_arch="arm64"
+                mlx_cgo_ldflags="-lc++ -framework Metal -framework Foundation -framework Accelerate -mmacosx-version-min=14.0"
+                ;;
+            *)
+                log_message "ERROR" "Unsupported Ollama architecture: ${architecture}"
+                cd "$SERVBAY_BUILD_DIR"
+                return 1
+                ;;
+        esac
+
+        local source_build_dir="build/darwin-sources"
+        local build_dir="build/darwin-${ollama_arch}"
+        local payload_dir="dist/darwin-${ollama_arch}"
+
+        # Prepare the pinned native sources once, mirroring the upstream Darwin
+        # superbuild with the backend supported by the current macOS runners.
+        log_message "INFO" "Preparing Ollama native sources..."
+        if ! cmake -S . -B "$source_build_dir" \
+            -DOLLAMA_MLX_BACKENDS=metal_v3 \
+            -DOLLAMA_LLAMA_BACKENDS=; then
+            log_message "ERROR" "Failed to configure Ollama native sources."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        if ! cmake --build "$source_build_dir" \
+            --target ollama-llama-cpp-source \
+            --target ollama-mlx-sources; then
+            log_message "ERROR" "Failed to prepare Ollama native sources."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        local llama_cpp_shared_src="${PWD}/${source_build_dir}/_deps/llama_cpp-src"
+        local mlx_shared_src="${PWD}/${source_build_dir}/_deps/mlx-src"
+        local mlx_c_shared_src="${PWD}/${source_build_dir}/_deps/mlx-c-src"
+        local cmake_args=(
+            "-DCMAKE_BUILD_TYPE=Release"
+            "-DCMAKE_OSX_ARCHITECTURES=${cmake_arch}"
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0"
+            "-DCMAKE_INSTALL_PREFIX=${payload_dir}/"
+            "-DOLLAMA_PAYLOAD_INSTALL_PREFIX=${payload_dir}/"
+            "-DOLLAMA_GO_OUTPUT=${payload_dir}/ollama"
+            "-DOLLAMA_VERSION=${version} (ServBay)"
+            "-DOLLAMA_MLX_BACKENDS=metal_v3"
+            "-DOLLAMA_LLAMA_BACKENDS="
+            "-DFETCHCONTENT_SOURCE_DIR_LLAMA_CPP=${llama_cpp_shared_src}"
+            "-DFETCHCONTENT_SOURCE_DIR_MLX=${mlx_shared_src}"
+            "-DFETCHCONTENT_SOURCE_DIR_MLX-C=${mlx_c_shared_src}"
+            "${mlx_extra_args[@]}"
+        )
+
+        log_message "INFO" "Configuring the Ollama Darwin payload for ${ollama_arch}..."
+        if ! cmake -S . -B "$build_dir" "${cmake_args[@]}"; then
+            log_message "ERROR" "Ollama Darwin payload configuration failed."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        log_message "INFO" "Building the complete Ollama Darwin payload for ${ollama_arch}..."
+        if ! GOOS=darwin GOARCH="$ollama_arch" CGO_ENABLED=1 \
+            CGO_CFLAGS="$mlx_cgo_cflags" \
+            CGO_CXXFLAGS="$mlx_cgo_cxxflags" \
+            CGO_LDFLAGS="$mlx_cgo_ldflags" \
+            cmake --build "$build_dir" \
+                --target ollama-local \
+                --target ollama-mlx-backends \
+                --parallel; then
+            log_message "ERROR" "Ollama Darwin payload build failed."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        local required_payloads=(
+            "${payload_dir}/ollama"
+            "${payload_dir}/lib/ollama/llama-server"
+            "${payload_dir}/lib/ollama/llama-quantize"
+        )
+        local payload
+        for payload in "${required_payloads[@]}"; do
+            if [[ ! -x "$payload" ]]; then
+                log_message "ERROR" "Required Ollama payload is missing or not executable: ${payload}"
+                cd "$SERVBAY_BUILD_DIR"
+                return 1
+            fi
+            if ! lipo -verify_arch "$cmake_arch" "$payload"; then
+                log_message "ERROR" "Ollama payload has the wrong architecture (${cmake_arch} required): ${payload}"
+                cd "$SERVBAY_BUILD_DIR"
+                return 1
+            fi
+        done
+
+        if ! "${payload_dir}/lib/ollama/llama-server" --version >/dev/null; then
+            log_message "ERROR" "Ollama llama-server failed to start; check its bundled runtime dependencies."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        log_message "INFO" "Copying the complete Ollama Darwin payload from ${payload_dir}..."
+        if ! cp -a "${payload_dir}/." "${prefix}/ollama/"; then
+            log_message "ERROR" "Failed to install the Ollama Darwin payload."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+    else
+        # Legacy releases generated native code and produced a single Go binary.
+        log_message "INFO" "Using the legacy Ollama build pipeline..."
+        log_message "INFO" "Installing/updating tscriptify tool..."
+        if ! "$GO_BIN" install github.com/tkrajina/typescriptify-golang-structs/tscriptify@latest; then
+            log_message "ERROR" "Failed to install tscriptify. Please check your Go environment."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        log_message "INFO" "Patching llama/llama.go for go generate..."
+        sed -i '' "s|//go:generate make -j|//go:generate make -C ../ -j|" "llama/llama.go"
+
+        # ServBay does not need Ollama's web UI in legacy packages.
+        log_message "INFO" "Removing UI build from go generate (npm run build)..."
+        sed -i '' 's|^//go:generate npm|// go:generate npm|' "app/ui/ui.go"
+
+        log_message "INFO" "Running 'go generate' for Ollama..."
+        if ! go generate ./...; then
+            log_message "ERROR" "Ollama 'go generate' failed."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+
+        log_message "INFO" "Building the legacy Ollama binary..."
+        if ! go build -ldflags="-s -w -X 'github.com/ollama/ollama/version.Version=${version} (ServBay)' -X 'github.com/ollama/ollama/server.mode=release'" -o "${prefix}/ollama/ollama"; then
+            log_message "ERROR" "Ollama 'go build' failed."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
     fi
 
     # Return to the original build directory

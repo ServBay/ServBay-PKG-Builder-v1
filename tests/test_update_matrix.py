@@ -47,7 +47,13 @@ class UpdateMatrixTests(unittest.TestCase):
             matrix,
             {
                 "include": [
-                    {"os": "windows", "arch": "x64", "name": "ollama", "version": "0.21.2"},
+                    {
+                        "os": "windows",
+                        "arch": "x64",
+                        "name": "ollama",
+                        "version": "0.21.2",
+                        "version_type": "stable",
+                    },
                 ]
             },
         )
