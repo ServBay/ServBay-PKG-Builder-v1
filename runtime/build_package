@@ -2765,6 +2765,7 @@ build_ollama() {
     if [[ -f "CMakeLists.txt" && -f "llama/server/CMakeLists.txt" ]]; then
         local ollama_arch
         local cmake_arch
+        local mlx_backends
         local mlx_cgo_cflags="-O3 -mmacosx-version-min=14.0"
         local mlx_cgo_cxxflags="-O3 -mmacosx-version-min=14.0"
         local mlx_cgo_ldflags
@@ -2773,12 +2774,19 @@ build_ollama() {
             x86_64)
                 ollama_arch="amd64"
                 cmake_arch="x86_64"
+                # Upstream build_darwin.sh only enables metal_v3 for amd64;
+                # metal_v4 shaders won't run under Rosetta anyway.
+                mlx_backends="metal_v3"
                 mlx_cgo_ldflags="-ldl -lc++ -framework Accelerate -mmacosx-version-min=14.0"
                 mlx_extra_args=( "-DMLX_ENABLE_X64_MAC=ON" )
                 ;;
             arm64)
                 ollama_arch="arm64"
                 cmake_arch="arm64"
+                # Match upstream build_darwin.sh: Apple Silicon ships both the
+                # metal_v3 and metal_v4 backends so the runner can pick the
+                # highest-performing one available at inference time.
+                mlx_backends="metal_v3;metal_v4"
                 mlx_cgo_ldflags="-lc++ -framework Metal -framework Foundation -framework Accelerate -mmacosx-version-min=14.0"
                 ;;
             *)
@@ -2793,10 +2801,11 @@ build_ollama() {
         local payload_dir="dist/darwin-${ollama_arch}"
 
         # Prepare the pinned native sources once, mirroring the upstream Darwin
-        # superbuild with the backend supported by the current macOS runners.
+        # superbuild. Use the widest backend list so subsequent per-arch builds
+        # share the same fetched sources cache.
         log_message "INFO" "Preparing Ollama native sources..."
         if ! cmake -S . -B "$source_build_dir" \
-            -DOLLAMA_MLX_BACKENDS=metal_v3 \
+            -DOLLAMA_MLX_BACKENDS="metal_v3;metal_v4" \
             -DOLLAMA_LLAMA_BACKENDS=; then
             log_message "ERROR" "Failed to configure Ollama native sources."
             cd "$SERVBAY_BUILD_DIR"
@@ -2824,7 +2833,7 @@ build_ollama() {
             # Ollama 0.30 passes this value through Go's -ldflags parser. Keep
             # it whitespace-free so the linker receives one complete -X value.
             "-DOLLAMA_VERSION=${version}-ServBay"
-            "-DOLLAMA_MLX_BACKENDS=metal_v3"
+            "-DOLLAMA_MLX_BACKENDS=${mlx_backends}"
             "-DOLLAMA_LLAMA_BACKENDS="
             "-DFETCHCONTENT_SOURCE_DIR_LLAMA_CPP=${llama_cpp_shared_src}"
             "-DFETCHCONTENT_SOURCE_DIR_MLX=${mlx_shared_src}"
