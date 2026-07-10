@@ -2821,7 +2821,9 @@ build_ollama() {
             "-DCMAKE_INSTALL_PREFIX=${payload_dir}/"
             "-DOLLAMA_PAYLOAD_INSTALL_PREFIX=${payload_dir}/"
             "-DOLLAMA_GO_OUTPUT=${payload_dir}/ollama"
-            "-DOLLAMA_VERSION=${version} (ServBay)"
+            # Ollama 0.30 passes this value through Go's -ldflags parser. Keep
+            # it whitespace-free so the linker receives one complete -X value.
+            "-DOLLAMA_VERSION=${version}-ServBay"
             "-DOLLAMA_MLX_BACKENDS=metal_v3"
             "-DOLLAMA_LLAMA_BACKENDS="
             "-DFETCHCONTENT_SOURCE_DIR_LLAMA_CPP=${llama_cpp_shared_src}"
