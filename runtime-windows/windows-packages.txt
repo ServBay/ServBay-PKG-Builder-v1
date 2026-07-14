@@ -14,7 +14,7 @@
 # php	8.3.32	php-8.3.32-windows-x64.zip
 # php	8.4.23	php-8.4.23-windows-x64.zip
 # php	8.5.8	php-8.5.8-windows-x64.zip
-# php	8.6.0alpha1	php-8.6.0alpha1-windows-x64.zip
+php	8.6.0alpha2	php-8.6.0alpha2-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -86,7 +86,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.2.11
 # ruby	3.3.11
 # ruby	3.4.10
-# ruby	4.0.5
+ruby	4.0.6
 # rust	1.97.0
 # mysql	5.1.73
 # mysql	5.5.62
@@ -138,7 +138,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.31.2
+ollama	0.32.0
 # memcached	1.6.45
 # mailpit	1.30.4
 ai-gateway	1.0.0
