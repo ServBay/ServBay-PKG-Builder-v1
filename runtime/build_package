@@ -4156,7 +4156,10 @@ _build_php_mod_phpredis() {
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/phpredis-6.2.0-php8.5.patch" "p0"
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
-            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/phpredis-6.2.0-php8.5.patch" "p0"
+            # phpredis 6.3.0: common.h include already fixed upstream, so the php8.5
+            # patch is no longer needed (would fail as reversed on 6.3.0).
+            # php8.6/phpredis.patch covers zval_dtor/zval_is_true/php_hash_bin2hex
+            # (->zend_bin2hex) + WRONG_PARAM_COUNT shim + redis session save_path.
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.6/phpredis.patch" "p0"
             # PHP 8.6: PS_OPEN_FUNC changed save_path from const char* to zend_string*
             # The patch handles PS_OPEN_FUNC(redis); fix PS_OPEN_FUNC(rediscluster) via sed
@@ -4664,7 +4667,7 @@ _get_php_build_config() {
             # covers them all. Add more php8.6/*.patch entries here as 8.6 evolves.
             PHP_PATCHES=( "php8.6/zend_portability-xtoffsetof.patch:p0" )
             PHP_PRE_BUILD_CMDS=( "./buildconf --force" )
-            PHP_MODS=( [phpredis]="6.2.0" [memcache]="8.0" [memcached]="3.2.0" [apcu]="5.1.24" [scws]="1.2.4-pre" [imagick]="3.7.0" [imap]="1.0.3" )
+            PHP_MODS=( [phpredis]="6.3.0" [memcache]="8.0" [memcached]="3.2.0" [apcu]="5.1.24" [scws]="1.2.4-pre" [imagick]="3.7.0" [imap]="1.0.3" )
             ;;
     esac
     
