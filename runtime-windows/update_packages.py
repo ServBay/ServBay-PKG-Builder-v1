@@ -36,7 +36,10 @@ class WindowsPackageUpdater:
             'https://www.python.org/ftp/python/{version}/Python-{version}.tgz',
         ],
         'ruby': [
-            'https://cache.ruby-lang.org/pub/ruby/{series}/ruby-{version}.tar.gz',
+            # Windows repackages prebuilt RubyInstaller2 .7z archives, so verify
+            # the actual installer asset (not the ruby source tarball) — detection
+            # can never outrun what RubyInstaller2 has actually published.
+            'https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-{version}-1/rubyinstaller-{version}-1-x64.7z',
         ],
         'redis': [
             'https://download.redis.io/releases/redis-{version}.tar.gz',
@@ -528,35 +531,39 @@ class WindowsPackageUpdater:
         return versions
 
     def get_ruby_versions(self) -> Dict[str, str]:
-        """Get latest Ruby versions"""
+        """Get latest Ruby versions from RubyInstaller2 releases.
+
+        Windows repackages prebuilt RubyInstaller2 .7z archives, so the version
+        must track what RubyInstaller2 has actually published. Querying ruby/ruby
+        source tags instead leads to false positives — e.g. ruby 3.3.12 source
+        ships before RubyInstaller-3.3.12-1, causing a 404 in build_windows."""
         versions = {}
         series = ['2.4', '2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3', '3.4', '4.0']
 
-        all_tags = []
+        all_releases = []
         for page in range(1, 6):
-            data = self.get_github_api(f"https://api.github.com/repos/ruby/ruby/tags?per_page=100&page={page}")
+            data = self.get_github_api(f"https://api.github.com/repos/oneclick/rubyinstaller2/releases?per_page=100&page={page}")
             if data:
-                all_tags.extend(data)
+                all_releases.extend(data)
             else:
                 break
 
-        if all_tags:
+        if all_releases:
             series_versions = {s: [] for s in series}
-            for tag in all_tags:
-                tag_name = tag.get('name', '')
-                if tag_name.startswith('v'):
-                    version = tag_name[1:].replace('_', '.')
-                    parts = version.split('.')
-                    if len(parts) >= 3 and all(p.isdigit() for p in parts[:3]):
-                        std_version = f"{parts[0]}.{parts[1]}.{parts[2]}"
-                        for serie in series:
-                            if std_version.startswith(serie + '.'):
-                                series_versions[serie].append(std_version)
+            for rel in all_releases:
+                tag_name = (rel.get('tag_name') or rel.get('name') or '').strip()
+                # RubyInstaller2 release tag/name format: "RubyInstaller-3.3.11-1"
+                m = re.match(r'^RubyInstaller-(\d+\.\d+\.\d+)-\d+$', tag_name)
+                if m:
+                    std_version = m.group(1)
+                    for serie in series:
+                        if std_version.startswith(serie + '.'):
+                            series_versions[serie].append(std_version)
 
             for serie, version_list in series_versions.items():
                 if version_list:
-                    version_list.sort(key=lambda x: tuple(map(int, x.split('.'))))
-                    latest = self.select_latest_verified('ruby', serie, version_list)
+                    unique_sorted = sorted(set(version_list), key=lambda x: tuple(map(int, x.split('.'))))
+                    latest = self.select_latest_verified('ruby', serie, unique_sorted)
                     if latest:
                         versions[f'ruby_{serie}'] = latest
 
