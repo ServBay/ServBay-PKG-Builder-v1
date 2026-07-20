@@ -29,6 +29,7 @@
 # node	23.11.1
 # node	24.18.0
 # node	25.9.0
+node	26.5.0
 # python	2.7.18
 # python	3.5.4
 # python	3.6.8
@@ -40,6 +41,7 @@
 # python	3.12.10
 # python	3.13.14
 # python	3.14.6
+python	3.15.0b4
 # go	1.11.13
 # go	1.12.17
 # go	1.13.15
@@ -75,6 +77,7 @@
 # openjdk	23.0.2	zulu23.32.11-ca-jdk23.0.2-win_x64.zip
 # openjdk	24.0.2	zulu24.32.13-ca-jdk24.0.2-win_x64.zip
 # openjdk	25.0.3	zulu25.34.17-ca-jdk25.0.3-win_x64.zip
+openjdk	26.0.1	zulu26.30.11-ca-jdk26.0.1-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
 # maven	4.0.0	apache-maven-4.0.0-bin.zip
 # ruby	2.4.10
@@ -102,6 +105,9 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # mysql	9.2.0
 # mysql	9.3.0
 # mysql	9.4.0
+mysql	9.5.0
+mysql	9.6.0
+mysql	9.7.0
 # mariadb	10.4.34
 # mariadb	10.5.29
 # mariadb	10.6.27
@@ -121,6 +127,8 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # mariadb	11.8.8
 # mariadb	12.0.2
 # mariadb	12.1.2
+mariadb	12.2.2
+mariadb	12.3.2
 # postgresql	10.23	postgresql-10.23-1-windows-x64-binaries.zip
 # postgresql	11.22	postgresql-11.22-1-windows-x64-binaries.zip
 # postgresql	12.22	postgresql-12.22-1-windows-x64-binaries.zip
@@ -160,5 +168,6 @@ disk-cleaner	1.0.0
 # mongodb	7.0.37
 # mongodb	8.0.26
 # mongodb	8.2.11
+mongodb	8.3.4
 # mongosh	2.9.2
 # mongotools	100.17.0
