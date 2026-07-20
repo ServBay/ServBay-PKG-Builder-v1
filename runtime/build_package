@@ -1288,7 +1288,7 @@ _get_mysql_cmake_args() {
         "8.3")
              CMAKE_ARGS+=( "-DWITH_SYSTEM_LIBS=OFF" "-DWITH_SSL=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" "-DWITH_LZ4=bundled" "-DWITH_PROTOBUF=bundled" "-DWITH_EDITLINE=bundled" "-DWITH_FIDO=bundled" "-DWITH_ICU=bundled" "-DWITH_ZSTD=bundled" "-DWITH_LIBEVENT=bundled" "-DWITH_NUMA=OFF" "-DWITH_CURL=${SERVBAY_COMMON_PATH}" )
             ;;
-        "8.4")
+        "8.4"|"9.4"|"9.5"|"9.6"|"9.7")
             CMAKE_ARGS=(
                 "-DCMAKE_INSTALL_PREFIX=${prefix}"
                 "-DMYSQL_DATADIR=${SERVBAY_DB_PATH}/mysql/${version_major}"
@@ -1604,22 +1604,10 @@ _build_pgsql_mod_pgvector() {
     unpack_package "$mod_package_fullname" "$mod_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
-    # Apply patch for PostgreSQL 18 compatibility
-    if [[ "$pg_version_major" == "18" ]]; then
-        local patch_file="${SERVBAY_BUILD_DIR}/patch/pgsql/pgvector-pg18-compat.patch"
-        if [[ -f "$patch_file" ]]; then
-            log_message "INFO" "  -> Applying PostgreSQL 18 compatibility patch"
-            patch -p0 < "$patch_file"
-            if [[ $? -ne 0 ]]; then
-                log_message "ERROR" "Failed to apply PostgreSQL 18 compatibility patch."
-                cd "$SERVBAY_BUILD_DIR"
-                return 1
-            fi
-            log_message "INFO" "  -> Patch applied successfully"
-        else
-            log_message "WARNING" "PostgreSQL 18 compatibility patch not found: ${patch_file}"
-        fi
-    fi
+    # pgvector 0.8.5 natively supports PostgreSQL 18/19 (storage/lwlock.h is
+    # explicitly included in src/hnsw.h since 0.8.1, and a vacuum_delay_point
+    # macro shim handles PG 18's changed signature). No compatibility patch
+    # is needed anymore.
 
     make -j${CPU_NUMBER} PG_CONFIG="${pg_config}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "pgvector make failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
@@ -3994,7 +3982,7 @@ build_postgresql() {
     PGSQL_MODS=(
         [postgis]="3.4.4"
         [pgrouting]="3.8.0"
-        [pgvector]="0.8.0"
+        [pgvector]="0.8.5"
         [pg_jieba]="1.1.1"
         [zhparser]="2.3"
     )
