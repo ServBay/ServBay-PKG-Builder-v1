@@ -276,7 +276,13 @@ get_download_url() {
             local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
             echo "https://cache.ruby-lang.org/pub/ruby/${version_major}/${sourceFilename}" ;;
         "python")
-            echo "https://www.python.org/ftp/python/${version}/${sourceFilename}" ;;
+            local python_url_version="$version"
+            # Python prerelease (3.15.0b4, 3.14.0a7, 3.13.0rc1) 文件放在 base version 目录
+            # e.g. https://www.python.org/ftp/python/3.15.0/Python-3.15.0b4.tgz
+            if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(a|b|rc)[0-9]+$ ]]; then
+                python_url_version="${match[1]}"
+            fi
+            echo "https://www.python.org/ftp/python/${python_url_version}/${sourceFilename}" ;;
         "node")
             echo "https://nodejs.org/dist/v${version}/${sourceFilename}" ;;
         "deno")
@@ -3971,9 +3977,11 @@ build_postgresql() {
     local installDir=$3
     local packageFullName="postgresql-${version}"
     
-    # Handle versions like "16rc1" to get major "16"
+    # Handle versions like "16rc1", "19beta2", "20alpha1" to get major "16", "19", "20"
     local version_major=${version%%.*}
     version_major=${version_major%%rc*}
+    version_major=${version_major%%beta*}
+    version_major=${version_major%%alpha*}
 
     # 1. Define the module configuration for this PostgreSQL version.
     # This is the "module configuration center".
