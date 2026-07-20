@@ -4031,7 +4031,12 @@ build_postgresql() {
     )
     # Example for future version-specific modules:
     if [[ "$version_major" -ge 18 ]]; then
-        PGSQL_MODS[postgis]="3.5.4"
+        # postgis 3.5.7 wraps its static composite_to_json copy in
+        # #if POSTGIS_PGSQL_VERSION < 190 -- PG 19 exposes composite_to_json
+        # as extern in server/utils/json.h, so postgis 3.5.4's unconditional
+        # static copy collides ("static declaration follows non-static").
+        # The postgis-limits-h.patch still applies (context unchanged).
+        PGSQL_MODS[postgis]="3.5.7"
     fi
 
     # 2. Determine the installation prefix.
