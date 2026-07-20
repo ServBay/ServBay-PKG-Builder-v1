@@ -1491,6 +1491,13 @@ _build_pgsql_mod_postgis() {
     unpack_package "$mod_package_fullname" "$mod_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
+    # SDK 26.5 cleaned transitive includes; postgis/gserialized_typmod.c uses
+    # INT_MIN/INT_MAX without including <limits.h>. Applies to every PG version
+    # built under the Xcode 26.5 toolchain. _apply_single_patch uses -N so a
+    # tree that already carries the change is left untouched.
+    _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/pgsql/postgis-limits-h.patch" "p1" \
+        || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+
     # Replicating the original configure flags with proper environment variables
     CFLAGS="${CFLAGS} -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
     CXXFLAGS="${CXXFLAGS} -std=c++17 -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
@@ -1706,6 +1713,15 @@ _build_pgsql_mod_zhparser() {
 
     unpack_package "$mod_package_fullname" "$mod_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
+
+    # PG 19+ moved get_database_name declaration from commands/dbcommands.h to
+    # utils/lsyscache.h (zhparser.c calls it at ~line 216); without this the
+    # build fails with -Wimplicit-function-declaration under the Xcode 26.5
+    # toolchain. See runtime/patch/pgsql/zhparser-pg19-get-database-name.patch.
+    if [[ "$pg_version_major" -ge 19 ]]; then
+        _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/pgsql/zhparser-pg19-get-database-name.patch" "p1" \
+            || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+    fi
 
     make -j${CPU_NUMBER} PG_CONFIG="${pg_config}" SCWS_HOME="${SERVBAY_COMMON_PATH}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "zhparser make failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
@@ -3806,6 +3822,13 @@ build_mysql() {
                 _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mysql/${version_major}/x86_64-std.patch" "p0"
                 if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             fi
+            ;;
+        "9.7")
+            # Xcode 26.5 libc++ 20 dropped transitive <type_traits>; tag_plain.h
+            # uses std::is_trivial_v / std::is_standard_layout_v without the
+            # include. See runtime/patch/mysql/9.7/type-traits-include.patch.
+            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mysql/9.7/type-traits-include.patch" "p1" \
+                || { cd "$SERVBAY_BUILD_DIR"; return 1; }
             ;;
     esac
 
