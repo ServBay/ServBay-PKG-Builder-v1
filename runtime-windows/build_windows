@@ -1122,11 +1122,19 @@ Build_Package_postgresql() {
 
     # Construct filename if not provided (Example pattern, **ADJUST**)
     if [[ -z "$package_filename" ]]; then
-        # Example: postgresql-16.1-1-windows-x64-binaries.zip - Versioning can be complex
-        # local pg_major_version=$(echo "$package_version" | cut -d. -f1)
-        # This is a guess, EDB naming is specific
-        package_filename="postgresql-${package_version}-1-windows-${pg_arch}-binaries.zip"
-        log_message "WARN" "Filename not provided for PostgreSQL, guessing: $package_filename"
+        # EDB uses two different filename schemes:
+        #   GA:        postgresql-18.4-1-windows-x64-binaries.zip    (<version>-1-)
+        #   prerelease: postgresql-19.0-beta2-windows-x64-binaries.zip (<major>.0-<pre>, no -1-)
+        # packages.conf carries prerelease as "19.beta2" (dotted, for major parsing),
+        # convert to EDB's dotless "19.0-beta2" segment for the URL.
+        local pg_edb_version_segment="$package_version"
+        if [[ "$package_version" =~ ^([0-9]+)\.(beta|rc|alpha)([0-9]+)$ ]]; then
+            pg_edb_version_segment="${match[1]}.0-${match[2]}${match[3]}"
+            package_filename="postgresql-${pg_edb_version_segment}-windows-${pg_arch}-binaries.zip"
+        else
+            package_filename="postgresql-${package_version}-1-windows-${pg_arch}-binaries.zip"
+        fi
+        log_message "INFO" "PostgreSQL filename derived: $package_filename"
     fi
 
     # Example URL pattern (EDB), **ADJUST THIS** - Requires login or specific links usually
