@@ -977,6 +977,12 @@ core_verify_package() {
     elif [[ "$packageName" == "openjdk" && "$packageVersion" =~ ^([78])\.0\.([0-9]+)$ ]]; then
         versionToMatch="1.${match[1]}.0_${match[2]}"
         log_message "INFO" "⏳ Verifying ${packageName} installation (matching legacy version: ${versionToMatch})..."
+    # PostgreSQL prerelease: packages.conf uses "19.beta2" (dotted) so
+    # upload_packages.py derives major=19, but psql -V outputs "19beta2"
+    # (dotless, PG upstream convention). Strip the dot for verification.
+    elif [[ "$packageName" == "postgresql" && "$packageVersion" =~ ^([0-9]+)\.(beta|rc|alpha)([0-9]+)$ ]]; then
+        versionToMatch="${match[1]}${match[2]}${match[3]}"
+        log_message "INFO" "⏳ Verifying ${packageName} installation (matching PG native version: ${versionToMatch})..."
     else
         log_message "INFO" "⏳ Verifying ${packageName} installation..."
     fi
