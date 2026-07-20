@@ -950,13 +950,20 @@ class WindowsPackageUpdater:
             return 0
 
     def version_to_tuple(self, version: str) -> tuple:
-        """Convert version string to tuple for comparison"""
+        """Convert version string to tuple for comparison.
+
+        Elements are normalized to fixed-shape tuples so mixed forms like
+        '19beta2' and '17' remain comparable (avoids TypeError on str vs int).
+        """
         parts = []
         for part in re.split(r'[.-]', version):
             if part.isdigit():
-                parts.append(int(part))
+                parts.append((0, int(part), ''))
             else:
-                parts.append(part)
+                m = re.match(r'^(\d*)(.*)$', part)
+                num_prefix = int(m.group(1)) if m.group(1) else 0
+                suffix = m.group(2)
+                parts.append((1, num_prefix, suffix))
         return tuple(parts)
 
     def generate_filename(self, package: str, version: str) -> Optional[str]:

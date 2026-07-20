@@ -1222,13 +1222,23 @@ class PackageUpdater:
             return 0
 
     def version_to_tuple(self, version: str) -> tuple:
-        """Convert version string to tuple for comparison"""
+        """Convert version string to tuple for comparison.
+
+        Split each part further into (numeric-prefix, suffix) so mixed forms
+        like '19beta2' vs '17' are still orderable (numeric prefix sorts first,
+        suffix breaks ties). Each element is (0, int) for pure digits and
+        (1, int_prefix, str_suffix) otherwise, keeping all elements
+        cross-comparable.
+        """
         parts = []
         for part in re.split(r'[.-]', version):
             if part.isdigit():
-                parts.append(int(part))
+                parts.append((0, int(part), ''))
             else:
-                parts.append(part)
+                m = re.match(r'^(\d*)(.*)$', part)
+                num_prefix = int(m.group(1)) if m.group(1) else 0
+                suffix = m.group(2)
+                parts.append((1, num_prefix, suffix))
         return tuple(parts)
 
     def generate_filename(self, package: str, version: str, arch: str, template: Optional[str] = None) -> str:
