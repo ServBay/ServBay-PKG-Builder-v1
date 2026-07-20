@@ -1127,9 +1127,10 @@ Build_Package_postgresql() {
         #   prerelease: postgresql-19.0-beta2-windows-x64-binaries.zip (<major>.0-<pre>, no -1-)
         # packages.conf carries prerelease as "19.beta2" (dotted, for major parsing),
         # convert to EDB's dotless "19.0-beta2" segment for the URL.
+        # NOTE: build_windows is bash (not zsh), so use BASH_REMATCH (not $match).
         local pg_edb_version_segment="$package_version"
         if [[ "$package_version" =~ ^([0-9]+)\.(beta|rc|alpha)([0-9]+)$ ]]; then
-            pg_edb_version_segment="${match[1]}.0-${match[2]}${match[3]}"
+            pg_edb_version_segment="${BASH_REMATCH[1]}.0-${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
             package_filename="postgresql-${pg_edb_version_segment}-windows-${pg_arch}-binaries.zip"
         else
             package_filename="postgresql-${package_version}-1-windows-${pg_arch}-binaries.zip"
