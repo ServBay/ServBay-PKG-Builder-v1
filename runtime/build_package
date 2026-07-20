@@ -294,7 +294,13 @@ get_download_url() {
             # e.g., bun-darwin-aarch64.zip
             echo "https://github.com/oven-sh/bun/releases/download/bun-v${version}/${sourceFilename}" ;;
         "postgresql")
-            echo "https://ftp.postgresql.org/pub/source/v${version}/${sourceFilename}" ;;
+            # packages.conf uses "19.beta2" (dotted) so upload_packages.py's
+            # strip_patch can derive major=19. PG FTP uses dotless "v19beta2" path.
+            local pg_url_version="$version"
+            if [[ "$version" =~ ^([0-9]+)\.(beta|rc|alpha)([0-9]+)$ ]]; then
+                pg_url_version="${match[1]}${match[2]}${match[3]}"
+            fi
+            echo "https://ftp.postgresql.org/pub/source/v${pg_url_version}/${sourceFilename}" ;;
         "php")
             if [[ "$version" =~ ^8\.6\.0 ]]; then
                 # Special case for alpha/dev versions from GitHub
