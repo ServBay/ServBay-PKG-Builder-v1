@@ -1380,10 +1380,12 @@ class WindowsPackageUpdater:
                     if s_key and s_key in processed_series:
                         continue
 
-                    line = e['line']
-                    if not line.strip().startswith('#'):
-                        line = "# " + line.lstrip('#').strip() + "\n"
-                    final_items.append((self.version_to_tuple(e['ver']), line))
+                    # Orphaned: we have no upstream latest for this series
+                    # (e.g. manually-maintained 'postgresql 19.beta2').
+                    # Preserve the line verbatim — auto-commenting an active
+                    # row here would silently disable a package the human
+                    # explicitly enabled.
+                    final_items.append((self.version_to_tuple(e['ver']), e['line']))
 
                 # Sort
                 final_items.sort(key=lambda x: x[0])

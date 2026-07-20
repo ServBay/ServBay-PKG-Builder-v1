@@ -408,11 +408,16 @@ class PackageUpdater:
                         stable_versions.sort(key=pg_key)
                         latest = self.select_latest_verified('postgresql', str(major), stable_versions)
                         if latest:
-                            # Normalize pre-release shape to match postgresql.org
-                            # tarball naming: tag "REL_19_BETA2" became "19.BETA2"
-                            # but the actual file is "postgresql-19beta2.tar.bz2".
-                            latest = re.sub(r'\.BETA(\d+)', r'beta\1', latest, flags=re.IGNORECASE)
-                            latest = re.sub(r'\.RC(\d+)', r'rc\1', latest, flags=re.IGNORECASE)
+                            # Keep the dotted form in packages.conf (e.g.
+                            # "19.beta2") so upload_packages.py's strip_patch
+                            # derives major=19. build_package strips the dot
+                            # when constructing the FTP URL. Only lowercase
+                            # the prerelease suffix to match the tarball name
+                            # ("postgresql-19beta2.tar.bz2"). See commit
+                            # 96dd915.
+                            latest = re.sub(r'\.(BETA|RC|ALPHA)(\d+)',
+                                            lambda m: '.' + m.group(1).lower() + m.group(2),
+                                            latest)
                             versions[f'postgresql_{major}'] = latest
 
         return versions
@@ -1014,33 +1019,44 @@ class PackageUpdater:
             sys.stdout.flush()
 
             # Try releases first
+            cleaned = None
             data = self.get_github_api(f"https://api.github.com/repos/{owner}/{repo}/releases/latest")
             if data:
                 tag = data.get('tag_name', '')
                 cleaned = self.clean_version_tag(tag)
-                if cleaned:
-                    latest_versions[package] = cleaned
-                    print(f"✓ {cleaned}")
-                else:
-                    print("✗ Invalid version")
+
+            if cleaned:
+                latest_versions[package] = cleaned
+                print(f"✓ {cleaned}")
             else:
-                # Fallback to tags if no releases
-                tags_data = self.get_github_api(f"https://api.github.com/repos/{owner}/{repo}/tags?per_page=20")
-                if tags_data:
-                    # Find first valid version tag
-                    found = False
-                    for tag in tags_data:
-                        tag_name = tag.get('name', '')
-                        cleaned = self.clean_version_tag(tag_name)
+                # Fallback to the releases list when the "latest" release is
+                # missing or marked unstable (e.g. apache/maven exposing
+                # maven-3.10.0-rc-1 as latest). Prefer non-prerelease entries,
+                # then fall further back to tags.
+                found = False
+                releases = self.get_github_api(f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=30")
+                if releases:
+                    for r in releases:
+                        if r.get('prerelease') or r.get('draft'):
+                            continue
+                        cleaned = self.clean_version_tag(r.get('tag_name', ''))
                         if cleaned:
                             latest_versions[package] = cleaned
                             print(f"✓ {cleaned}")
                             found = True
                             break
-                    if not found:
-                        print("✗ No valid version found")
-                else:
-                    print("✗ Failed")
+                if not found:
+                    tags_data = self.get_github_api(f"https://api.github.com/repos/{owner}/{repo}/tags?per_page=50")
+                    if tags_data:
+                        for tag in tags_data:
+                            cleaned = self.clean_version_tag(tag.get('name', ''))
+                            if cleaned:
+                                latest_versions[package] = cleaned
+                                print(f"✓ {cleaned}")
+                                found = True
+                                break
+                if not found:
+                    print("✗ No valid version found")
 
             time.sleep(self.api_delay)
 
@@ -1578,12 +1594,13 @@ class PackageUpdater:
                         # Already processed (either matched or updated/pruned)
                         continue
 
-                    # Orphaned
-                    line = e['line']
-                    # Comment out if not already
-                    if not line.strip().startswith('#'):
-                        line = "# " + line.lstrip('#').strip() + "\n"
-                    final_items.append((self.version_to_tuple(e['ver']), line))
+                    # Orphaned: we have no upstream latest for this series
+                    # (e.g. a manually-maintained prerelease like
+                    # 'postgresql 19.beta2', or a series we don't track).
+                    # Preserve the line verbatim — auto-commenting an active
+                    # row here would silently disable a package the human
+                    # explicitly enabled.
+                    final_items.append((self.version_to_tuple(e['ver']), e['line']))
 
                 # Sort
                 final_items.sort(key=lambda x: x[0])

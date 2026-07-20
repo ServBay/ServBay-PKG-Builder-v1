@@ -138,7 +138,7 @@ mysql	9.7.1
 # postgresql	16.14	postgresql-16.14-1-windows-x64-binaries.zip
 # postgresql	17.10	postgresql-17.10-1-windows-x64-binaries.zip
 # postgresql	18.4	postgresql-18.4-1-windows-x64-binaries.zip
-# postgresql	19.beta2
+postgresql	19.beta2
 # nginx	1.31.3
 # redis	7.4.9
 # composer	2.2.29
