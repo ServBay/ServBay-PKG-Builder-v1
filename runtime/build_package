@@ -1518,6 +1518,18 @@ _build_pgsql_mod_postgis() {
     _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/pgsql/postgis-limits-h.patch" "p1" \
         || { cd "$SERVBAY_BUILD_DIR"; return 1; }
 
+    # PG 19 removed Int8GetDatum(int8) from postgres.h (upstream commit
+    # d4a080b8a190) and tightened -Wimplicit-fallthrough. postgis 3.5.7 still
+    # calls Int8GetDatum in postgis/flatgeobuf.c and relies on a bare
+    # /* fall through */ comment in raster/rt_pg/rtpg_mapalgebra.c. Backport
+    # of upstream commit b2b07453 ("Build on latest Pg19 master"). Both
+    # edits are no-ops on PG <= 18 but we gate on pg_version_major to keep
+    # the older PG build path byte-identical to the 3.5.7 release tarball.
+    if [[ "$pg_version_major" -ge 19 ]]; then
+        _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/pgsql/postgis-pg19-compat.patch" "p1" \
+            || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+    fi
+
     # Replicating the original configure flags with proper environment variables
     CFLAGS="${CFLAGS} -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
     CXXFLAGS="${CXXFLAGS} -std=c++17 -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
