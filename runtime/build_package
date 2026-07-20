@@ -1324,6 +1324,26 @@ _get_mysql_cmake_args() {
             )
             ;;
     esac
+
+    # MySQL 9.7 introduced OpenTelemetry-based telemetry (client plugin +
+    # server component, see plugin/telemetry_client/CMakeLists.txt and
+    # components/telemetry/CMakeLists.txt). Both link the OTLP HTTP exporter
+    # -> opentelemetry_http_client_curl -> ext::curl. With WITH_CURL pointed
+    # at ServBay's common prefix, cmake/curl.cmake's FIND_CUSTOM_CURL picks
+    # up ServBay's *static* libcurl.a, but only propagates libcurl.a itself
+    # into the curl_interface target -- not libcurl.a's private dependencies
+    # (libnghttp2, libbrotli, ...). ServBay's libcurl was built with
+    # --with-nghttp2, so linking telemetry_client.so fails with a flood of
+    # undefined _nghttp2_* symbols at the very end of a 65-minute build.
+    # ServBay is a local dev environment and never exports OTLP telemetry,
+    # so disable both flavors. As a bonus this skips compiling the bundled
+    # opentelemetry-cpp-1.23.0 (saves ~30 CI minutes).
+    if [[ "$version_major" == "9.7" ]]; then
+        CMAKE_ARGS+=(
+            "-DWITH_MYSQL_CLIENT_TELEMETRY=OFF"
+            "-DWITH_MYSQL_SERVER_TELEMETRY=OFF"
+        )
+    fi
 }
 
 ###
