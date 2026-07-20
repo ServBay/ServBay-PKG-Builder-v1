@@ -305,7 +305,7 @@ class WindowsPackageUpdater:
                         major = version.split('.')[0]
                         if major.isdigit():
                             major_num = int(major)
-                            if 12 <= major_num <= 25:
+                            if 12 <= major_num <= 26:
                                 if major not in major_versions:
                                     major_versions[major] = version
 
@@ -376,7 +376,7 @@ class WindowsPackageUpdater:
         versions = {}
         series = ['10.4', '10.5', '10.6', '10.7', '10.8', '10.9', '10.10', '10.11',
                   '11.0', '11.1', '11.2', '11.3', '11.4', '11.5', '11.6', '11.7', '11.8',
-                  '12.0', '12.1']
+                  '12.0', '12.1', '12.2', '12.3']
 
         all_tags = []
         for page in range(1, 10):
@@ -409,7 +409,7 @@ class WindowsPackageUpdater:
     def get_postgresql_versions(self) -> Dict[str, str]:
         """Get latest PostgreSQL versions for major versions"""
         versions = {}
-        major_versions = list(range(10, 19))  # 10 to 18
+        major_versions = list(range(10, 20))  # 10 to 19 (19 needs EDB GA binaries before enabling)
 
         all_tags = []
         for page in range(1, 5):
@@ -450,7 +450,7 @@ class WindowsPackageUpdater:
         """Get latest MySQL versions for major series"""
         versions = {}
         series = ['5.5', '5.6', '5.7', '8.0', '8.1', '8.2', '8.3', '8.4',
-                  '9.0', '9.1', '9.2', '9.3', '9.4']
+                  '9.0', '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7']
 
         all_tags = []
         for page in range(1, 6):
@@ -498,7 +498,7 @@ class WindowsPackageUpdater:
     def get_python_versions(self) -> Dict[str, str]:
         """Get latest Python versions for major.minor series (3.10+, Windows only)"""
         versions = {}
-        series = ['3.10', '3.11', '3.12', '3.13', '3.14']
+        series = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
 
         all_tags = []
         for page in range(1, 5):
@@ -514,12 +514,31 @@ class WindowsPackageUpdater:
                 tag_name = tag.get('name', '').lstrip('v')
                 for serie in series:
                     if tag_name.startswith(serie + '.'):
-                        if not any(x in tag_name for x in ['a', 'b', 'rc']):
+                        # For 3.15, include alpha/beta/rc since it's pre-release.
+                        if serie == '3.15':
                             series_versions[serie].append(tag_name)
+                        elif not any(x in tag_name for x in ['a', 'b', 'rc']):
+                            series_versions[serie].append(tag_name)
+
+            def version_key(v):
+                # Split into numeric and suffix parts; stable sorts after pre-releases.
+                match = re.match(r'^([\d.]+)(.*?)$', v)
+                if match:
+                    nums = tuple(int(x) for x in match.group(1).rstrip('.').split('.'))
+                    suffix = match.group(2).lower()
+                    if not suffix:
+                        return nums + (999, 0)
+                    m = re.search(r'\d+', suffix)
+                    sub = int(m.group()) if m else 0
+                    for key, pri in [('rc', 3), ('b', 2), ('beta', 2), ('a', 1), ('alpha', 1)]:
+                        if key in suffix:
+                            return nums + (pri, sub)
+                    return nums + (999, 0)
+                return (0,)
 
             for serie, version_list in series_versions.items():
                 if version_list:
-                    version_list.sort(key=lambda x: tuple(map(int, x.split('.'))))
+                    version_list.sort(key=version_key)
                     # 从最新版本开始，找第一个有 Windows 安装包的版本
                     for version in reversed(version_list):
                         if self.verify_python_windows_installer(version):
@@ -682,7 +701,7 @@ class WindowsPackageUpdater:
     def get_openjdk_versions(self) -> Dict[str, str]:
         """Get latest OpenJDK versions from Azul Zulu (Windows x64 only)"""
         versions = {}
-        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
         for java_ver in java_versions:
             try:
@@ -726,7 +745,7 @@ class WindowsPackageUpdater:
     def get_mongodb_versions(self) -> Dict[str, str]:
         """Get latest MongoDB versions from downloads.mongodb.org"""
         versions = {}
-        series_map = ['4.4', '5.0', '6.0', '7.0', '8.0', '8.2']
+        series_map = ['4.4', '5.0', '6.0', '7.0', '8.0', '8.2', '8.3']
 
         try:
             url = "https://downloads.mongodb.org/current.json"

@@ -257,7 +257,7 @@ class PackageUpdater:
                         major = version.split('.')[0]
                         if major.isdigit():
                             major_num = int(major)
-                            if 12 <= major_num <= 25:
+                            if 12 <= major_num <= 26:
                                 if major not in major_versions:
                                     major_versions[major] = version
 
@@ -320,7 +320,7 @@ class PackageUpdater:
         """Get latest MariaDB versions for major series"""
         versions = {}
         series = ['10.4', '10.5', '10.6', '10.7', '10.8', '10.9', '10.10', '10.11', '11.0', '11.1', '11.2', '11.3', '11.4',
-                  '11.5', '11.6', '11.7', '11.8', '12.0', '12.1']
+                  '11.5', '11.6', '11.7', '11.8', '12.0', '12.1', '12.2', '12.3']
 
         # 使用 tags 端点而非 releases（MariaDB 并非所有版本都会创建 GitHub Release）
         all_tags = []
@@ -356,7 +356,7 @@ class PackageUpdater:
     def get_postgresql_versions(self) -> Dict[str, str]:
         """Get latest PostgreSQL versions for major versions"""
         versions = {}
-        major_versions = list(range(10, 19))  # 10 to 18
+        major_versions = list(range(10, 20))  # 10 to 19
 
         # Get multiple pages
         all_tags = []
@@ -383,21 +383,36 @@ class PackageUpdater:
             # Get latest for each major
             for major, version_list in major_version_tags.items():
                 if version_list:
-                    # Filter out RC/beta versions and sort
+                    # Filter out RC/alpha; keep beta only for major=19 (PG 19 is in beta,
+                    # no GA yet). Older majors had historical betas that must stay excluded.
                     stable_versions = []
                     for v in version_list:
-                        # Only keep stable versions (no RC, BETA, etc)
-                        if not any(x in v.upper() for x in ['RC', 'BETA', 'ALPHA']):
-                            # Check if it's a valid version number
-                            parts = v.split('.')
-                            if all(p.isdigit() for p in parts):
-                                stable_versions.append(v)
+                        exclude_tokens = ['RC', 'ALPHA']
+                        if major != 19:
+                            exclude_tokens.append('BETA')
+                        if not any(x in v.upper() for x in exclude_tokens):
+                            stable_versions.append(v)
 
                     if stable_versions:
-                        # Sort versions and get latest (with download verification)
-                        stable_versions.sort(key=lambda x: tuple(map(int, x.split('.'))))
+                        # Sort versions and get latest (with download verification).
+                        # Major 19 tags look like "19beta2" (mixed alpha-num); older
+                        # majors are pure numeric. A split-on-non-digit key handles both.
+                        def pg_key(v):
+                            key = []
+                            for p in re.split(r'(\D+)', v):
+                                if p.isdigit():
+                                    key.append((0, int(p)))
+                                elif p:
+                                    key.append((1, p))
+                            return key
+                        stable_versions.sort(key=pg_key)
                         latest = self.select_latest_verified('postgresql', str(major), stable_versions)
                         if latest:
+                            # Normalize pre-release shape to match postgresql.org
+                            # tarball naming: tag "REL_19_BETA2" became "19.BETA2"
+                            # but the actual file is "postgresql-19beta2.tar.bz2".
+                            latest = re.sub(r'\.BETA(\d+)', r'beta\1', latest, flags=re.IGNORECASE)
+                            latest = re.sub(r'\.RC(\d+)', r'rc\1', latest, flags=re.IGNORECASE)
                             versions[f'postgresql_{major}'] = latest
 
         return versions
@@ -405,7 +420,7 @@ class PackageUpdater:
     def get_mysql_versions(self) -> Dict[str, str]:
         """Get latest MySQL versions for major series"""
         versions = {}
-        series = ['5.5', '5.6', '5.7', '8.0', '8.1', '8.2', '8.3', '8.4', '9.0', '9.1', '9.2', '9.3', '9.4']
+        series = ['5.5', '5.6', '5.7', '8.0', '8.1', '8.2', '8.3', '8.4', '9.0', '9.1', '9.2', '9.3', '9.4', '9.5', '9.6', '9.7']
 
         # Get multiple pages (need at least 3 to skip cluster versions)
         all_tags = []
@@ -448,7 +463,7 @@ class PackageUpdater:
     def get_python_versions(self) -> Dict[str, str]:
         """Get latest Python versions for major.minor series"""
         versions = {}
-        series = ['2.7', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        series = ['2.7', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
 
         # Get multiple pages
         all_tags = []
@@ -467,8 +482,11 @@ class PackageUpdater:
                 tag_name = tag.get('name', '').lstrip('v')
                 for serie in series:
                     if tag_name.startswith(serie + '.'):
-                        # Exclude pre-releases (alpha/beta/rc); 3.14 is GA now.
-                        if not any(x in tag_name for x in ['a', 'b', 'rc']):
+                        # For 3.15, include alpha/beta/rc since it's pre-release.
+                        if serie == '3.15':
+                            series_versions[serie].append(tag_name)
+                        elif not any(x in tag_name for x in ['a', 'b', 'rc']):
+                            # Exclude pre-releases (alpha/beta/rc); 3.14 is GA now.
                             series_versions[serie].append(tag_name)
 
             # Get latest for each series
@@ -481,13 +499,17 @@ class PackageUpdater:
                         match = re.match(r'^([\d.]+)(.*?)$', v)
                         if match:
                             nums = tuple(map(int, match.group(1).split('.')))
-                            suffix = match.group(2)
-                            # Stable versions (no suffix) come after pre-releases
-                            suffix_priority = {'': 999, 'rc': 3, 'b': 2, 'beta': 2, 'a': 1, 'alpha': 1}
-                            for key in suffix_priority:
+                            suffix = match.group(2).lower()
+                            if not suffix:
+                                # Stable versions (no suffix) come after pre-releases
+                                return nums + (999, 0)
+                            # Pre-release: priority by token, sub-order by trailing digit
+                            m = re.search(r'\d+', suffix)
+                            sub = int(m.group()) if m else 0
+                            for key, pri in [('rc', 3), ('b', 2), ('beta', 2), ('a', 1), ('alpha', 1)]:
                                 if key in suffix:
-                                    return nums + (suffix_priority[key],)
-                            return nums + (999,)
+                                    return nums + (pri, sub)
+                            return nums + (999, 0)
                         return (0,)
 
                     version_list.sort(key=version_key)
@@ -711,7 +733,7 @@ class PackageUpdater:
     def get_openjdk_versions(self) -> Dict[str, str]:
         """Get latest OpenJDK versions from Azul Zulu"""
         versions = {}
-        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
         for java_ver in java_versions:
             # Get both x64 and aarch64 versions
@@ -843,7 +865,7 @@ class PackageUpdater:
         # so auto-tracking 5.0 only yields phantom versions whose .tgz returns 403
         # and fails the build. 5.0 is pinned manually in packages.conf (commented,
         # x86_64 binary for both arches via Rosetta).
-        series_map = ['6.0', '7.0', '8.0', '8.2']
+        series_map = ['6.0', '7.0', '8.0', '8.2', '8.3']
 
         try:
             url = "https://downloads.mongodb.org/current.json"
