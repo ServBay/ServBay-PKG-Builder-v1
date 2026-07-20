@@ -662,6 +662,8 @@ get_package_verification_info() {
         "postgresql")
             local version_major=${packageVersion%%.*}
             version_major=${version_major%%rc*}
+            version_major=${version_major%%beta*}
+            version_major=${version_major%%alpha*}
             verify_command="${SERVBAY_PACKAGE_FULL_PATH}/postgresql/${version_major}/${packageVersion}/bin/psql -V"
             ;;
         "php")
@@ -922,6 +924,8 @@ get_package_packing_info() {
         "postgresql")
             local version_major=${packageVersion%%.*}
             version_major=${version_major%%rc*}
+            version_major=${version_major%%beta*}
+            version_major=${version_major%%alpha*}
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}/postgresql/${version_major}"
             PACK_FILES=( "${packageVersion}" )
             ;;
