@@ -1,0 +1,18 @@
+Description: Xcode 26.5 ships libc++ 20 which cleaned up transitive includes;
+libs/mysql/gtid/tag_plain.h uses std::is_trivial_v / std::is_standard_layout_v
+(lines 83-84) but never includes <type_traits>, relying on it being pulled in
+through <string>/<memory>. Under the 26.5 SDK this breaks:
+  error: no template named 'is_trivial_v' in namespace 'std'
+The fix is the standard one-line include. Upstream MySQL Bug #120807 (trunk
+still unfixed as of 9.7.0 release).
+
+--- a/libs/mysql/gtid/tag_plain.h
++++ b/libs/mysql/gtid/tag_plain.h
+@@ -27,6 +27,7 @@
+ #include <array>
+ #include <cstring>
+ #include <memory>
+ #include <string>
++#include <type_traits>
+ 
+ #include "mysql/gtid/gtid_constants.h"  // tag_max_length

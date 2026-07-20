@@ -1,0 +1,17 @@
+Description: Xcode 26.5 SDK cleaned transitive includes; postgis uses INT_MIN /
+INT_MAX in postgis/gserialized_typmod.c (line ~306) but never includes <limits.h>,
+relying on it being pulled in through <stdio.h>. Under the 26.5 SDK this breaks:
+  error: use of undeclared identifier 'INT_MIN' / 'INT_MAX'
+Confirmed still broken in postgis 3.5.4 / 3.5.7 / 3.6.4 / main, so upgrading does
+not help; <limits.h> is a standard C header and harmless everywhere.
+
+--- a/postgis/gserialized_typmod.c
++++ b/postgis/gserialized_typmod.c
+@@ -31,6 +31,7 @@
+ #include <float.h>
+ #include <string.h>
+ #include <stdio.h>
+ #include <errno.h>
++#include <limits.h>
+ 
+ #include "utils/elog.h"
