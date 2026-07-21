@@ -87,7 +87,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.0.7
 # ruby	3.1.7
 # ruby	3.2.11
-# ruby	3.3.11
+ruby	3.3.12
 # ruby	3.4.10
 # ruby	4.0.6
 # rust	1.97.1
@@ -107,7 +107,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # mysql	9.4.0
 # mysql	9.5.0
 # mysql	9.6.0
-mysql	9.7.1
+# mysql	9.7.1
 # mariadb	10.4.34
 # mariadb	10.5.29
 # mariadb	10.6.27
@@ -143,17 +143,17 @@ postgresql	19.beta2
 # redis	7.4.9
 # composer	2.2.29
 # composer	2.10.2
-# adminer	5.5.0
+adminer	5.5.1
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
 # ollama	0.32.1
 # memcached	1.6.45
-mailpit	1.30.5
+# mailpit	1.30.5
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.50.0
+# meilisearch	1.50.0
 # simple-acme	2.4.0
 # cloudflared	2026.7.2
 # frp	0.70.0
