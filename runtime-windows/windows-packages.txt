@@ -59,25 +59,25 @@
 # go	1.25.12
 # go	1.26.5
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
-# openjdk	8.0.492	zulu8.94.0.17-ca-jdk8.0.492-win_x64.zip
+openjdk	8.0.502	zulu8.96.0.19-ca-jdk8.0.502-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
 # openjdk	10.0.2	zulu10.3+5-jdk10.0.2-win_x64.zip
-# openjdk	11.0.31	zulu11.88.17-ca-jdk11.0.31-win_x64.zip
+openjdk	11.0.32	zulu11.90.19-ca-jdk11.0.32-win_x64.zip
 # openjdk	12.0.2	zulu12.3.11-ca-jdk12.0.2-win_x64.zip
 # openjdk	13.0.14	zulu13.54.17-ca-jdk13.0.14-win_x64.zip
 # openjdk	14.0.2	zulu14.29.23-ca-jdk14.0.2-win_x64.zip
 # openjdk	15.0.10	zulu15.46.17-ca-jdk15.0.10-win_x64.zip
 # openjdk	16.0.2	zulu16.32.15-ca-jdk16.0.2-win_x64.zip
-# openjdk	17.0.19	zulu17.66.19-ca-jdk17.0.19-win_x64.zip
+openjdk	17.0.20	zulu17.68.17-ca-jdk17.0.20-win_x64.zip
 # openjdk	18.0.2.1	zulu18.32.13-ca-jdk18.0.2.1-win_x64.zip
 # openjdk	19.0.2	zulu19.32.13-ca-jdk19.0.2-win_x64.zip
 # openjdk	20.0.2	zulu20.32.11-ca-jdk20.0.2-win_x64.zip
-# openjdk	21.0.11	zulu21.50.19-ca-jdk21.0.11-win_x64.zip
+openjdk	21.0.12	zulu21.52.15-ca-jdk21.0.12-win_x64.zip
 # openjdk	22.0.2	zulu22.32.15-ca-jdk22.0.2-win_x64.zip
 # openjdk	23.0.2	zulu23.32.11-ca-jdk23.0.2-win_x64.zip
 # openjdk	24.0.2	zulu24.32.13-ca-jdk24.0.2-win_x64.zip
-# openjdk	25.0.3	zulu25.34.17-ca-jdk25.0.3-win_x64.zip
-# openjdk	26.0.1	zulu26.30.11-ca-jdk26.0.1-win_x64.zip
+openjdk	25.0.4	zulu25.36.15-ca-jdk25.0.4-win_x64.zip
+openjdk	26.0.2	zulu26.32.13-ca-jdk26.0.2-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
 # maven	4.0.0	apache-maven-4.0.0-bin.zip
 # ruby	2.4.10
@@ -87,7 +87,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.0.7
 # ruby	3.1.7
 # ruby	3.2.11
-ruby	3.3.12
+# ruby	3.3.12
 # ruby	3.4.10
 # ruby	4.0.6
 # rust	1.97.1
@@ -143,7 +143,7 @@ postgresql	19.beta2
 # redis	7.4.9
 # composer	2.2.29
 # composer	2.10.2
-adminer	5.5.1
+# adminer	5.5.1
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
@@ -166,9 +166,9 @@ disk-cleaner	1.0.0
 # mongodb	4.4.31
 # mongodb	5.0.34
 # mongodb	6.0.29
-# mongodb	7.0.37
-# mongodb	8.0.26
-# mongodb	8.2.11
-# mongodb	8.3.4
+mongodb	7.0.39
+mongodb	8.0.28
+mongodb	8.2.12
+mongodb	8.3.7
 # mongosh	2.9.2
 # mongotools	100.17.0
