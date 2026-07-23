@@ -744,12 +744,10 @@ class PackageUpdater:
             # Get both x64 and aarch64 versions
             for arch in ['x64', 'aarch64']:
                 try:
-                    # First try to get tar.gz packages
+                    # Always require tar.gz. Without this filter, Azul's API returns
+                    # dmg/zip before tar.gz for JDK 25+, and downstream build_package
+                    # cannot unpack .dmg — see runtime/build_package get_extension().
                     url = f"https://api.azul.com/metadata/v1/zulu/packages/?os=macos&arch={arch}&java_version={java_ver}&release_status=ga&java_package_type=jdk&availability_type=CA&javafx_bundled=false&archive_type=tar.gz&page_size=10"
-
-                    # For beta versions (like 25), relaxation of parameters might be needed
-                    if java_ver >= 25:
-                        url = f"https://api.azul.com/metadata/v1/zulu/packages/?os=macos&arch={arch}&java_version={java_ver}&java_package_type=jdk&javafx_bundled=false&page_size=10"
 
                     response = requests.get(url, timeout=10)
 

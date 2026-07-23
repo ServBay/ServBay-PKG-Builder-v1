@@ -610,8 +610,12 @@ get_package_verification_info() {
             ;;
         "openjdk")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1}')
-            # The -version output goes to stderr
-            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/openjdk/${version_major}/${packageVersion}/bin/java -version 2>&1 | grep ${version_major}"
+            local jdk_bin="${SERVBAY_PACKAGE_FULL_PATH}/openjdk/${version_major}/${packageVersion}/bin/java"
+            # Guard with test -x: a missing bin/java (e.g. archive layout
+            # regression) must produce empty output, not an error line whose
+            # path contains the version and could falsely satisfy the outer
+            # match. The -version output goes to stderr, hence 2>&1.
+            verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1"
             ;;
         "maven")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1}')
@@ -3255,7 +3259,21 @@ build_openjdk() {
     if [[ $? -ne 0 ]]; then
         return 1
     fi
-    
+
+    # 3. Flatten macOS App bundle layout. Azul Zulu macOS tarballs pack the
+    # JDK as a .jdk App bundle: after --strip-components=1 the payload lives
+    # under Contents/Home/, so bin/java is not at the root where downstream
+    # tooling expects it. Lift Contents/Home/* up and drop the wrapper.
+    if [[ -d "${final_install_path}/Contents/Home" ]]; then
+        log_message "INFO" "🧯 Flattening macOS App bundle layout (Contents/Home/*) for OpenJDK..."
+        mv "${final_install_path}/Contents/Home"/*(DN) "${final_install_path}/"
+        if [[ $? -ne 0 ]]; then
+            log_message "ERROR" "Failed to flatten Contents/Home for ${packageFullName}"
+            return 1
+        fi
+        rm -rf "${final_install_path}/Contents"
+    fi
+
     log_message "INFO" "OpenJDK setup complete."
 }
 
