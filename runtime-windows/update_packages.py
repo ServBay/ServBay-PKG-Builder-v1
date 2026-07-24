@@ -42,7 +42,12 @@ class WindowsPackageUpdater:
             'https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-{version}-1/rubyinstaller-{version}-1-x64.7z',
         ],
         'redis': [
-            'https://download.redis.io/releases/redis-{version}.tar.gz',
+            # Windows repackages the third-party redis-windows/redis-windows
+            # release, which lags a few hours-to-days behind an upstream Redis
+            # source release. Verify the actual Windows asset (mirrors the URL
+            # in build_windows Build_Package_redis) — detection can never
+            # outrun what redis-windows has actually published.
+            'https://github.com/redis-windows/redis-windows/releases/download/{version}/Redis-{version}-Windows-x64-msys2.zip',
         ],
         'go': [
             'https://dl.google.com/go/go{version}.src.tar.gz',
