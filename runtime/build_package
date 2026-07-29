@@ -3888,9 +3888,16 @@ build_mysql() {
         "9.7")
             # Xcode 26.5 libc++ 20 dropped transitive <type_traits>; tag_plain.h
             # uses std::is_trivial_v / std::is_standard_layout_v without the
-            # include. See runtime/patch/mysql/9.7/type-traits-include.patch.
-            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mysql/9.7/type-traits-include.patch" "p1" \
-                || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+            # include. Upstream fixed this in 9.7.2 (MySQL Bug #120807), so the
+            # patch is only needed on 9.7.0 / 9.7.1. Detect the fixed source and
+            # skip — otherwise `patch -N` reports "Ignoring previously applied"
+            # and returns 1, which our _apply_single_patch surfaces as failure.
+            if grep -q '^#include <type_traits>' libs/mysql/gtid/tag_plain.h 2>/dev/null; then
+                log_message "INFO" "tag_plain.h already has <type_traits> (fixed upstream in 9.7.2+); skipping type-traits-include patch"
+            else
+                _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/mysql/9.7/type-traits-include.patch" "p1" \
+                    || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+            fi
             ;;
     esac
 

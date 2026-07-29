@@ -31,5 +31,35 @@
 +# define EMPTY_SWITCH_DEFAULT_CASE() default: ZEND_UNREACHABLE();
 +#endif
  #include "apc_cache.h"
- 
+
  #if PHP_VERSION_ID < 70300
+--- ./apc.c.bak	2025-11-06 12:51:48
++++ ./apc.c	2026-07-29 12:00:00
+@@ -35,15 +35,27 @@
+ #include "php.h"
+
+ /* {{{ console display functions */
++#if PHP_VERSION_ID >= 80600
+ #define APC_PRINT_FUNCTION(name, verbosity)					\
+ 	void apc_##name(const char *format, ...)				\
+ 	{									\
+ 		va_list args;							\
+ 										\
+ 		va_start(args, format);						\
++		php_verror(NULL, verbosity, format, args);			\
++		va_end(args);							\
++	}
++#else
++#define APC_PRINT_FUNCTION(name, verbosity)					\
++	void apc_##name(const char *format, ...)				\
++	{									\
++		va_list args;							\
++										\
++		va_start(args, format);						\
+ 		php_verror(NULL, "", verbosity, format, args);			\
+ 		va_end(args);							\
+ 	}
++#endif
+
+ APC_PRINT_FUNCTION(error, E_ERROR)
+ APC_PRINT_FUNCTION(warning, E_WARNING)
