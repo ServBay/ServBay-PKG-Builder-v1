@@ -2784,6 +2784,42 @@ build_mongodb() {
 }
 
 ###
+# @description 校验 Mach-O 产物的最低 macOS 版本（LC_BUILD_VERSION.minos）不高于期望基线。
+#              未显式钉住 deployment target 时，clang/Go/cmake 会跟随编译机 SDK，
+#              产出的二进制在旧系统上被 dyld 拒绝加载（表现为启动即秒退）。
+#              CI runner 是 macos-26，漂移一旦发生影响面覆盖绝大多数用户，故做硬门禁。
+# @param $1 string 二进制文件路径。
+# @param $2 string 期望的最低系统版本，如 14.0。
+# @return 0 符合基线；1 超出基线或无法校验。
+###
+verify_macos_min_version() {
+    local binary=$1
+    local expected=$2
+
+    if [[ ! -f "$binary" ]]; then
+        log_message "ERROR" "verify_macos_min_version: binary not found: ${binary}"
+        return 1
+    fi
+
+    local actual
+    actual=$(otool -l "$binary" 2>/dev/null | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
+
+    if [[ -z "$actual" ]]; then
+        log_message "ERROR" "verify_macos_min_version: no LC_BUILD_VERSION found in ${binary}"
+        return 1
+    fi
+
+    # 用主版本号比较即可（基线均为整数主版本，如 12.0 / 14.0）。
+    if (( ${actual%%.*} > ${expected%%.*} )); then
+        log_message "ERROR" "Deployment target drift: ${binary} requires macOS ${actual}, expected <= ${expected}."
+        return 1
+    fi
+
+    log_message "INFO" "Deployment target OK: ${binary} minos=${actual} (baseline ${expected})."
+    return 0
+}
+
+###
 # @description Build logic for the Ollama server.
 # @param $1 string Package version.
 # @param $2 string Standardized source filename.
@@ -2795,6 +2831,11 @@ build_ollama() {
     local installDir=$3
     local packageFullName="ollama-${version}"
     local prefix=${installDir:-$SERVBAY_PACKAGE_FULL_PATH}
+
+    # Ollama 的最低系统版本不能取全局 BUILD_OS_MIN_VERSION(12.0)：上游官方二进制
+    # 自 0.6 起为 minos 13.0、自 0.17 起为 14.0（llama.cpp / MLX 的 Metal 后端所需）。
+    # 下面两条构建路径共用该基线，出口处统一校验。
+    local macos_min="14.0"
 
     # Unpack the source code. This changes the current directory.
     unpack_package "$packageFullName" "$sourceFilename"
@@ -2886,7 +2927,7 @@ build_ollama() {
         local cmake_args=(
             "-DCMAKE_BUILD_TYPE=Release"
             "-DCMAKE_OSX_ARCHITECTURES=${cmake_arch}"
-            "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0"
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET=${macos_min}"
             "-DCMAKE_INSTALL_PREFIX=${payload_dir}/"
             "-DOLLAMA_PAYLOAD_INSTALL_PREFIX=${payload_dir}/"
             "-DOLLAMA_GO_OUTPUT=${payload_dir}/ollama"
@@ -2970,6 +3011,17 @@ build_ollama() {
         log_message "INFO" "Removing UI build from go generate (npm run build)..."
         sed -i '' 's|^//go:generate npm|// go:generate npm|' "app/ui/ui.go"
 
+        # legacy 分支此前完全没有钉住 deployment target，Go/cgo 因此跟随编译机 SDK：
+        # 线上 0.17.4 的产物实测 minos 26.0（官方同版本为 14.0），导致 macOS 26
+        # 以外的用户启动 Ollama 即秒退。这里对齐上面 CMake 分支使用的 14.0 基线。
+        # generate 阶段就会编译 llama.cpp 的 Metal 代码，必须在其之前生效。
+        log_message "INFO" "Pinning macOS deployment target to ${macos_min} for the legacy Ollama build..."
+        export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
+        export CMAKE_OSX_DEPLOYMENT_TARGET="${macos_min}"
+        export CGO_CFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CFLAGS}"
+        export CGO_CXXFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CXXFLAGS}"
+        export CGO_LDFLAGS="-mmacosx-version-min=${macos_min} ${CGO_LDFLAGS}"
+
         log_message "INFO" "Running 'go generate' for Ollama..."
         if ! go generate ./...; then
             log_message "ERROR" "Ollama 'go generate' failed."
@@ -2983,6 +3035,12 @@ build_ollama() {
             cd "$SERVBAY_BUILD_DIR"
             return 1
         fi
+    fi
+
+    # Gate: 两条构建路径共用的出口校验，防止 deployment target 再次跟随编译机漂移。
+    if ! verify_macos_min_version "${prefix}/ollama/ollama" "${macos_min}"; then
+        cd "$SERVBAY_BUILD_DIR"
+        return 1
     fi
 
     # Return to the original build directory
