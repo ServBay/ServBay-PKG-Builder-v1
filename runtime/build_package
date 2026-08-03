@@ -1250,7 +1250,7 @@ post_build_process() {
     # would not load on a user machine without Homebrew). Only OUR source-built
     # packages are checked; download/official packages (node, go, mongodb, rust,
     # dotnetsdk, the Go CLIs, composer.phar, etc.) are upstream-managed and exempt.
-    local _compiled_pkgs=" php mysql mariadb postgresql python ruby redis memcached nginx httpd caddy dnsmasq subversion git ollama "
+    local _compiled_pkgs=" php mysql mariadb postgresql python ruby redis memcached nginx httpd caddy dnsmasq subversion git ollama minio mono "
     if [[ "$_compiled_pkgs" == *" ${packageName} "* ]]; then
         if ! check_homebrew_dependencies "${PACK_INFO[source_dir]}" "strict"; then
             log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} linked Homebrew libraries."
@@ -3168,6 +3168,15 @@ build_minio() {
     local bin_dir="${prefix}/minio/bin"
     mkdir -p "$bin_dir"
 
+    # 钉住 deployment target：当 Go 走外部链接（cgo）时，产物的 minos 会跟随
+    # 编译机 SDK —— 线上 minio 实测 14.0 即为此。纯内部链接的 Go 二进制 minos
+    # 固定为 11.0、不受影响，多设这些变量也无副作用。
+    local macos_min="${BUILD_OS_MIN_VERSION%%.*}.0"
+    log_message "INFO" "Pinning macOS deployment target to ${macos_min} for MinIO..."
+    export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
+    export CGO_CFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CFLAGS}"
+    export CGO_LDFLAGS="-mmacosx-version-min=${macos_min} ${CGO_LDFLAGS}"
+
     # Build the MinIO binary with version information.
     log_message "INFO" "Building MinIO binary..."
     go build -ldflags="-s -w -X github.com/minio/minio/cmd.Version=${version} -X github.com/minio/minio/cmd.ReleaseTag=${version} -X github.com/minio/minio/cmd.CommitID=SERVBAY-${version} -X github.com/minio/minio/cmd.CopyrightYear=$(date +%Y)" -o "${bin_dir}/minio"
@@ -3598,6 +3607,16 @@ build_mono() {
             log_message "WARN" "File not found for patching, skipping: $file"
         fi
     done
+
+    # 钉住 deployment target：configure 此前完全裸跑，未带任何编译参数，
+    # 产物（含 AOT 生成的 *.dll.dylib）的 minos 因此跟随编译机 SDK，线上实测 14.0。
+    # 同时写入 MACOSX_DEPLOYMENT_TARGET，覆盖 mono 构建过程中自行调用 clang 的环节。
+    local macos_min="${BUILD_OS_MIN_VERSION%%.*}.0"
+    log_message "INFO" "Pinning macOS deployment target to ${macos_min} for Mono..."
+    export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
+    export CFLAGS="-mmacosx-version-min=${macos_min} ${CFLAGS}"
+    export CXXFLAGS="-mmacosx-version-min=${macos_min} ${CXXFLAGS}"
+    export LDFLAGS="-mmacosx-version-min=${macos_min} ${LDFLAGS}"
 
     # Configure Mono
     log_message "INFO" "Configuring Mono..."
