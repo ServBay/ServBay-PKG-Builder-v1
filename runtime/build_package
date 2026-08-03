@@ -1138,6 +1138,92 @@ check_homebrew_dependencies() {
     return 0
 }
 
+###
+# @description Resolve the macOS deployment-target baseline for a package.
+# Defaults to the global BUILD_OS_MIN_VERSION; packages whose upstream requires
+# a newer floor are listed explicitly with the reason.
+# @param $1 string Package name.
+# @return prints the baseline version (e.g. "12.0").
+###
+get_package_min_os_version() {
+    local packageName="$1"
+
+    case "$packageName" in
+        # 上游官方 ollama-darwin 自 0.6 起 minos 13.0、自 0.17 起 14.0
+        # （llama.cpp / MLX 的 Metal 后端所需），无法压到全局的 12.0。
+        ollama) echo "14.0" ;;
+        *)      echo "${BUILD_OS_MIN_VERSION%%.*}.0" ;;
+    esac
+}
+
+###
+# @description Check whether OUR compiled binaries carry a macOS deployment
+# target newer than the baseline. Such a binary is rejected by dyld on any older
+# system — the user sees the service "start" and instantly die. Without this gate
+# the target silently follows whatever SDK the builder happens to run (the CI
+# runner is macos-26), so a routine runner bump ships an unusable package.
+# Scans a file or a directory tree of Mach-O objects via otool.
+# @param $1 string File or directory to scan.
+# @param $2 string Baseline version, e.g. "12.0".
+# @param $3 string (optional) "strict" -> return 1 (build error) when found.
+# @return 0 if clean (or non-strict), 1 if drift found in strict mode.
+###
+check_deployment_target() {
+    local check_path="$1"
+    local baseline="$2"
+    local strict_mode="${3:-}"
+    local found_issues=0
+    local files_checked=0
+
+    if [[ -z "$baseline" ]]; then
+        log_message "ERROR" "check_deployment_target: baseline not provided"
+        return 1
+    fi
+
+    local files_to_check=()
+    local base_path=""
+    if [[ -f "$check_path" ]]; then
+        files_to_check+=("$check_path")
+        base_path="$(dirname "$check_path")"
+        log_message "INFO" "🔍 Checking deployment target for file: $check_path"
+    elif [[ -d "$check_path" ]]; then
+        base_path="$check_path"
+        log_message "INFO" "🔍 Scanning deployment targets in: $check_path (baseline ${baseline})"
+        while IFS= read -r -d '' file; do
+            files_to_check+=("$file")
+        done < <(find "$check_path" \( -type f \( -perm +111 -o -name "*.dylib" -o -name "*.so" -o -name "*.bundle" \) \) -print0 2>/dev/null)
+    else
+        log_message "ERROR" "check_deployment_target: Path not found: $check_path"
+        return 1
+    fi
+
+    local minos=""
+    for file in "${files_to_check[@]}"; do
+        file "$file" 2>/dev/null | grep -q "Mach-O" || continue
+        files_checked=$((files_checked + 1))
+        minos=$(otool -l "$file" 2>/dev/null | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
+        [[ -z "$minos" ]] && continue
+        if (( ${minos%%.*} > ${baseline%%.*} )); then
+            if [[ $found_issues -eq 0 ]]; then
+                log_message "WARN" "⚠️  Deployment target drift! These won't load on macOS < ${minos}."
+            fi
+            log_message "WARN" "  File: ${file#$base_path/} → minos ${minos} (baseline ${baseline})"
+            found_issues=1
+        fi
+    done
+
+    log_message "INFO" "   Scanned $files_checked Mach-O file(s) for deployment target"
+    if [[ $found_issues -eq 0 ]]; then
+        log_message "INFO" "✅ Deployment target OK (all <= ${baseline})"
+        return 0
+    fi
+    if [[ "$strict_mode" == "strict" ]]; then
+        log_message "ERROR" "Strict mode: treating deployment target drift as error"
+        return 1
+    fi
+    return 0
+}
+
 post_build_process() {
     local packageName="$1"
     local packageVersion="$2"
@@ -1164,10 +1250,20 @@ post_build_process() {
     # would not load on a user machine without Homebrew). Only OUR source-built
     # packages are checked; download/official packages (node, go, mongodb, rust,
     # dotnetsdk, the Go CLIs, composer.phar, etc.) are upstream-managed and exempt.
-    local _compiled_pkgs=" php mysql mariadb postgresql python ruby redis memcached nginx httpd caddy dnsmasq subversion git "
+    local _compiled_pkgs=" php mysql mariadb postgresql python ruby redis memcached nginx httpd caddy dnsmasq subversion git ollama "
     if [[ "$_compiled_pkgs" == *" ${packageName} "* ]]; then
         if ! check_homebrew_dependencies "${PACK_INFO[source_dir]}" "strict"; then
             log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} linked Homebrew libraries."
+            return 1
+        fi
+
+        # Fail BEFORE packing if the deployment target drifted above the baseline.
+        # nginx 1.30.0 shipped with minos 26.0 (the CI runner's SDK) and could not
+        # start on anything older than macOS 26; this gate makes that a build error.
+        local _min_os
+        _min_os=$(get_package_min_os_version "$packageName")
+        if ! check_deployment_target "${PACK_INFO[source_dir]}" "$_min_os" "strict"; then
+            log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} requires macOS newer than ${_min_os}."
             return 1
         fi
     fi
@@ -2026,6 +2122,10 @@ build_nginx() {
 
     # 3. Configure Nginx with a comprehensive set of modules and paths.
     #    All paths are based on the final SERVBAY_BASE_FULL_PATH, not the temporary prefix.
+    # -mmacosx-version-min 必须写进 --with-cc-opt/--with-ld-opt：nginx 的 configure
+    # 用这两个值取代环境里的 CFLAGS/LDFLAGS，别处 export 的编译参数到不了这里。
+    # 缺了它，产物的 minos 会跟随编译机 SDK（CI runner 为 macos-26），
+    # 1.30.0 就是这样被打成 minos 26.0，在旧系统上 nginx 根本起不来。
     log_message "INFO" "Configuring Nginx v${version}..."
     ./configure \
         --prefix="${prefix}" \
@@ -2066,8 +2166,8 @@ build_nginx() {
         --with-stream_ssl_preread_module \
         --with-threads \
         --build="ServBay" \
-        --with-cc-opt="-I${SERVBAY_COMMON_INCLUDE_PATH} -I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include" \
-        --with-ld-opt="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/lib"
+        --with-cc-opt="-I${SERVBAY_COMMON_INCLUDE_PATH} -I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include -mmacosx-version-min=${BUILD_OS_MIN_VERSION}" \
+        --with-ld-opt="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/lib -mmacosx-version-min=${BUILD_OS_MIN_VERSION}"
 
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Nginx configure failed."
