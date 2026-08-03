@@ -3645,8 +3645,22 @@ build_mono() {
     # mono 在 CFLAGS 之后硬加 -std=gnu99，把 CC 自带的 -std=gnu23 覆盖掉了
     # （编译命令中 gnu23 在位置 13、gnu99 在位置 87，clang 取最后一个），
     # 因此只能在 configure 生成 Makefile 之后改写，从 CFLAGS 侧追加无效。
-    log_message "INFO" "Rewriting -std=gnu99 to -std=gnu23 in generated Makefiles (icall.c C23 requirement)..."
-    find . -name Makefile -type f -exec sed -i '' 's/-std=gnu99/-std=gnu23/g' {} +
+    # 只改 icall.c 所在目录：全局改写会波及 minizip 等 K&R 风格的老代码，
+    # 而 C23 移除了 K&R 函数定义，会报
+    #   minizip/ioapi.c: unknown type name 'pzlib_filefunc_def'
+    #   minizip/ioapi.c: expected identifier or '('
+    # 需要 C23 的只有 icall 的 token paste，范围限定到那一个 Makefile 即可。
+    local _icall_makefile
+    _icall_makefile=$(find . -name icall.c -path "*/metadata/*" -print -quit 2>/dev/null)
+    if [[ -n "$_icall_makefile" ]]; then
+        _icall_makefile="$(dirname "$_icall_makefile")/Makefile"
+    fi
+    if [[ -f "$_icall_makefile" ]]; then
+        log_message "INFO" "Rewriting -std=gnu99 to -std=gnu23 in ${_icall_makefile} (icall.c C23 requirement)..."
+        sed -i '' 's/-std=gnu99/-std=gnu23/g' "$_icall_makefile"
+    else
+        log_message "WARN" "icall.c Makefile not found; skipping the C23 rewrite. The build may fail in icall.c."
+    fi
 
     # Compile and install Mono
     log_message "INFO" "Compiling Mono (make -j${CPU_NUMBER})..."
