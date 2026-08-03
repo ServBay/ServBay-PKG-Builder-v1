@@ -1260,12 +1260,21 @@ post_build_process() {
         # Fail BEFORE packing if the deployment target drifted above the baseline.
         # nginx 1.30.0 shipped with minos 26.0 (the CI runner's SDK) and could not
         # start on anything older than macOS 26; this gate makes that a build error.
+        #
+        # 只扫 PACK_FILES —— 即本次真正要打进 tar 的东西。PACK_INFO[source_dir] 对
+        # 多版本包（如 nginx）是版本目录的父目录，直接扫它会连上构建基座里遗留的
+        # 其他版本，把不相干的存量产物误判成本次构建的缺陷。
         local _min_os
         _min_os=$(get_package_min_os_version "$packageName")
-        if ! check_deployment_target "${PACK_INFO[source_dir]}" "$_min_os" "strict"; then
-            log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} requires macOS newer than ${_min_os}."
-            return 1
-        fi
+        local _pack_item _pack_path
+        for _pack_item in "${PACK_FILES[@]}"; do
+            _pack_path="${PACK_INFO[source_dir]}/${_pack_item}"
+            [[ -e "$_pack_path" ]] || continue
+            if ! check_deployment_target "$_pack_path" "$_min_os" "strict"; then
+                log_message "ERROR" "Aborting pack: ${packageName}-${packageVersion} requires macOS newer than ${_min_os}."
+                return 1
+            fi
+        done
     fi
 
     core_pack_package "$packageName" "$packageVersion"
