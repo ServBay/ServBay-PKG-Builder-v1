@@ -3636,6 +3636,18 @@ build_mono() {
     fi
     if [[ $? -ne 0 ]]; then log_message "ERROR" "Mono configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
+    # mono 6.14.0 在 Xcode 26 工具链下编不过 icall.c：
+    #   error: use of undeclared identifier 'ICALL_SIG_TYPE__Bool';
+    #          did you mean 'ICALL_SIG_TYPE_bool'?
+    # C99 的 <stdbool.h> 有 `#define bool _Bool`，icall 的宏做 token paste 时便
+    # 拼出了不存在的 ICALL_SIG_TYPE__Bool；C23 起 bool 是内建关键字、stdbool.h
+    # 不再做该替换，拼接结果才正确。
+    # mono 在 CFLAGS 之后硬加 -std=gnu99，把 CC 自带的 -std=gnu23 覆盖掉了
+    # （编译命令中 gnu23 在位置 13、gnu99 在位置 87，clang 取最后一个），
+    # 因此只能在 configure 生成 Makefile 之后改写，从 CFLAGS 侧追加无效。
+    log_message "INFO" "Rewriting -std=gnu99 to -std=gnu23 in generated Makefiles (icall.c C23 requirement)..."
+    find . -name Makefile -type f -exec sed -i '' 's/-std=gnu99/-std=gnu23/g' {} +
+
     # Compile and install Mono
     log_message "INFO" "Compiling Mono (make -j${CPU_NUMBER})..."
     make -j${CPU_NUMBER}
