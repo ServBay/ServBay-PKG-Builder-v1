@@ -27,9 +27,9 @@
 # node	21.7.3
 # node	22.23.2
 # node	23.11.1
-node	24.19.0
+# node	24.19.0
 # node	25.9.0
-node	26.6.0
+# node	26.6.0
 # python	2.7.18
 # python	3.5.4
 # python	3.6.8
@@ -153,7 +153,7 @@ postgresql	19.beta2
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.52.0
+# meilisearch	1.52.0
 # simple-acme	2.4.0
 # cloudflared	2026.7.3
 # frp	0.70.1
