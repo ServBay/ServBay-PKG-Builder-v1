@@ -143,11 +143,11 @@ postgresql	19.beta2
 # redis	7.4.10
 # composer	2.2.29
 # composer	2.10.2
-# adminer	5.5.1
+adminer	6.0.0
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-ollama	0.32.6
+# ollama	0.32.6
 # memcached	1.6.45
 # mailpit	1.30.6
 ai-gateway	1.0.0
@@ -160,7 +160,7 @@ disk-cleaner	1.0.0
 # pinggy	0.5.3
 # ngrok	3.39.10	4L7aVh5HPND
 # bun	1.3.14
-deno	2.9.5
+# deno	2.9.5
 # apache	2.4.68
 # caddy	2.11.4
 # mongodb	4.4.31
