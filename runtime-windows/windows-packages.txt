@@ -143,13 +143,13 @@ postgresql	19.beta2
 # redis	7.4.10
 # composer	2.2.29
 # composer	2.10.2
-adminer	6.0.0
+# adminer	6.0.0
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
 # ollama	0.32.6
 # memcached	1.6.45
-# mailpit	1.30.6
+mailpit	1.30.7
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
