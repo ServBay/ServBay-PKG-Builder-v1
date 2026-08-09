@@ -149,7 +149,7 @@ postgresql	19.beta2
 # phpmyadmin	5.2.3
 # ollama	0.32.6
 # memcached	1.6.45
-mailpit	1.30.7
+# mailpit	1.30.7
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
