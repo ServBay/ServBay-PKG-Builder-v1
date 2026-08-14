@@ -295,12 +295,20 @@ get_download_url() {
             echo "https://github.com/oven-sh/bun/releases/download/bun-v${version}/${sourceFilename}" ;;
         "postgresql")
             # packages.conf uses "19.beta2" (dotted) so upload_packages.py's
-            # strip_patch can derive major=19. PG FTP uses dotless "v19beta2" path.
+            # strip_patch can derive major=19. PG FTP is dotless in BOTH the
+            # directory ("v19beta2/") and the tarball ("postgresql-19beta2.tar.bz2"),
+            # so strip the dot from the filename too. The filename can arrive dotted
+            # (update_packages.py's generate_filename interpolates the conf version
+            # verbatim) or already dotless (hand-written rows like 19.beta2); the
+            # substitution is a no-op in the latter case. Stable versions such as
+            # 18.6 never match the pattern and are untouched.
             local pg_url_version="$version"
+            local pg_filename="$sourceFilename"
             if [[ "$version" =~ ^([0-9]+)\.(beta|rc|alpha)([0-9]+)$ ]]; then
                 pg_url_version="${match[1]}${match[2]}${match[3]}"
+                pg_filename="${sourceFilename//$version/$pg_url_version}"
             fi
-            echo "https://ftp.postgresql.org/pub/source/v${pg_url_version}/${sourceFilename}" ;;
+            echo "https://ftp.postgresql.org/pub/source/v${pg_url_version}/${pg_filename}" ;;
         "php")
             if [[ "$version" =~ ^8\.6\.0 ]]; then
                 # Special case for alpha/dev versions from GitHub
