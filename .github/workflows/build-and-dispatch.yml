@@ -25,6 +25,15 @@ on:
         type: string
         required: false
         default: ''
+      # Needed to repair a half-published package: when one arch's matrix leg fails,
+      # dispatch-downstream still publishes the arch that DID produce an artifact.
+      # Rebuilding with 'all' would re-upload the already-published arch, so pin the
+      # rebuild to the missing one. 'all' keeps the previous behaviour.
+      macos_arch:
+        description: 'macOS architecture (all = both; pin one to avoid re-publishing the other)'
+        type: choice
+        options: [all, x86_64, arm64]
+        default: all
       windows_pkg:
         description: 'Windows package name (when building Windows)'
         type: string
@@ -35,6 +44,11 @@ on:
         type: string
         required: false
         default: ''
+      windows_arch:
+        description: 'Windows architecture'
+        type: choice
+        options: [x64, x86, arm64]
+        default: x64
       windows_version_type:
         description: 'php only: stable | testing | development (ignored otherwise)'
         type: string
@@ -56,6 +70,7 @@ jobs:
     with:
       pkg: ${{ inputs.macos_pkg }}
       version: ${{ inputs.macos_version }}
+      arch: ${{ inputs.macos_arch }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
@@ -66,6 +81,7 @@ jobs:
     with:
       pkg: ${{ inputs.windows_pkg }}
       version: ${{ inputs.windows_version }}
+      arch: ${{ inputs.windows_arch }}
       version_type: ${{ inputs.windows_version_type }}
     secrets: inherit
 
