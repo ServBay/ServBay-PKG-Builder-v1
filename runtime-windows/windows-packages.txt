@@ -56,28 +56,29 @@
 # go	1.22.12
 # go	1.23.12
 # go	1.24.13
-# go	1.25.13
-# go	1.26.6
+go	1.25.14
+go	1.26.7
+go	1.27.0
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
-# openjdk	8.0.502	zulu8.96.0.19-ca-jdk8.0.502-win_x64.zip
+openjdk	8.0.504	zulu8.96.0.205-ca-jdk8.0.504-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
 # openjdk	10.0.2	zulu10.3+5-jdk10.0.2-win_x64.zip
-# openjdk	11.0.32	zulu11.90.19-ca-jdk11.0.32-win_x64.zip
+openjdk	11.0.32.1	zulu11.90.205-ca-jdk11.0.32.1-win_x64.zip
 # openjdk	12.0.2	zulu12.3.11-ca-jdk12.0.2-win_x64.zip
 # openjdk	13.0.14	zulu13.54.17-ca-jdk13.0.14-win_x64.zip
 # openjdk	14.0.2	zulu14.29.23-ca-jdk14.0.2-win_x64.zip
 # openjdk	15.0.10	zulu15.46.17-ca-jdk15.0.10-win_x64.zip
 # openjdk	16.0.2	zulu16.32.15-ca-jdk16.0.2-win_x64.zip
-# openjdk	17.0.20	zulu17.68.17-ca-jdk17.0.20-win_x64.zip
+openjdk	17.0.20.1	zulu17.68.203-ca-jdk17.0.20.1-win_x64.zip
 # openjdk	18.0.2.1	zulu18.32.13-ca-jdk18.0.2.1-win_x64.zip
 # openjdk	19.0.2	zulu19.32.13-ca-jdk19.0.2-win_x64.zip
 # openjdk	20.0.2	zulu20.32.11-ca-jdk20.0.2-win_x64.zip
-# openjdk	21.0.12	zulu21.52.15-ca-jdk21.0.12-win_x64.zip
+openjdk	21.0.12.1	zulu21.52.203-ca-jdk21.0.12.1-win_x64.zip
 # openjdk	22.0.2	zulu22.32.15-ca-jdk22.0.2-win_x64.zip
 # openjdk	23.0.2	zulu23.32.11-ca-jdk23.0.2-win_x64.zip
 # openjdk	24.0.2	zulu24.32.13-ca-jdk24.0.2-win_x64.zip
-# openjdk	25.0.4	zulu25.36.15-ca-jdk25.0.4-win_x64.zip
-# openjdk	26.0.2	zulu26.32.13-ca-jdk26.0.2-win_x64.zip
+openjdk	25.0.4.1	zulu25.36.205-ca-jdk25.0.4.1-win_x64.zip
+openjdk	26.0.2.1	zulu26.32.203-ca-jdk26.0.2.1-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
 # maven	4.0.0	apache-maven-4.0.0-bin.zip
 # ruby	2.4.10
@@ -139,8 +140,8 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # postgresql	17.11	postgresql-17.11-1-windows-x64-binaries.zip
 # postgresql	18.6	postgresql-18.6-1-windows-x64-binaries.zip
 postgresql	19.beta2
-# nginx	1.31.3
-redis	7.4.11
+nginx	1.31.4
+# redis	7.4.11
 # composer	2.2.29
 # composer	2.10.2
 # adminer	6.0.1
