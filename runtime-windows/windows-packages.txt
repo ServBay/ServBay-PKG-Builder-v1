@@ -91,7 +91,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.3.12
 # ruby	3.4.10
 # ruby	4.0.6
-rust	1.98.0
+# rust	1.98.0
 # mysql	5.1.73
 # mysql	5.5.62
 # mysql	5.6.51
@@ -148,7 +148,7 @@ postgresql	19.beta2
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.32.14
+ollama	0.32.15
 # memcached	1.6.45
 # mailpit	1.30.7
 ai-gateway	1.0.0
@@ -160,7 +160,7 @@ disk-cleaner	1.0.0
 # frp	0.71.0
 # pinggy	0.5.3
 # ngrok	3.39.11	P2eJimSQ97
-bun	1.4.0
+# bun	1.4.0
 # deno	2.9.5
 # apache	2.4.68
 # caddy	2.11.4
