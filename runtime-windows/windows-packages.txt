@@ -12,9 +12,9 @@
 # php	8.1.34	php-8.1.34-windows-x64.zip
 # php	8.2.33	php-8.2.33-windows-x64.zip
 # php	8.3.33	php-8.3.33-windows-x64.zip
-# php	8.4.24	php-8.4.24-windows-x64.zip
+php	8.4.25	php-8.4.25-windows-x64.zip
 # php	8.5.9	php-8.5.9-windows-x64.zip
-# php	8.6.0beta1	php-8.6.0beta1-windows-x64.zip
+php	8.6.0beta2	php-8.6.0beta2-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -116,20 +116,20 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # mariadb	10.8.8
 # mariadb	10.9.8
 # mariadb	10.10.7
-mariadb	10.11.19
+# mariadb	10.11.19
 # mariadb	11.0.6
 # mariadb	11.1.6
 # mariadb	11.2.6
 # mariadb	11.3.2
-mariadb	11.4.13
+# mariadb	11.4.13
 # mariadb	11.5.2
 # mariadb	11.6.2
 # mariadb	11.7.2
-mariadb	11.8.9
+# mariadb	11.8.9
 # mariadb	12.0.2
 # mariadb	12.1.2
 # mariadb	12.2.2
-mariadb	12.3.3
+# mariadb	12.3.3
 # postgresql	10.23	postgresql-10.23-1-windows-x64-binaries.zip
 # postgresql	11.22	postgresql-11.22-1-windows-x64-binaries.zip
 # postgresql	12.22	postgresql-12.22-1-windows-x64-binaries.zip
@@ -158,7 +158,7 @@ disk-cleaner	1.0.0
 # simple-acme	2.4.0
 # cloudflared	2026.8.2
 # frp	0.71.0
-# pinggy	0.5.5
+pinggy	0.5.6
 # ngrok	3.39.11	P2eJimSQ97
 # bun	1.4.0
 # deno	2.9.5
