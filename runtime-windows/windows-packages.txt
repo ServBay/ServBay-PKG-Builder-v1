@@ -148,7 +148,7 @@ postgresql	19.beta2
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-ollama	0.33.2
+# ollama	0.33.2
 # memcached	1.6.45
 # mailpit	1.31.0
 ai-gateway	1.0.0
