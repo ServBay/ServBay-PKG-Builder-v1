@@ -156,7 +156,7 @@ disk-cleaner	1.0.0
 # minio	2025.10.15
 # meilisearch	1.53.1
 # simple-acme	2.4.0
-# cloudflared	2026.8.2
+cloudflared	2026.8.3
 # frp	0.71.0
 # pinggy	0.5.6
 # ngrok	3.39.11	P2eJimSQ97
