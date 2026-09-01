@@ -57,8 +57,8 @@
 # go	1.23.12
 # go	1.24.13
 # go	1.25.14
-# go	1.26.7
-# go	1.27.0
+go	1.26.8
+go	1.27.1
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
 # openjdk	8.0.504	zulu8.96.0.205-ca-jdk8.0.504-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
@@ -156,7 +156,7 @@ disk-cleaner	1.0.0
 # minio	2025.10.15
 # meilisearch	1.53.1
 # simple-acme	2.4.0
-cloudflared	2026.8.3
+# cloudflared	2026.8.3
 # frp	0.71.0
 # pinggy	0.5.6
 # ngrok	3.39.11	P2eJimSQ97
