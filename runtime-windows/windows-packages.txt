@@ -150,7 +150,7 @@ postgresql	19.beta2
 # phpmyadmin	5.2.3
 # ollama	0.33.3
 # memcached	1.6.45
-# mailpit	1.31.0
+mailpit	1.31.1
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
@@ -160,7 +160,7 @@ disk-cleaner	1.0.0
 # frp	0.71.0
 # pinggy	0.5.6
 # ngrok	3.39.11	P2eJimSQ97
-bun	1.4.1
+bun	1.4.2
 # deno	2.9.6
 # apache	2.4.68
 # caddy	2.11.4
