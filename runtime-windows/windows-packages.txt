@@ -154,7 +154,7 @@ postgresql	19.beta2
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-# meilisearch	1.53.1
+meilisearch	1.53.2
 # simple-acme	2.4.0
 # cloudflared	2026.8.3
 # frp	0.71.0
