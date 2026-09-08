@@ -14,7 +14,7 @@
 # php	8.3.33	php-8.3.33-windows-x64.zip
 # php	8.4.25	php-8.4.25-windows-x64.zip
 # php	8.5.10	php-8.5.10-windows-x64.zip
-# php	8.6.0beta2	php-8.6.0beta2-windows-x64.zip
+php	8.6.0beta3	php-8.6.0beta3-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -144,7 +144,7 @@ postgresql	19.beta2
 # redis	7.4.11
 # composer	2.2.30
 # composer	2.10.3
-# adminer	6.0.1
+adminer	6.0.2
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
@@ -154,7 +154,7 @@ postgresql	19.beta2
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.53.2
+# meilisearch	1.53.2
 # simple-acme	2.4.0
 # cloudflared	2026.8.3
 # frp	0.71.0
@@ -167,9 +167,9 @@ meilisearch	1.53.2
 # mongodb	4.4.31
 # mongodb	5.0.34
 # mongodb	6.0.29
-# mongodb	7.0.40
-# mongodb	8.0.29
+mongodb	7.0.41
+mongodb	8.0.30
 # mongodb	8.2.12
-# mongodb	8.3.8
+mongodb	8.3.9
 # mongosh	2.10.0
 # mongotools	100.18.0
