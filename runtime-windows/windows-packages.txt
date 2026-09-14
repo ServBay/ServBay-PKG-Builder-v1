@@ -144,7 +144,7 @@ postgresql	19.beta2
 # redis	7.4.11
 # composer	2.2.30
 # composer	2.10.3
-# adminer	6.0.2
+adminer	6.1.0
 # git	2.55.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
