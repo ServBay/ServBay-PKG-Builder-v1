@@ -36,7 +36,8 @@ class BuildScriptTests(unittest.TestCase):
         self.assertIn('-DOLLAMA_MLX_BACKENDS=metal_v3', build_ollama)
         self.assertNotIn("metal_v4", build_ollama)
         self.assertIn('-DCMAKE_OSX_ARCHITECTURES=${cmake_arch}', build_ollama)
-        self.assertIn('-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0', build_ollama)
+        self.assertIn('local macos_min="14.0"', build_ollama)
+        self.assertIn('-DCMAKE_OSX_DEPLOYMENT_TARGET=${macos_min}', build_ollama)
         self.assertIn('-DCMAKE_INSTALL_PREFIX=${payload_dir}/', build_ollama)
         self.assertIn('-DOLLAMA_PAYLOAD_INSTALL_PREFIX=${payload_dir}/', build_ollama)
         self.assertIn('-DOLLAMA_GO_OUTPUT=${payload_dir}/ollama', build_ollama)
@@ -88,6 +89,50 @@ class BuildScriptTests(unittest.TestCase):
         )
         self.assertIn("test -x", verification)
         self.assertIn("llama-server --version", verification)
+
+    def test_macos_ollama_repins_env_flags_to_14_baseline(self):
+        # dispatcher 为所有包导出的 CFLAGS/CXXFLAGS/LDFLAGS 以全局
+        # BUILD_OS_MIN_VERSION(12.00) 为基线，x86_64 还带
+        # `-target x86_64-apple-macos12.00`。CMake 首次 configure 会用环境变量
+        # 初始化 CMAKE_<LANG>_FLAGS/链接器缓存；clang 中 -target 优先于
+        # -mmacosx-version-min，Ollama 子构建（llama.cpp/MLX）的实际部署目标
+        # 会被拉低到 12.0，x86_64 上 libc++ 浮点 to_chars(13.3+) 直接编译失败。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        build_ollama = self._extract_shell_function(script, "build_ollama")
+
+        self.assertIn(
+            'export CFLAGS="-isysroot ${SDK_PATH} -Qunused-arguments'
+            ' -mmacosx-version-min=${macos_min} ${BUILD_CPU_ARCH}"',
+            build_ollama,
+        )
+        self.assertIn(
+            'export CXXFLAGS="${CFLAGS} -Wno-enum-constexpr-conversion"',
+            build_ollama,
+        )
+        self.assertIn(
+            'export LDFLAGS="-isysroot ${SDK_PATH}'
+            ' -mmacosx-version-min=${macos_min} ${BUILD_CPU_ARCH}"',
+            build_ollama,
+        )
+        self.assertNotIn("${BUILD_MACOS_TARGET}", build_ollama)
+        self.assertNotIn("${BUILD_OS_MIN_VERSION}", build_ollama)
+
+    def test_macos_ollama_gate_verifies_native_payload_minos(self):
+        # 出口校验此前只覆盖 Go 二进制；llama-server/llama-quantize 等 native
+        # 产物的 deployment target 漂移无法被发现，必须一并校验。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        build_ollama = self._extract_shell_function(script, "build_ollama")
+
+        self.assertRegex(
+            build_ollama,
+            r'verify_macos_min_version "\$\{payload_dir\}/lib/ollama/llama-server"'
+            r' "\$\{macos_min\}"',
+        )
+        self.assertRegex(
+            build_ollama,
+            r'verify_macos_min_version "\$\{payload_dir\}/lib/ollama/llama-quantize"'
+            r' "\$\{macos_min\}"',
+        )
 
     @staticmethod
     def _extract_shell_function(script, name):

@@ -3019,6 +3019,19 @@ build_ollama() {
         local build_dir="build/darwin-${ollama_arch}"
         local payload_dir="dist/darwin-${ollama_arch}"
 
+        # dispatcher（build_package 主入口）为所有包导出的 CFLAGS/CXXFLAGS/LDFLAGS
+        # 以全局 BUILD_OS_MIN_VERSION(12.00) 为基线，x86_64 还追加了
+        # `-target x86_64-apple-macos12.00`。CMake 首次 configure 会用这些环境变量
+        # 初始化 CMAKE_<LANG>_FLAGS 与链接器缓存，子构建（llama.cpp/MLX/mlx-c）的
+        # 每条编译命令因此同时含有 -target(12.0) 和 CMake 平台段的
+        # -mmacosx-version-min=14.0；clang 里 -target 优先于 -mmacosx-version-min，
+        # 实际部署目标退回 12.0，x86_64 上 libc++ 浮点 std::to_chars（13.3+ 才可用）
+        # 直接编译失败——arm64 的 BUILD_MACOS_TARGET 为空，所以只有 x86_64 爆。
+        # 这里按 Ollama 自己的 14.0 基线重钉这三个变量；禁止引入 BUILD_MACOS_TARGET。
+        export CFLAGS="-isysroot ${SDK_PATH} -Qunused-arguments -mmacosx-version-min=${macos_min} ${BUILD_CPU_ARCH}"
+        export CXXFLAGS="${CFLAGS} -Wno-enum-constexpr-conversion"
+        export LDFLAGS="-isysroot ${SDK_PATH} -mmacosx-version-min=${macos_min} ${BUILD_CPU_ARCH}"
+
         # Prepare the pinned native sources once, mirroring the upstream Darwin
         # superbuild with the backends we actually build below.
         log_message "INFO" "Preparing Ollama native sources..."
@@ -3098,6 +3111,17 @@ build_ollama() {
                 return 1
             fi
         done
+
+        # native 产物（llama-server/llama-quantize）同样校验 deployment target，
+        # 防止子构建 flags 漂移（Go 二进制之外的部分此前无人把关）。
+        if ! verify_macos_min_version "${payload_dir}/lib/ollama/llama-server" "${macos_min}"; then
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
+        if ! verify_macos_min_version "${payload_dir}/lib/ollama/llama-quantize" "${macos_min}"; then
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        fi
 
         if ! "${payload_dir}/lib/ollama/llama-server" --version >/dev/null; then
             log_message "ERROR" "Ollama llama-server failed to start; check its bundled runtime dependencies."
