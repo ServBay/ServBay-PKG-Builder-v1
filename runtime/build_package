@@ -629,7 +629,11 @@ get_package_verification_info() {
             # regression) must produce empty output, not an error line whose
             # path contains the version and could falsely satisfy the outer
             # match. The -version output goes to stderr, hence 2>&1.
-            verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1"
+            # JDK 27+ prints only the feature version (openjdk version "27")
+            # while older lines print the full version ("26.0.2.1"), so match
+            # the quoted major prefix and echo the conf version for the outer
+            # substring match.
+            verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1 | grep -q 'openjdk version \"${version_major}' && echo ${packageVersion}"
             ;;
         "maven")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1}')
