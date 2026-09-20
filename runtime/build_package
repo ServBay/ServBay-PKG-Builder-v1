@@ -269,7 +269,13 @@ get_download_url() {
             # The filename from packages.conf already contains arch and version info
             echo "https://static.rust-lang.org/dist/${sourceFilename}" ;;
         "dotnetsdk")
-            echo "https://builds.dotnet.microsoft.com/dotnet/Sdk/${version}/${sourceFilename}" ;;
+            # Microsoft CDN keys the directory by the FULL SDK version (e.g.
+            # 11.0.100-rc.1.26425.128) while packages.conf carries our repacked
+            # short name (e.g. 11.0.100-rc1). Recover the full version from the
+            # filename; for GA rows short name == full name so this is a no-op.
+            local full_ver="${sourceFilename#dotnet-sdk-}"
+            full_ver="${full_ver%-osx-*}"
+            echo "https://builds.dotnet.microsoft.com/dotnet/Sdk/${full_ver}/${sourceFilename}" ;;
         "mono")
             echo "https://dl.winehq.org/mono/sources/mono/${sourceFilename}" ;;
         "ruby")
@@ -637,7 +643,11 @@ get_package_verification_info() {
         "dotnetsdk")
             # Use the helper function to get the correct major version for the path
             local version_major=$(_get_dotnetsdk_major_version "$packageVersion")
-            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/dotnetsdk/${version_major}/${packageVersion}/dotnet --version"
+            # Repacked short name (e.g. 11.0.100-rc1) differs from the runtime's
+            # own report (e.g. 11.0.100-rc.1.26425.128). Echo the conf version
+            # only when the installed SDK reports the expected major.minor, so
+            # core_verify's substring match works for GA and prerelease rows.
+            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/dotnetsdk/${version_major}/${packageVersion}/dotnet --version | grep -q \"${version_major}\" && echo \"${packageVersion}\""
             ;;
         "mono")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1"."$2}')

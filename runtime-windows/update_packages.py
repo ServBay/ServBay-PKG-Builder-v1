@@ -381,7 +381,7 @@ class WindowsPackageUpdater:
         versions = {}
         series = ['10.4', '10.5', '10.6', '10.7', '10.8', '10.9', '10.10', '10.11',
                   '11.0', '11.1', '11.2', '11.3', '11.4', '11.5', '11.6', '11.7', '11.8',
-                  '12.0', '12.1', '12.2', '12.3']
+                  '12.0', '12.1', '12.2', '12.3', '13.0', '13.1']
 
         all_tags = []
         for page in range(1, 10):
@@ -706,14 +706,14 @@ class WindowsPackageUpdater:
     def get_openjdk_versions(self) -> Dict[str, str]:
         """Get latest OpenJDK versions from Azul Zulu (Windows x64 only)"""
         versions = {}
-        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
         for java_ver in java_versions:
             try:
                 url = f"https://api.azul.com/metadata/v1/zulu/packages/?os=windows&arch=x64&java_version={java_ver}&release_status=ga&java_package_type=jdk&availability_type=CA&javafx_bundled=false&archive_type=zip&page_size=10"
 
                 if java_ver >= 25:
-                    url = f"https://api.azul.com/metadata/v1/zulu/packages/?os=windows&arch=x64&java_version={java_ver}&java_package_type=jdk&javafx_bundled=false&archive_type=zip&page_size=10"
+                    url = f"https://api.azul.com/metadata/v1/zulu/packages/?os=windows&arch=x64&java_version={java_ver}&release_status=ga&availability_type=CA&java_package_type=jdk&javafx_bundled=false&archive_type=zip&page_size=10"
 
                 response = requests.get(url, timeout=10)
 

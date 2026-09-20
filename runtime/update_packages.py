@@ -320,7 +320,7 @@ class PackageUpdater:
         """Get latest MariaDB versions for major series"""
         versions = {}
         series = ['10.4', '10.5', '10.6', '10.7', '10.8', '10.9', '10.10', '10.11', '11.0', '11.1', '11.2', '11.3', '11.4',
-                  '11.5', '11.6', '11.7', '11.8', '12.0', '12.1', '12.2', '12.3']
+                  '11.5', '11.6', '11.7', '11.8', '12.0', '12.1', '12.2', '12.3', '13.0', '13.1']
 
         # 使用 tags 端点而非 releases（MariaDB 并非所有版本都会创建 GitHub Release）
         all_tags = []
@@ -738,7 +738,7 @@ class PackageUpdater:
     def get_openjdk_versions(self) -> Dict[str, str]:
         """Get latest OpenJDK versions from Azul Zulu"""
         versions = {}
-        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+        java_versions = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
         for java_ver in java_versions:
             # Get both x64 and aarch64 versions
