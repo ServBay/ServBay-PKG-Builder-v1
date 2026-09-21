@@ -81,7 +81,6 @@
 # openjdk	26.0.2.1	zulu26.32.203-ca-jdk26.0.2.1-win_x64.zip
 openjdk	27.0.0	zulu27.28.101-ca-jdk27.0.0-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
-# maven	4.0.0	apache-maven-4.0.0-bin.zip
 # ruby	2.4.10
 # ruby	2.5.9
 # ruby	2.6.10
