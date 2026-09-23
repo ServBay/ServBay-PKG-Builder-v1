@@ -630,10 +630,18 @@ get_package_verification_info() {
             # path contains the version and could falsely satisfy the outer
             # match. The -version output goes to stderr, hence 2>&1.
             # JDK 27+ prints only the feature version (openjdk version "27")
-            # while older lines print the full version ("26.0.2.1"), so match
+            # while 9+ lines print the full version ("17.0.20.1"), so match
             # the quoted major prefix and echo the conf version for the outer
-            # substring match.
-            verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1 | grep -q 'openjdk version \"${version_major}' && echo ${packageVersion}"
+            # substring match. Legacy JDK 7/8 (Zulu) print the version with a
+            # "1." prefix (openjdk version "1.8.0_504") which can never match
+            # that prefix — emit the raw output instead and let
+            # core_verify_package's legacy conversion (8.0.504 -> 1.8.0_504)
+            # do the matching.
+            if [[ "${version_major}" == "7" || "${version_major}" == "8" ]]; then
+                verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1"
+            else
+                verify_command="test -x ${jdk_bin} && ${jdk_bin} -version 2>&1 | grep -q 'openjdk version \"${version_major}' && echo ${packageVersion}"
+            fi
             ;;
         "maven")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1}')
@@ -647,11 +655,24 @@ get_package_verification_info() {
         "dotnetsdk")
             # Use the helper function to get the correct major version for the path
             local version_major=$(_get_dotnetsdk_major_version "$packageVersion")
+            local dotnet_bin="${SERVBAY_PACKAGE_FULL_PATH}/dotnetsdk/${version_major}/${packageVersion}/dotnet"
             # Repacked short name (e.g. 11.0.100-rc1) differs from the runtime's
             # own report (e.g. 11.0.100-rc.1.26425.128). Echo the conf version
             # only when the installed SDK reports the expected major.minor, so
             # core_verify's substring match works for GA and prerelease rows.
-            verify_command="${SERVBAY_PACKAGE_FULL_PATH}/dotnetsdk/${version_major}/${packageVersion}/dotnet --version | grep -q \"${version_major}\" && echo \"${packageVersion}\""
+            # Both branches are guarded by test -x so a missing binary cannot
+            # fake a pass via the path in the error text, and both drop stderr:
+            # a broken binary's error embeds the versioned install path, which
+            # would otherwise leak into core_verify's 2>&1 capture and match.
+            # Legacy rows (e.g. 2.1.202) live under a dotnetsdk/2.0 path while
+            # the SDK reports "2.1.202", which never contains "2.0" — emit the
+            # raw --version output and let core_verify match the conf version
+            # itself.
+            if [[ "${packageVersion}" == "${version_major}".* ]]; then
+                verify_command="test -x ${dotnet_bin} && ${dotnet_bin} --version 2>/dev/null | grep -q \"${version_major}\" && echo \"${packageVersion}\""
+            else
+                verify_command="test -x ${dotnet_bin} && ${dotnet_bin} --version 2>/dev/null"
+            fi
             ;;
         "mono")
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1"."$2}')

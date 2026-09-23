@@ -1,4 +1,6 @@
 import re
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -133,6 +135,200 @@ class BuildScriptTests(unittest.TestCase):
             r'verify_macos_min_version "\$\{payload_dir\}/lib/ollama/llama-quantize"'
             r' "\$\{macos_min\}"',
         )
+
+    def test_macos_openjdk_verify_accepts_modern_and_legacy_banners(self):
+        # fa00370 把 openjdk 校验改成「匹配 openjdk version "<major> 前缀后回显
+        # conf 版本」，但 Zulu 7/8 的 banner 是 legacy 形式（openjdk version
+        # "1.8.0_504"）：既匹配不到该前缀，回显的 8.0.504 也不含 core_verify_package
+        # 转换出的期望值 1.8.0_504，7/8 校验必然失败。本测试执行
+        # get_package_verification_info 中 openjdk case 的真实代码行，并按
+        # core_verify_package 的契约（7/8 legacy 转换 + grep -qFi 子串匹配，
+        # 见 build_package core_verify_package 的 openjdk 分支）断言校验结果。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+
+        def banner_java(banner: str) -> str:
+            return f'echo \'openjdk version "{banner}"\' >&2'
+
+        # 现代版本：27 只打印 feature version，17 打印完整版本。
+        self.assertTrue(self._core_verify_passes(
+            "openjdk", "27.0.0",
+            self._run_verify_case(script, "openjdk", "27.0.0",
+                                  "openjdk/27/27.0.0/bin/java", banner_java("27")),
+        ))
+        self.assertTrue(self._core_verify_passes(
+            "openjdk", "17.0.20.1",
+            self._run_verify_case(script, "openjdk", "17.0.20.1",
+                                  "openjdk/17/17.0.20.1/bin/java", banner_java("17.0.20.1")),
+        ))
+        # Zulu 7/8 legacy banner：本回归的核心场景，缺陷实现下必然失败。
+        self.assertTrue(self._core_verify_passes(
+            "openjdk", "8.0.504",
+            self._run_verify_case(script, "openjdk", "8.0.504",
+                                  "openjdk/8/8.0.504/bin/java", banner_java("1.8.0_504")),
+        ))
+        self.assertTrue(self._core_verify_passes(
+            "openjdk", "7.0.352",
+            self._run_verify_case(script, "openjdk", "7.0.352",
+                                  "openjdk/7/7.0.352/bin/java", banner_java("1.7.0_352")),
+        ))
+        # 反例 1：bin/java 缺失 → test -x 短路，空输出不得被误判为通过。
+        self.assertFalse(self._core_verify_passes(
+            "openjdk", "8.0.504",
+            self._run_verify_case(script, "openjdk", "8.0.504",
+                                  "openjdk/8/8.0.504/bin/java", "", install_bin=False),
+        ))
+        # 反例 2：java 损坏，报错文本包含含版本的安装路径（如
+        # ".../openjdk/27/27.0.0/bin/java"），gate 必须拦住这种伪通过。
+        self.assertFalse(self._core_verify_passes(
+            "openjdk", "27.0.0",
+            self._run_verify_case(script, "openjdk", "27.0.0",
+                                  "openjdk/27/27.0.0/bin/java",
+                                  'echo "exec format error: $0" >&2'),
+        ))
+
+    def test_macos_php_verify_keeps_banner_output_for_core_match(self):
+        # get_package_verification_info 里 "php") 出现两次：前一个（raw `php -v`，
+        # 满足 core_verify_package 的「输出内容」契约）实际生效；后一个用
+        # `grep -q` 静默吞掉输出，若它变成可达分支，core_verify 的子串匹配
+        # （grep -qFi "$versionToMatch"）作用在空输出上必然失败——与 openjdk 7/8
+        # P1 同类。本测试钉住可达分支的真实行为（stable 与 dev——后者由
+        # core_verify 截断日期后缀后匹配），防止分支重排或合并后静默回归。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+
+        self.assertTrue(self._core_verify_passes(
+            "php", "8.4.27",
+            self._run_verify_case(script, "php", "8.4.27",
+                                  "php/8.4/8.4.27/bin/php",
+                                  'echo "PHP 8.4.27 (cli) (built: Nov  1 2026)"'),
+        ))
+        self.assertTrue(self._core_verify_passes(
+            "php", "8.5.0-dev-20251105",
+            self._run_verify_case(script, "php", "8.5.0-dev-20251105",
+                                  "php/8.5/8.5.0-dev-20251105/bin/php",
+                                  'echo "PHP 8.5.0-dev (cli) (built: Nov  5 2025)"'),
+        ))
+
+    def test_macos_dotnetsdk_verify_cannot_be_faked_by_error_text(self):
+        # dotnetsdk 现代分支（packageVersion == major.*，如 11.0.100-rc1）此前
+        # 缺少 test -x 守卫且未丢弃 stderr：dotnet 缺失/损坏时，zsh 的
+        # "no such file or directory: .../dotnetsdk/11.0/11.0.100-rc1/dotnet"
+        # 报错文本被 core_verify_package 的 2>&1 捕获，其中含 conf 版本子串，
+        # 校验伪通过（与 openjdk 反例同类）。本测试执行该 case 的真实代码行，
+        # 按 core_verify_package 契约（grep -qFi 子串匹配）断言。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+
+        # 正例：SDK 报告的运行时版本（11.0.100-rc.1.x）与 conf 短名
+        # （11.0.100-rc1）不同，grep 命中 major 后回显 conf 版本。
+        self.assertTrue(self._core_verify_passes(
+            "dotnetsdk", "11.0.100-rc1",
+            self._run_verify_case(script, "dotnetsdk", "11.0.100-rc1",
+                                  "dotnetsdk/11.0/11.0.100-rc1/dotnet",
+                                  'echo "11.0.100-rc.1.26425.128"'),
+        ))
+        # 反例 1：dotnet 缺失 → test -x 短路，报错文本不得构成伪通过。
+        self.assertFalse(self._core_verify_passes(
+            "dotnetsdk", "11.0.100-rc1",
+            self._run_verify_case(script, "dotnetsdk", "11.0.100-rc1",
+                                  "dotnetsdk/11.0/11.0.100-rc1/dotnet",
+                                  "", install_bin=False),
+        ))
+        # 反例 2：dotnet 损坏，stderr 报错含含版本的安装路径（如
+        # ".../dotnetsdk/11.0/11.0.100-rc1/dotnet"），不得落入外层捕获。
+        self.assertFalse(self._core_verify_passes(
+            "dotnetsdk", "11.0.100-rc1",
+            self._run_verify_case(script, "dotnetsdk", "11.0.100-rc1",
+                                  "dotnetsdk/11.0/11.0.100-rc1/dotnet",
+                                  'echo "exec format error: $0" >&2'),
+        ))
+        # legacy 行（2.1.202 → dotnetsdk/2.0 路径）：test -x 已有，但损坏
+        # 二进制的 stderr 报错此前会逃逸到外层捕获构成伪通过，一并钉住。
+        self.assertTrue(self._core_verify_passes(
+            "dotnetsdk", "2.1.202",
+            self._run_verify_case(script, "dotnetsdk", "2.1.202",
+                                  "dotnetsdk/2.0/2.1.202/dotnet",
+                                  'echo "2.1.202"'),
+        ))
+        self.assertFalse(self._core_verify_passes(
+            "dotnetsdk", "2.1.202",
+            self._run_verify_case(script, "dotnetsdk", "2.1.202",
+                                  "dotnetsdk/2.0/2.1.202/dotnet",
+                                  'echo "exec format error: $0" >&2'),
+        ))
+
+    def _extract_case_block(self, script: str, package: str) -> str:
+        verification = self._extract_shell_function(
+            script, "get_package_verification_info"
+        )
+        block_match = re.search(
+            rf'"{package}"\)\n(?P<block>.*?)\n\s*;;', verification, re.DOTALL
+        )
+        self.assertIsNotNone(block_match, f"{package} case block not found")
+        return block_match.group("block")
+
+    def _run_verify_case(self, script: str, package: str, version: str,
+                         bin_relpath: str, binary_script: str,
+                         install_bin: bool = True) -> str:
+        """在 zsh 中执行 get_package_verification_info 对应 case 的真实代码行，
+        返回 eval verify_command 的合并输出（复刻 core_verify_package 的捕获方式）。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            if install_bin:
+                bin_rel = Path(bin_relpath)
+                bin_dir = Path(tmp) / bin_rel.parent
+                bin_dir.mkdir(parents=True)
+                binary = bin_dir / bin_rel.name
+                binary.write_text(f"#!/bin/sh\n{binary_script}\n", encoding="utf-8")
+                binary.chmod(0o755)
+            harness_parts = []
+            # case block 可能调用脚本内的 helper（如 dotnetsdk 的
+            # _get_dotnetsdk_major_version），注入真实定义（_extract_shell_function
+            # 只返回函数体，需补回函数头），避免测试走偏。
+            try:
+                harness_parts.append(
+                    "_get_dotnetsdk_major_version() {\n"
+                    + self._extract_shell_function(
+                        script, "_get_dotnetsdk_major_version"
+                    )
+                    + "}"
+                )
+            except AssertionError:
+                pass
+            harness_parts.append(
+                "run_case() {\n"
+                f'    local packageName="{package}"\n'
+                f'    local packageVersion="{version}"\n'
+                f'    local SERVBAY_PACKAGE_FULL_PATH="{tmp}"\n'
+                f"{self._extract_case_block(script, package)}\n"
+                '    local output=$(eval "$verify_command" 2>&1)\n'
+                '    print -r -- "$output"\n'
+                "}\n"
+                "run_case\n"
+            )
+            harness = "\n".join(harness_parts)
+            result = subprocess.run(
+                ["/bin/zsh", "-c", harness],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(
+                result.returncode, 0, f"harness failed: {result.stderr}"
+            )
+            return result.stdout
+
+    @staticmethod
+    def _core_verify_passes(package: str, version: str, output: str) -> bool:
+        # 镜像 core_verify_package 的期望值转换：php dev 截断日期后缀、
+        # openjdk 7/8 转 legacy 1.<major>.0_<patch>，其余直接用 conf 版本；
+        # 对 verify_command 输出做不区分大小写的子串匹配（grep -qFi 语义）。
+        expected = version
+        php_dev = re.match(r"^([0-9]+\.[0-9]+\.[0-9]+-dev)-[0-9]{8}$", version)
+        if package == "php" and php_dev:
+            expected = php_dev.group(1)
+        else:
+            legacy = re.match(r"^([78])\.0\.([0-9]+)$", version)
+            if package == "openjdk" and legacy:
+                expected = f"1.{legacy.group(1)}.0_{legacy.group(2)}"
+        return expected.lower() in output.lower()
 
     @staticmethod
     def _extract_shell_function(script, name):
