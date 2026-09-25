@@ -2086,7 +2086,7 @@ build_caddy() {
         --output "${prefix}/bin/caddy" \
         --with github.com/caddy-dns/cloudflare \
         --with github.com/caddy-dns/dnspod \
-        --replace github.com/libdns/dnspod=github.com/geminiwen/dnspod@cbfeba6 \
+        --replace github.com/libdns/dnspod=github.com/naizhao/caddy-dnspod@c534e5a8a624 \
         --with github.com/caddy-dns/route53 \
         --with github.com/caddy-dns/godaddy \
         --with github.com/caddy-dns/googleclouddns \
