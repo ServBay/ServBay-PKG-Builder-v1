@@ -147,7 +147,7 @@ postgresql	19.beta2
 # composer	2.2.30
 # composer	2.10.3
 # adminer	6.1.1
-git	2.56.0
+# git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
 # ollama	0.34.4
@@ -156,7 +156,7 @@ git	2.56.0
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.54.1
+meilisearch	1.54.2
 # simple-acme	2.4.0
 # cloudflared	2026.9.3
 # frp	0.71.0
@@ -174,4 +174,4 @@ meilisearch	1.54.1
 # mongodb	8.2.12
 # mongodb	8.3.11
 # mongosh	2.12.0
-# mongotools	100.19.0
+mongotools	100.19.1
