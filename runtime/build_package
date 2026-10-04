@@ -2053,6 +2053,28 @@ build_memcached() {
 }
 
 ###
+# @description Put Homebrew's keg-only go@1.26 in front of PATH for packages
+#              that must emit minos 12.0. Go >= 1.27 hard-pins darwin binaries
+#              to macOS 13.0 (its runtime objects are compiled for 13) and
+#              MACOSX_DEPLOYMENT_TARGET cannot lower that floor. Kept as a helper
+#              because both caddy and minio need it.
+# @return 0 (logs a warning and keeps the PATH go when go@1.26 is absent).
+###
+use_pinned_go_1_26() {
+    local go126_bin=""
+    [[ -x /opt/homebrew/opt/go@1.26/bin/go ]] && go126_bin="/opt/homebrew/opt/go@1.26/bin/go"
+    [[ -z "$go126_bin" && -x /usr/local/opt/go@1.26/bin/go ]] && go126_bin="/usr/local/opt/go@1.26/bin/go"
+    if [[ -z "$go126_bin" ]]; then
+        log_message "WARN" "go@1.26 not found; falling back to PATH go (may emit minos 13.0)."
+        return 0
+    fi
+    export PATH="$(dirname "$go126_bin"):${GOPATH}/bin:${PATH}"
+    # local = never auto-download a newer toolchain; 1.26 stays in effect.
+    export GOTOOLCHAIN=local
+    log_message "INFO" "Using pinned Go 1.26 (go@1.26) for this build."
+}
+
+###
 # @description Build logic for the Caddy web server.
 # @param $1 string Package version.
 # @param $2 string Source filename (ignored for Caddy).
@@ -2072,11 +2094,15 @@ build_caddy() {
 
     # Pin the deployment target: without this, the external linker follows the CI
     # runner's SDK (macos-26/Xcode 26 writes minos 13.0), tripping the pack gate.
+    # Go >= 1.27 raises the floor itself (runtime objects compiled for macOS 13),
+    # so also force the 1.26 toolchain — the newest Go that still emits minos 12.0
+    # and satisfies caddy's "go 1.26.0" requirement.
     local macos_min="${BUILD_OS_MIN_VERSION%%.*}.0"
     log_message "INFO" "Pinning macOS deployment target to ${macos_min} for Caddy..."
     export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
     export CGO_CFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CFLAGS}"
     export CGO_LDFLAGS="-mmacosx-version-min=${macos_min} ${CGO_LDFLAGS}"
+    use_pinned_go_1_26
 
     # 1. Install xcaddy, the Caddy builder tool
     log_message "INFO" "Installing/updating xcaddy tool..."
@@ -3255,11 +3281,14 @@ build_minio() {
     # 钉住 deployment target：当 Go 走外部链接（cgo）时，产物的 minos 会跟随
     # 编译机 SDK —— 线上 minio 实测 14.0 即为此。纯内部链接的 Go 二进制 minos
     # 固定为 11.0、不受影响，多设这些变量也无副作用。
+    # Go >= 1.27 则把 darwin 下限自身抬到 13.0（见 use_pinned_go_1_26），故同时
+    # 钉住工具链版本；minio go.mod 要求 go 1.24，1.26 兼容。
     local macos_min="${BUILD_OS_MIN_VERSION%%.*}.0"
     log_message "INFO" "Pinning macOS deployment target to ${macos_min} for MinIO..."
     export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
     export CGO_CFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CFLAGS}"
     export CGO_LDFLAGS="-mmacosx-version-min=${macos_min} ${CGO_LDFLAGS}"
+    use_pinned_go_1_26
 
     # Build the MinIO binary with version information.
     log_message "INFO" "Building MinIO binary..."
