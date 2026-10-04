@@ -2070,6 +2070,14 @@ build_caddy() {
     # Ensure we are in the main build directory to have access to conf files etc.
     cd "$SERVBAY_BUILD_DIR"
 
+    # Pin the deployment target: without this, the external linker follows the CI
+    # runner's SDK (macos-26/Xcode 26 writes minos 13.0), tripping the pack gate.
+    local macos_min="${BUILD_OS_MIN_VERSION%%.*}.0"
+    log_message "INFO" "Pinning macOS deployment target to ${macos_min} for Caddy..."
+    export MACOSX_DEPLOYMENT_TARGET="${macos_min}"
+    export CGO_CFLAGS="-mmacosx-version-min=${macos_min} ${CGO_CFLAGS}"
+    export CGO_LDFLAGS="-mmacosx-version-min=${macos_min} ${CGO_LDFLAGS}"
+
     # 1. Install xcaddy, the Caddy builder tool
     log_message "INFO" "Installing/updating xcaddy tool..."
     # The Go environment is already set up by build_package
