@@ -128,7 +128,11 @@ jobs:
           # php.net tarballs ship pre-generated ones so only source-archive builds
           # hit this. None are in the ServBay base; they were present on the
           # original physical Mac hosts.
-          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool re2c
+          # go@1.26 (keg-only, NOT on PATH): caddy's minos gate needs Go < 1.27 —
+          # Go 1.27 hard-pins darwin binaries to macOS 13.0 and MACOSX_DEPLOYMENT_TARGET
+          # cannot lower it; 1.26 is the newest that emits minos 12.0. build_caddy
+          # puts it on PATH itself; keep plain `go` for everything else.
+          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool re2c go@1.26
 
       # Caching policy (intentional, do not re-add per-package caches):
       # ONLY the runtime+devlib base (cached above) is worth caching — it is the one
