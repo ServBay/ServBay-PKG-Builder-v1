@@ -150,13 +150,13 @@ postgresql	19.beta2
 # git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-ollama	0.40.3
+# ollama	0.40.3
 # memcached	1.6.45
-mailpit	1.31.5
+# mailpit	1.31.5
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-# meilisearch	1.54.3
+meilisearch	1.55.0
 # simple-acme	2.4.1
 # cloudflared	2026.10.0
 # frp	0.71.0
