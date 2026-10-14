@@ -27,9 +27,9 @@
 # node	21.7.3
 # node	22.23.3
 # node	23.11.1
-# node	24.21.0
+node	24.22.0
 # node	25.9.0
-# node	26.11.1
+node	26.12.0
 # python	2.7.18
 # python	3.5.4
 # python	3.6.8
@@ -142,7 +142,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # postgresql	17.11	postgresql-17.11-1-windows-x64-binaries.zip
 # postgresql	18.6	postgresql-18.6-1-windows-x64-binaries.zip
 postgresql	19.beta2
-# nginx	1.31.6
+nginx	1.31.7
 # redis	7.4.11
 # composer	2.2.30
 # composer	2.10.3
@@ -150,7 +150,7 @@ postgresql	19.beta2
 # git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.40.3
+ollama	0.40.4
 # memcached	1.6.45
 # mailpit	1.31.5
 ai-gateway	1.0.0
@@ -159,7 +159,7 @@ disk-cleaner	1.0.0
 # meilisearch	1.55.0
 # simple-acme	2.4.1
 # cloudflared	2026.10.0
-# frp	0.71.0
+frp	0.71.1
 # pinggy	0.6.1
 # ngrok	3.39.11	P2eJimSQ97
 # bun	1.4.3
@@ -169,9 +169,9 @@ disk-cleaner	1.0.0
 # mongodb	4.4.31
 # mongodb	5.0.34
 # mongodb	6.0.29
-mongodb	7.0.45
-mongodb	8.0.34
+# mongodb	7.0.45
+# mongodb	8.0.34
 # mongodb	8.2.12
-mongodb	8.3.13
+# mongodb	8.3.13
 # mongosh	2.13.0
 # mongotools	100.19.1
