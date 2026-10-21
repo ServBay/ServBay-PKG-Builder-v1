@@ -9,6 +9,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_share_the_gd_configure_fix(self):
+        # 7.0-7.3 carry the same run-based GD check as 7.4, so each needs its
+        # own patch: the hunk line numbers differ per release and applying the
+        # 7.4 file would silently patch an unrelated configure test.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("7.0", "7.1", "7.2", "7.3", "7.4"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn(f'"php{major}/gd-configure-runtime-test.patch:p1"', branch)
+            self.assertTrue(
+                (ROOT / "runtime" / "patch" / f"php{major}" / "gd-configure-runtime-test.patch").is_file(),
+                f"php {major} GD patch must ship",
+            )
+
     def test_macos_php7_branches_provide_a_freetype_config(self):
         # PHP < 7.4 only accept --with-freetype-dir and then require
         # "$dir/bin/freetype-config". The base ships freetype2.pc but no
