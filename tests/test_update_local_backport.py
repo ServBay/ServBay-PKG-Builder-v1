@@ -59,6 +59,50 @@ class LocalBackportVersionTests(unittest.TestCase):
         self.assertIn("7.3.34", self.conf.read_text())
         self.assertNotIn("7.3.33.1", self.conf.read_text())
 
+    def test_refresh_keeps_the_local_line_next_to_the_upstream_line(self):
+        """The refresh rewrites each series down to one line; both must survive.
+
+        The upstream line stays as the provenance record (commented), the local
+        build keeps whatever state the human left it in.
+        """
+        content = ("# php\t7.3.33\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n"
+                   "php\t7.3.33.1\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n")
+        updater = self.updater(content)
+        self.update(updater, {"php": {"7.3": "7.3.33"}})
+        self.assertEqual(content, self.conf.read_text())
+        self.assertEqual([], updater.updated_records)
+
+    def test_refresh_leaves_a_published_local_line_commented(self):
+        content = ("# php\t7.3.33\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n"
+                   "# php\t7.3.33.1\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n")
+        updater = self.updater(content)
+        self.update(updater, {"php": {"7.3": "7.3.33"}})
+        self.assertEqual(content, self.conf.read_text())
+        self.assertEqual([], updater.updated_records)
+
+    def test_refresh_comments_a_still_active_upstream_line(self):
+        content = ("php\t7.3.33\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n"
+                   "php\t7.3.33.1\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n")
+        updater = self.updater(content)
+        self.update(updater, {"php": {"7.3": "7.3.33"}})
+        self.assertEqual(content.replace("php\t7.3.33\t", "# php\t7.3.33\t"),
+                         self.conf.read_text())
+
+    def test_source_filename_strips_the_local_revision_segment(self):
+        """x.y.z.N publishes the upstream x.y.z tarball.
+
+        The revision segment exists only so the registry can order the local
+        build above the tag; the archive on php.net is still php-7.3.33.tar.gz.
+        Deriving php-7.3.33.1.tar.gz would 404 at download time.
+        """
+        updater = UPDATE.PackageUpdater(runtime_version="v1")
+        self.assertEqual("php-7.3.33.tar.gz", updater.generate_filename("php", "7.3.33.1", "x86"))
+        self.assertEqual("php-5.6.40.tar.gz", updater.generate_filename("php", "5.6.40.2", "arm"))
+        # Unchanged for upstream releases and for the dated dev builds.
+        self.assertEqual("php-7.3.33.tar.gz", updater.generate_filename("php", "7.3.33", "x86"))
+        self.assertEqual("php-8.6.0-dev-20251105.tar.gz",
+                         updater.generate_filename("php", "8.6.0-dev-20251105", "x86"))
+
     def test_a_local_build_in_another_series_does_not_mask_this_one(self):
         content = "php\t7.3.33.1\tphp-7.3.33.tar.gz\tphp-7.3.33.tar.gz\n" \
                   "php\t8.0.30\tphp-8.0.30.tar.gz\tphp-8.0.30.tar.gz\n"
