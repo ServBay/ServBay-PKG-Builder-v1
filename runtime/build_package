@@ -5156,6 +5156,21 @@ build_php() {
         if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
     done
 
+    # 4b. Refresh generated VM headers after patching.
+    # php.net tarballs ship Zend/zend_vm_def.h, zend_vm_execute.h and
+    # zend_vm_opcodes.h with one shared mtime. A patch rewrites only the first
+    # two, so make sees zend_vm_opcodes.h as stale and re-runs zend_vm_gen.php
+    # mid-build -- and on some PHP CLIs that generator writes a broken header
+    # ("ZEND_VM_KIND_CALL" undefined), failing the compile with "invalid token
+    # at start of a preprocessor expression". Touching them together keeps make
+    # on the pre-generated files the tarball already ships.
+    local generated
+    for generated in Zend/zend_vm_execute.h Zend/zend_vm_opcodes.h; do
+        if [[ -f "$generated" ]]; then
+            touch "$generated"
+        fi
+    done
+
     # 5. Run pre-build commands (e.g., ./buildconf).
     for cmd in "${PHP_PRE_BUILD_CMDS[@]}"; do
         log_message "INFO" "Running pre-build command: $cmd"
