@@ -4951,7 +4951,7 @@ _get_php_build_config() {
         "--enable-calendar" "--enable-exif" "--with-xsl=${SERVBAY_COMMON_PATH}"
         "--with-openssl=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" "--enable-opcache"
         "--with-mhash" "--with-readline=${SERVBAY_COMMON_PATH}" "--enable-mbregex" "--enable-intl"
-        "--enable-pcntl" "--with-zip" "--with-gettext=${SERVBAY_COMMON_PATH}" "--with-gmp"
+        "--enable-pcntl" "--with-zip" "--with-gettext=${SERVBAY_COMMON_PATH}" "--with-gmp=${SERVBAY_COMMON_PATH}"
         "--with-sqlite3" "--with-pdo-sqlite" "--with-ldap=${SERVBAY_COMMON_PATH}" "--with-tidy=${SERVBAY_COMMON_PATH}"
         "--with-kerberos" "--with-pear" "--with-imap=${SERVBAY_COMMON_PATH}/imap-uw"
         "--with-imap-ssl=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}"
@@ -5276,6 +5276,18 @@ build_php() {
     if [[ -f Zend/zend_vm_execute.h && -f Zend/zend_vm_opcodes.h && -f Makefile ]]; then
         sed -E 's/^PHP = .*/PHP =/' Makefile > Makefile.servbay-tmp && mv Makefile.servbay-tmp Makefile
         log_message "INFO" "Pinned Makefile PHP generator to the tarball's pre-generated VM headers."
+    fi
+
+    # 6c. Demote the vendored libjpeg callback type mismatch for pre-7.4 branches.
+    # The old ext/gd/libgd shim assigns callbacks typed with the historic
+    # `boolean` to jpeglib's `safeboolean` slots; current clang promotes that to
+    # an error and gd_jpeg.c will not compile. PHP's configure rewrites CFLAGS
+    # from scratch, so the flag has to go into the generated Makefile.
+    if [[ "$version_major" =~ ^(5.3|5.4|5.5|5.6|7.0|7.1|7.2|7.3)$ && -f Makefile ]]; then
+        # CFLAGS_CLEAN is what libtool's compile line actually expands.
+        sed -E 's/^CFLAGS_CLEAN = (.*)$/CFLAGS_CLEAN = \1 -Wno-error=incompatible-function-pointer-types -Wno-error=implicit-int/' \
+            Makefile > Makefile.servbay-cflags && mv Makefile.servbay-cflags Makefile
+        log_message "INFO" "Allowed the legacy libjpeg callback signature mismatch in gd_jpeg.c."
     fi
 
     # 7. Compile and install PHP.

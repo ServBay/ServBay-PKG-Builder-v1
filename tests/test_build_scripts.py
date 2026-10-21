@@ -9,6 +9,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php_legacy_branches_demote_libjpeg_callback_mismatch(self):
+        # ext/gd/libgd's vendored jpeg shim assigns callbacks typed with the
+        # historic `boolean` into jpeglib's `safeboolean` slots. PHP's configure
+        # rebuilds CFLAGS from scratch, so appending to the environment is a
+        # no-op -- the flag has to be written into the generated Makefile's
+        # CFLAGS_CLEAN, which is what libtool's compile line expands.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        build_php = self._extract_shell_function(script, "build_php")
+
+        self.assertIn("^CFLAGS_CLEAN = ", build_php)
+        self.assertIn("-Wno-error=incompatible-function-pointer-types", build_php)
+        # Must run after configure and before make.
+        configure = build_php.index('./configure --prefix="${prefix}"')
+        sed_line = build_php.index("^CFLAGS_CLEAN = ")
+        make_line = build_php.index("make -j${CPU_NUMBER}")
+        self.assertLess(configure, sed_line)
+        self.assertLess(sed_line, make_line)
+
     def test_macos_php7_branches_share_the_gd_configure_fix(self):
         # 7.0-7.3 carry the same run-based GD check as 7.4, so each needs its
         # own patch: the hunk line numbers differ per release and applying the
