@@ -1281,6 +1281,12 @@ class PackageUpdater:
             # dev 版本文件名是 git commit hash，沿用模板
             if '-dev-' in version and template:
                 return template
+            # A local security backport publishes as x.y.z.N while the archive on
+            # php.net is still the upstream x.y.z release; the extra segment only
+            # exists so the registry can order the local build above the tag.
+            revision = re.match(r'^(\d+\.\d+\.\d+)\.\d+$', version)
+            if revision:
+                return f"php-{revision.group(1)}.tar.gz"
             return f"php-{version}.tar.gz"
 
         # Special handling for PostgreSQL
@@ -1563,23 +1569,29 @@ class PackageUpdater:
                     # Check for exact match
                     exact_match = next((e for e in matching_entries if e['ver'] == latest), None)
 
-                    if exact_match:
+                    # A security backport on an EOL branch publishes above the
+                    # upstream tag (php 7.3.33.1 over 7.3.33) and upstream will
+                    # never move past it. This series is collapsed to one line
+                    # below, so keep both: the local build exactly as the human
+                    # left it, and the upstream line as provenance. Rewriting or
+                    # dropping the local line would queue a build of the
+                    # unpatched tarball and overwrite the patched artifact.
+                    local_best = (max(matching_entries, key=lambda e: self.version_to_tuple(e['ver']))
+                                  if matching_entries else None)
+                    if local_best and self.compare_versions(local_best['ver'], latest) > 0:
+                        if exact_match:
+                            upstream_line = exact_match['line']
+                            if not upstream_line.strip().startswith('#'):
+                                upstream_line = "# " + upstream_line
+                            final_items.append((self.version_to_tuple(latest), upstream_line))
+                        final_items.append((self.version_to_tuple(local_best['ver']), local_best['line']))
+                        processed_series.add(s_key)
+                    elif exact_match:
                         # 版本无更新 → 已编译过，确保注释
                         line = exact_match['line']
                         if not line.strip().startswith('#'):
                             line = "# " + line
                         final_items.append((self.version_to_tuple(latest), line))
-                        processed_series.add(s_key)
-                    elif any(self.compare_versions(e['ver'], latest) > 0 for e in matching_entries):
-                        # The conf carries a local build newer than upstream — a
-                        # security backport on an EOL branch (e.g. php 7.3.33.1
-                        # against an upstream that will never tag past 7.3.33).
-                        # Rewriting it to `latest` would queue a build of the
-                        # unpatched upstream tarball and overwrite the patched
-                        # artifact, so keep the local line exactly as it is —
-                        # active or commented, whichever the human left it as.
-                        keep = max(matching_entries, key=lambda e: self.version_to_tuple(e['ver']))
-                        final_items.append((self.version_to_tuple(keep['ver']), keep['line']))
                         processed_series.add(s_key)
                     else:
                         # Update needed
