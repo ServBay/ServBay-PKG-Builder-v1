@@ -4668,6 +4668,12 @@ _build_php_mod_xdebug() {
     local php_config="${php_prefix}/bin/php-config"; local php_bin_dir="${php_prefix}/bin"
     _download_pecl_source "$mod_name" "$mod_version"
     unpack_package "${mod_name}-${mod_version}" "${mod_name}-${mod_version}.tgz" && {
+        # xdebug 3.1.6 (the only line supporting PHP 7.4) declares its minit
+        # hooks with an empty parameter list; PHP 8.x passes INIT_FUNC_ARGS.
+        if [[ "$mod_version" == "3.1.6" ]]; then
+            _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/xdebug/3.1.6-init-func-args.patch" "p1"
+            if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
+        fi
         "${php_bin_dir}/phpize"
 
         if [[ "$php_version_major" == "8.5" ]]; then
@@ -4836,7 +4842,10 @@ _build_php_mod_phalcon() {
     _download_pecl_source "$mod_name" "$mod_version"
     unpack_package "${mod_name}-${mod_version}" "phalcon-${mod_version}.tar.gz" && {
         if [[ "$php_version_major" == "5.6" ]]; then cd build/php5/64bits; fi
-        if [[ "$php_version_major" =~ ^(7.0|7.1)$ ]]; then cd build/php7/64bits; fi
+        # phalcon 4.x ships config.m4 under build/php7/64bits and has no
+        # build/phalcon directory at all, so 7.2-7.4 must take the same path as
+        # 7.0/7.1 instead of the unconditional cd below.
+        if [[ "$php_version_major" =~ ^(7.0|7.1|7.2|7.3|7.4)$ ]]; then cd build/php7/64bits; fi
         if [[ "$php_version_major" =~ "8.4" ]]; then
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/phalcon.diff" "p0"
         fi
@@ -4847,7 +4856,11 @@ _build_php_mod_phalcon() {
             _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.5/phalcon.diff" "p0"
             # _apply_single_patch "${SERVBAY_BUILD_DIR}/patch/php8.6/phalcon-5.9.3.patch" "p0"
         fi
-        cd build/phalcon
+        # Only the newer phalcon layouts have a build/phalcon directory; the
+        # 7.x-compatible 4.x layout is already entered above.
+        if [[ ! "$php_version_major" =~ ^(5.6|7.0|7.1|7.2|7.3|7.4)$ ]]; then
+            cd build/phalcon
+        fi
         "${php_bin_dir}/phpize"
         ./configure --with-php-config="${php_config}" --enable-phalcon
         make -j${CPU_NUMBER} && make install
