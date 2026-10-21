@@ -9,6 +9,31 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php_patch_application_keeps_generated_vm_headers_fresh(self):
+        # php.net tarballs ship Zend/zend_vm_def.h, zend_vm_execute.h and
+        # zend_vm_opcodes.h with an identical mtime. A patch only touches the
+        # first two, so after `patch` they become newer than zend_vm_opcodes.h
+        # and make decides the generated headers are stale, re-running
+        # zend_vm_gen.php mid-build. On some PHP CLIs that generator emits a
+        # broken zend_vm_opcodes.h ("ZEND_VM_KIND_CALL" undefined) and the build
+        # dies with "invalid token at start of a preprocessor expression".
+        # Touching every generated header after patching keeps make on the
+        # pre-generated files the tarball already ships.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        build_php = self._extract_shell_function(script, "build_php")
+
+        self.assertIn("zend_vm_execute.h", build_php)
+        self.assertIn("zend_vm_opcodes.h", build_php)
+        # The touch must run after the patch loop and before configure.
+        patch_loop = build_php.index('_apply_single_patch "${SERVBAY_BUILD_DIR}/patch/${patch_file}"')
+        prebuild = build_php.index('for cmd in "${PHP_PRE_BUILD_CMDS[@]}"')
+        configure = build_php.index('./configure --prefix="${prefix}"')
+        touch_call = build_php.index('touch "$generated"')
+        self.assertLess(patch_loop, touch_call)
+        self.assertGreater(touch_call, patch_loop)
+        self.assertLess(touch_call, prebuild)
+        self.assertLess(touch_call, configure)
+
     def test_macos_git_build_disables_optional_rust_components(self):
         script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
         build_git = self._extract_shell_function(script, "build_git")
