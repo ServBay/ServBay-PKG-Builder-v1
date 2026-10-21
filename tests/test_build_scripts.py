@@ -9,6 +9,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_use_the_active_sdk_for_libedit(self):
+        # 7.0-7.3 hard-coded the CommandLineTools SDK for --with-libedit.
+        # -isysroot selects Xcode's SDK, and mixing the two makes libc++'s
+        # <cmath> fail with "tried including <math.h> but didn't find libc++'s
+        # <math.h> header", since that -I also shadows the system headers.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+
+        self.assertNotIn("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk", config)
+        for major in ("7.0", "7.1", "7.2", "7.3"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn("$(_php_sdk_path)/usr", branch,
+                          f"php {major} must resolve libedit from the active SDK")
+        self.assertIn("xcrun --sdk macosx --show-sdk-path",
+                      self._extract_shell_function(script, "_php_sdk_path"))
+
     def test_macos_php_legacy_branches_demote_libjpeg_callback_mismatch(self):
         # ext/gd/libgd's vendored jpeg shim assigns callbacks typed with the
         # historic `boolean` into jpeglib's `safeboolean` slots. PHP's configure

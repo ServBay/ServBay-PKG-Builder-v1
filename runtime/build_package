@@ -1342,6 +1342,19 @@ post_build_process() {
 # ==============================================================================
 
 ###
+# @description Print the active macOS SDK path.
+#
+#   7.0-7.3 hard-coded --with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr.
+#   That SDK is a different build than the one -isysroot selects (Xcode's), and
+#   mixing them makes libc++'s <cmath> fail to find a compatible <math.h>:
+#       <cmath> tried including <math.h> but didn't find libc++'s <math.h> header
+#   Resolve the SDK the same way the rest of the build does.
+###
+_php_sdk_path() {
+    xcrun --sdk macosx --show-sdk-path
+}
+
+###
 # @description Provide a freetype-config shim for PHP branches that predate the
 #   pkg-config based --with-freetype (7.4+).
 #
@@ -5079,13 +5092,13 @@ _get_php_build_config() {
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.5.5" [apcu]="4.0.11" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" [phalcon]="3.4.5" )
             ;;
         "7.0")
-            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-onig=${SERVBAY_COMMON_PATH}" )
+            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" "--with-onig=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" "php7.0/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.3.6" [phalcon]="3.4.5" )
             ;;
         "7.1")
-            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" )
+            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.1 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
@@ -5096,7 +5109,7 @@ _get_php_build_config() {
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.5.11" [phalcon]="3.4.5" )
             ;;
         "7.2")
-            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
+            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.2 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
@@ -5107,7 +5120,7 @@ _get_php_build_config() {
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.3")
-            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
+            PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.3 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
