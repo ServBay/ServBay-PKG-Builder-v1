@@ -9,6 +9,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_wrap_zend_sprintf_for_cxx(self):
+        # ZEND_BROKEN_SPRINTF is 1 on these branches, so php_config.h declares
+        # `int zend_sprintf(...)`. ext/intl's C++ translation units reach that
+        # declaration with C++ linkage while zend_sprintf.c defines it as C:
+        #     error: declaration of 'zend_sprintf' has a different language linkage
+        # Each release carries a patch that wraps the declaration in
+        # extern "C".
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("7.0", "7.1", "7.2", "7.3"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn(f'"php{major}/zend-sprintf-cxx-linkage.patch:p1"', branch)
+            patch_file = ROOT / "runtime" / "patch" / f"php{major}" / "zend-sprintf-cxx-linkage.patch"
+            self.assertTrue(patch_file.is_file(), f"php {major} sprintf patch must ship")
+            self.assertIn('extern "C"', patch_file.read_text())
+
     def test_macos_php7_branches_use_the_active_sdk_for_libedit(self):
         # 7.0-7.3 hard-coded the CommandLineTools SDK for --with-libedit.
         # -isysroot selects Xcode's SDK, and mixing the two makes libc++'s
