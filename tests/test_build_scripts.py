@@ -9,6 +9,28 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php_clears_makefile_php_before_compiling(self):
+        # configure records the host `php` (whatever is on PATH, e.g. a
+        # Homebrew 8.2) into Makefile's PHP variable. The generated VM headers
+        # sit behind an .INTERMEDIATE target, so make re-runs zend_vm_gen.php
+        # every time -- and a generator older than the host PHP emits a broken
+        # zend_vm_opcodes.h (building 8.1 on a PHP 8.2 host fails with
+        # "ZEND_VM_KIND_CALL" undefined). Stable tarballs ship those headers,
+        # so the fix pins the generator off. The sed must run after configure
+        # and before make, and must be guarded on the headers being present so
+        # pre-GA builds keep their generator.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        build_php = self._extract_shell_function(script, "build_php")
+
+        configure = build_php.index('./configure --prefix="${prefix}"')
+        sed_line = build_php.index("sed -E 's/^PHP = .*/PHP =/' Makefile")
+        make_line = build_php.index("make -j${CPU_NUMBER}")
+        self.assertLess(configure, sed_line)
+        self.assertLess(sed_line, make_line)
+        # Guarded on the pre-generated headers existing in the source tree.
+        guard = build_php.rindex("if [[ -f Zend/zend_vm_execute.h", 0, sed_line)
+        self.assertGreater(guard, configure)
+
     def test_macos_php_patch_application_keeps_generated_vm_headers_fresh(self):
         # php.net tarballs ship Zend/zend_vm_def.h, zend_vm_execute.h and
         # zend_vm_opcodes.h with an identical mtime. A patch only touches the
