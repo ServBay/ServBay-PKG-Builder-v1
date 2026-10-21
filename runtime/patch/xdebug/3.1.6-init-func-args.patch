@@ -1,11 +1,15 @@
-xdebug 3.1.6 declares these hooks with an empty parameter list while their
-definitions take INIT_FUNC_ARGS. On PHP 8.x INIT_FUNC_ARGS_PASSTHRU expands
-to `type, module_number`, so calls fail with "too many arguments to function
-call, expected 0, have 2". 3.1.6 is the only xdebug line that still supports
-PHP 7.4 (3.2+ require 8.0), so the declarations are corrected here.
+xdebug 3.1.6 declares xdebug_develop_minit() with an empty parameter list
+while its definition takes INIT_FUNC_ARGS. On PHP 8.x INIT_FUNC_ARGS_PASSTHRU
+expands to `type, module_number`, so the call in xdebug.c fails with
+"too many arguments to function call, expected 0, have 2".
 
---- a/src/develop/develop.h	2022-11-08 21:48:05
-+++ b/src/develop/develop.h	2026-10-22 04:36:07
+3.1.6 is the only xdebug line that still supports PHP 7.4 (3.2+ require 8.0),
+so the declaration is corrected here. The sibling hooks (gcstats, debugger,
+profiler) genuinely take no arguments in both declaration and definition and
+are left alone.
+
+--- a/src/develop/develop.h
++++ b/src/develop/develop.h
 @@ -67,7 +67,7 @@
  void xdebug_init_develop_globals(xdebug_develop_globals_t *xg);
  void xdebug_deinit_develop_globals(xdebug_develop_globals_t *xg);
@@ -15,14 +19,3 @@ PHP 7.4 (3.2+ require 8.0), so the declarations are corrected here.
  void xdebug_develop_mshutdown();
  void xdebug_develop_rinit();
  void xdebug_develop_post_deactivate();
---- a/src/gcstats/gc_stats.h	2022-11-08 21:48:05
-+++ b/src/gcstats/gc_stats.h	2026-10-22 04:36:07
-@@ -31,7 +31,7 @@
- void xdebug_gcstats_init_if_requested(zend_op_array* op_array);
- 
- void xdebug_init_gc_stats_globals(xdebug_gc_stats_globals_t *xg);
--void xdebug_gcstats_minit();
-+void xdebug_gcstats_minit(INIT_FUNC_ARGS);
- void xdebug_gcstats_mshutdown();
- void xdebug_gcstats_rinit();
- void xdebug_gcstats_rshutdown();
