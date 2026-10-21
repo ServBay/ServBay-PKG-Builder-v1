@@ -9,6 +9,30 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_apply_icu_guard_on_both_arches(self):
+        # The ICU patch chooses its override on U_ICU_VERSION_MAJOR_NUM, so both
+        # architectures need it; restricting it to x86_64 left arm64 failing in
+        # ext/intl with "virtual function 'operator==' has a different return type".
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("7.1", "7.2", "7.3"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertNotIn('"$architecture" == "x86_64"', branch,
+                             f"php {major} ICU patch must not be arch-gated")
+            self.assertIn(f'"php{major}/icu.patch:p1"', branch)
+
+    def test_macos_php56_and_70_find_the_renamed_tidy_header(self):
+        # libtidy 5 renamed buffio.h to tidybuffio.h; 5.6/7.0 include the old
+        # name unconditionally and fail with "'buffio.h' file not found".
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("5.6", "7.0"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn(f'"php{major}/tidy-buffio-header.patch:p1"', branch)
+            patch_file = ROOT / "runtime" / "patch" / f"php{major}" / "tidy-buffio-header.patch"
+            self.assertTrue(patch_file.is_file())
+            self.assertIn("tidybuffio.h", patch_file.read_text())
+
     def test_macos_php7_branches_wrap_zend_sprintf_for_cxx(self):
         # ZEND_BROKEN_SPRINTF is 1 on these branches, so php_config.h declares
         # `int zend_sprintf(...)`. ext/intl's C++ translation units reach that
