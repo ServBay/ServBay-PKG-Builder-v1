@@ -9,6 +9,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_provide_a_freetype_config(self):
+        # PHP < 7.4 only accept --with-freetype-dir and then require
+        # "$dir/bin/freetype-config". The base ships freetype2.pc but no
+        # freetype-config, and only the x86_64 image happens to have one in
+        # /usr/local, so arm64 aborted with "freetype-config not found".
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("7.0", "7.1", "7.2", "7.3"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn("_ensure_freetype_config", branch,
+                          f"php {major} must synthesize freetype-config")
+
+        helper = self._extract_shell_function(script, "_ensure_freetype_config")
+        for flag in ("--cflags", "--libs", "--version"):
+            self.assertIn(flag, helper)
+        self.assertIn("chmod +x", helper)
+
     def test_macos_php7_pecl_modules_enter_a_directory_that_exists(self):
         # phalcon 4.x ships config.m4 under build/php7/64bits and has no
         # build/phalcon directory, so 7.2-7.4 must take the same cd as 7.0/7.1
