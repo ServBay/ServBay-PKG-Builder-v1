@@ -9,6 +9,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_eol_php_series_carry_their_required_compatibility_patches(self):
+        # 7.4's configure runs a GD link test program and only then reports
+        # "GD build test failed"; on the current toolchain that program is
+        # emitted with LC_MAIN entryoff 0 and dies with SIGILL, so the runtime
+        # test has to become the link-only check 8.x already uses.
+        # 8.0 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists, so
+        # ext/openssl only compiles with the compat shim.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        self.assertIn("php7.4/gd-configure-runtime-test.patch", config)
+        self.assertIn("php-openssl3/openssl.patch:p1\" )", config.split('"8.0")', 1)[1])
+        for patch_name in ("php7.4/gd-configure-runtime-test.patch",
+                           "php7.4/cve-2026-109618-109619.patch",
+                           "php8.0/cve-2026-109618-109619.patch"):
+            self.assertTrue((ROOT / "runtime" / "patch" / patch_name).is_file(),
+                            f"{patch_name} must ship with the repo")
+
     def test_macos_php_clears_makefile_php_before_compiling(self):
         # configure records the host `php` (whatever is on PATH, e.g. a
         # Homebrew 8.2) into Makefile's PHP variable. The generated VM headers

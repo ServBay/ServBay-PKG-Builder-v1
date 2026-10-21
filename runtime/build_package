@@ -5065,13 +5065,15 @@ _get_php_build_config() {
         "7.4")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" "--with-external-pcre=${SERVBAY_COMMON_PATH}" )
             # EOL branch: official minimal source-backport (php-src 712e60f9ed).
-            PHP_PATCHES=( "php7.4/cve-2026-109618-109619.patch:p1" )
+            PHP_PATCHES=( "php7.4/cve-2026-109618-109619.patch:p1" "php7.4/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "8.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             # EOL branch: official minimal source-backport (php-src 82f8f31b16).
-            PHP_PATCHES=( "php8.0/cve-2026-109618-109619.patch:p1" )
+            # PHP 8.0 predates OpenSSL 3 support: RSA_SSLV23_PADDING was removed in
+            # 3.x, so ext/openssl fails to compile against the 3.2 base.
+            PHP_PATCHES=( "php8.0/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.3.1" [apcu]="5.1.22" [mongodb]="1.15.0" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="6.1.6" [phalcon]="5.7.0" )
             ;;
         "8.1")
