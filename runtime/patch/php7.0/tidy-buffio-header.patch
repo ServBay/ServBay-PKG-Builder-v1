@@ -1,0 +1,16 @@
+--- a/ext/tidy/tidy.c
++++ b/ext/tidy/tidy.c
+@@ -31,7 +31,13 @@
+ #include "ext/standard/info.h"
+ 
+ #include "tidy.h"
++/* libtidy >= 5 renamed buffio.h to tidybuffio.h; prefer the
++ * new name and keep the old one as a fallback. */
++#if defined(__has_include) && __has_include(<tidybuffio.h>)
++# include <tidybuffio.h>
++#else
+ #include "buffio.h"
++#endif
+ 
+ /* compatibility with older versions of libtidy */
+ #ifndef TIDY_CALL
