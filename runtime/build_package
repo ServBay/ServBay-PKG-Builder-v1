@@ -1019,6 +1019,12 @@ core_verify_package() {
     if [[ "$packageName" == "php" && "$packageVersion" =~ ^([0-9]+\.[0-9]+\.[0-9]+-dev)-[0-9]{8}$ ]]; then
         versionToMatch="${match[1]}"
         log_message "INFO" "⏳ Verifying ${packageName} installation (matching base version: ${versionToMatch})..."
+    # A local security backport on an EOL branch publishes above the upstream tag
+    # (php 7.3.33.1) while the binary still reports the upstream banner (7.3.33).
+    # Match the upstream triple, never the local revision segment.
+    elif [[ "$packageName" == "php" && "$packageVersion" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\.[0-9]+$ ]]; then
+        versionToMatch="${match[1]}"
+        log_message "INFO" "⏳ Verifying ${packageName} installation (matching upstream version: ${versionToMatch})..."
     # OpenJDK 7/8 use legacy versioning: "1.7.0_352" / "1.8.0_482" instead of "7.0.352" / "8.0.482".
     # Convert our version (e.g., 8.0.482) to legacy format (1.8.0_482) for matching.
     elif [[ "$packageName" == "openjdk" && "$packageVersion" =~ ^([78])\.0\.([0-9]+)$ ]]; then
