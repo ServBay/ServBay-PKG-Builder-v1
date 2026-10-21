@@ -5158,12 +5158,8 @@ build_php() {
 
     # 4b. Refresh generated VM headers after patching.
     # php.net tarballs ship Zend/zend_vm_def.h, zend_vm_execute.h and
-    # zend_vm_opcodes.h with one shared mtime. A patch rewrites only the first
-    # two, so make sees zend_vm_opcodes.h as stale and re-runs zend_vm_gen.php
-    # mid-build -- and on some PHP CLIs that generator writes a broken header
-    # ("ZEND_VM_KIND_CALL" undefined), failing the compile with "invalid token
-    # at start of a preprocessor expression". Touching them together keeps make
-    # on the pre-generated files the tarball already ships.
+    # zend_vm_opcodes.h with one shared mtime, so a patch that rewrites only the
+    # first two makes the generated ones look stale.
     local generated
     for generated in Zend/zend_vm_execute.h Zend/zend_vm_opcodes.h; do
         if [[ -f "$generated" ]]; then
@@ -5183,6 +5179,22 @@ build_php() {
     rm -rf ~/.pearrc
     ./configure --prefix="${prefix}" "${PHP_CONFIGURE_ARGS[@]}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PHP configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
+
+    # 6b. Keep make from re-running the VM generator with the HOST php.
+    # configure records whatever `php` it finds on PATH into Makefile's PHP
+    # variable, and the generated headers sit behind an .INTERMEDIATE target,
+    # so make re-runs Zend/zend_vm_gen.php on every build. When the host php is
+    # NEWER than the version being built, that generator emits a broken
+    # zend_vm_opcodes.h -- building 8.1 on a PHP 8.2 host logs
+    # `Undefined array key "ZEND_VM_KIND_CALL"` and every translation unit dies
+    # with "invalid token at start of a preprocessor expression". Stable
+    # tarballs already ship these headers, so clearing the variable keeps make
+    # on the files the tarball provides. Pre-GA builds (git archives, no
+    # pre-generated headers) keep the generator.
+    if [[ -f Zend/zend_vm_execute.h && -f Zend/zend_vm_opcodes.h && -f Makefile ]]; then
+        sed -E 's/^PHP = .*/PHP =/' Makefile > Makefile.servbay-tmp && mv Makefile.servbay-tmp Makefile
+        log_message "INFO" "Pinned Makefile PHP generator to the tarball's pre-generated VM headers."
+    fi
 
     # 7. Compile and install PHP.
     log_message "INFO" "Compiling and installing PHP..."
