@@ -4941,6 +4941,7 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.3/php5.3-servbay-complete.patch:p1"
                 "php5.3/cve-2026-109618-109619.patch:p1"
+                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -4974,6 +4975,7 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.4/php5.4-servbay-complete.patch:p1"
                 "php5.4/cve-2026-109618-109619.patch:p1"
+                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -5007,6 +5009,7 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.5/php5.5-servbay-complete.patch:p1"
                 "php5.5/cve-2026-109618-109619.patch:p1"
+                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -5038,7 +5041,8 @@ _get_php_build_config() {
         "7.1")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
-            PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" )
+            # PHP 7.1 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
+            PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.1/icu.patch:p1" )
             fi
@@ -5047,7 +5051,8 @@ _get_php_build_config() {
         "7.2")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
-            PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" )
+            # PHP 7.2 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
+            PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.2/icu.patch:p1" )
             fi
@@ -5056,7 +5061,8 @@ _get_php_build_config() {
         "7.3")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
-            PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" )
+            # PHP 7.3 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
+            PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.3/icu.patch:p1" )
             fi
