@@ -186,6 +186,46 @@ class BuildScriptTests(unittest.TestCase):
                                   'echo "exec format error: $0" >&2'),
         ))
 
+    def test_macos_php_local_backport_version_verifies_against_upstream_banner(self):
+        # EOL 分支的安全 backport 以「上游标签 + 本地修订段」发布（例如
+        # 7.3.33.1），但 php -v 仍只输出 7.3.33。core_verify_package 若直接用
+        # conf 版本做子串匹配，会认为这次构建没有产出正确版本而失败。
+        # 这里执行真实的 core_verify_package，而不是镜像它的逻辑。
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+
+        self.assertTrue(
+            self._core_verify_real_passes(
+                script, "php", "7.3.33.1", 'echo "PHP 7.3.33 (cli) (built: Oct 21 2026)"'
+            ),
+            "A local backport above the upstream tag must verify against the upstream banner",
+        )
+        # 反例：真实重建出的版本更低时不得放行（防止规则放宽成前缀匹配）。
+        self.assertFalse(
+            self._core_verify_real_passes(
+                script, "php", "7.3.33.1", 'echo "PHP 7.3.32 (cli)"'
+            )
+        )
+        # 回归：不带本地修订段的常规 PHP 版本行为不变。
+        self.assertTrue(
+            self._core_verify_real_passes(script, "php", "8.4.27", 'echo "PHP 8.4.27 (cli)"')
+        )
+        self.assertFalse(
+            self._core_verify_real_passes(script, "php", "8.4.27", 'echo "PHP 8.4.26 (cli)"')
+        )
+
+    def _core_verify_real_passes(self, script, package, version, banner):
+        """Run the real core_verify_package from build_package."""
+        body = self._extract_shell_function(script, "core_verify_package")
+        harness = (
+            "log_message() { :; }\n"
+            "core_verify_package() {\n" + body + "}\n"
+            f"core_verify_package {package} {version} {banner!r}\n"
+        )
+        result = subprocess.run(
+            ["/bin/zsh", "-c", harness], capture_output=True, text=True, timeout=30
+        )
+        return result.returncode == 0
+
     def test_macos_php_verify_keeps_banner_output_for_core_match(self):
         # get_package_verification_info 里 "php") 出现两次：前一个（raw `php -v`，
         # 满足 core_verify_package 的「输出内容」契约）实际生效；后一个用

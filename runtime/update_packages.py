@@ -1454,7 +1454,18 @@ class PackageUpdater:
                 for series, version in versions_data.items():
                     # Check if version already exists
                     has_version = any(v['version'] == version for v in self.packages.get(package, []))
-                    if not has_version:
+                    # A local security build can sit above the upstream tag for
+                    # an EOL series (php 7.3.33.1 vs 7.3.33). That is not an
+                    # update waiting to happen — treat it as already satisfied so
+                    # the series is not re-queued for a build.
+                    newer_local = any(
+                        self.compare_versions(v['version'], version) > 0
+                        and (v['version'] == series
+                             or v['version'].startswith(series + '.')
+                             or v['version'].startswith(series + '-'))
+                        for v in self.packages.get(package, [])
+                    )
+                    if not has_version and not newer_local:
                         updates_made.append({
                             'package': package,
                             'series': series,
@@ -1558,6 +1569,17 @@ class PackageUpdater:
                         if not line.strip().startswith('#'):
                             line = "# " + line
                         final_items.append((self.version_to_tuple(latest), line))
+                        processed_series.add(s_key)
+                    elif any(self.compare_versions(e['ver'], latest) > 0 for e in matching_entries):
+                        # The conf carries a local build newer than upstream — a
+                        # security backport on an EOL branch (e.g. php 7.3.33.1
+                        # against an upstream that will never tag past 7.3.33).
+                        # Rewriting it to `latest` would queue a build of the
+                        # unpatched upstream tarball and overwrite the patched
+                        # artifact, so keep the local line exactly as it is —
+                        # active or commented, whichever the human left it as.
+                        keep = max(matching_entries, key=lambda e: self.version_to_tuple(e['ver']))
+                        final_items.append((self.version_to_tuple(keep['ver']), keep['line']))
                         processed_series.add(s_key)
                     else:
                         # Update needed
