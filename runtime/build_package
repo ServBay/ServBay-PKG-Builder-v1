@@ -5073,6 +5073,11 @@ _get_php_build_config() {
             # EOL branch: official minimal source-backport (php-src 712e60f9ed).
             # PHP 7.4 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
             PHP_PATCHES=( "php7.4/cve-2026-109618-109619.patch:p1" "php7.4/gd-configure-runtime-test.patch:p1" "php-openssl3/openssl.patch:p1" )
+            # 7.4's ext/standard/dns.c calls dn_expand/dn_skipname, which live in
+            # libresolv as res_9_*; without this the CLI and FPM links fail with
+            # "Undefined symbols ... _res_9_dn_expand". The 5.x branches already
+            # carry the same flag.
+            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "8.0")
