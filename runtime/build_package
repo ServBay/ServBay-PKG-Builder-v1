@@ -4954,7 +4954,6 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.3/php5.3-servbay-complete.patch:p1"
                 "php5.3/cve-2026-109618-109619.patch:p1"
-                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -4988,7 +4987,6 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.4/php5.4-servbay-complete.patch:p1"
                 "php5.4/cve-2026-109618-109619.patch:p1"
-                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -5022,7 +5020,6 @@ _get_php_build_config() {
             PHP_PATCHES=(
                 "php5.5/php5.5-servbay-complete.patch:p1"
                 "php5.5/cve-2026-109618-109619.patch:p1"
-                "php-openssl3/openssl.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
