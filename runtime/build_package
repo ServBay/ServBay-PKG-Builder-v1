@@ -5087,9 +5087,12 @@ _get_php_build_config() {
             # 3.x, so ext/openssl fails to compile against the 3.2 base.
             PHP_PATCHES=( "php8.0/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
             # swoole 6.x requires PHP 8.1+ (zend_fibers.h); 5.1.x is the newest
-            # line that still builds against 8.0. xdebug 3.3.x does not compile
-            # here, so 8.0 uses the same 3.1.6 the 7.x branches ship.
-            PHP_MODS=( [phpredis]="5.3.7" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.15.0" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="5.1.8" [phalcon]="5.7.0" )
+            # line that still builds against 8.0. xdebug 3.1.6/3.3.1 declare
+            # xdebug_*_minit() with an empty parameter list and fail on 8.0 with
+            # "too many arguments to function call"; 3.4.3 is the first line
+            # that takes INIT_FUNC_ARGS and still supports 8.0 (its package.xml
+            # minimum is 8.0.0), so it matches what 8.1 ships.
+            PHP_MODS=( [phpredis]="5.3.7" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.4.3" [apcu]="5.1.22" [mongodb]="1.15.0" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="5.1.8" [phalcon]="5.7.0" )
             ;;
         "8.1")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" )
