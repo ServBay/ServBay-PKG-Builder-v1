@@ -1353,11 +1353,12 @@ post_build_process() {
 #   architectures on the same code path.
 ###
 _ensure_freetype_config() {
-    local target="${SERVBAY_COMMON_PATH}/bin/freetype-config"
+    local root="${1:-${SERVBAY_COMMON_PATH}}"
+    local target="${root}/bin/freetype-config"
     if [[ -x "$target" ]]; then
         return 0
     fi
-    mkdir -p "${SERVBAY_COMMON_PATH}/bin"
+    mkdir -p "${root}/bin"
     cat > "$target" <<EOF
 #!/bin/sh
 case "\$1" in
@@ -5063,12 +5064,16 @@ _get_php_build_config() {
                 "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}"
             )
             PHP_CONFIGURE_ARGS+=( "${common_args[@]}" )
+            # 5.6 points --with-freetype-dir at the package prefix, not common/,
+            # so the shim goes there.
+            PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config '${SERVBAY_PACKAGE_FULL_PATH}'" )
             PHP_PATCHES=(
                 "php5.6/php-5.6.x-intl_ICU_NAMESPACE.patch:p1" "php5.6/php-5.6.x-mail-header.patch:p1"
                 "php5.6/php-5.6.x-OpenSSL-1.1.1.patch:p1" "php5.6/php-mbstring-onig.6.9.patch:p0"
                 "php5.6/mbstring.patch:p0" "php5.6/opcache.patch:p1"
                 "php-openssl3/openssl.patch:p1" "php7.1/icu.patch:p1" "php5.6/php5.6-macos-compile-fixes.patch:p0"
                 "php5.6/cve-2026-109618-109619.patch:p1"
+                "php5.6/gd-configure-runtime-test.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.5.5" [apcu]="4.0.11" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" [phalcon]="3.4.5" )
@@ -5076,7 +5081,7 @@ _get_php_build_config() {
         "7.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-onig=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" "php7.0/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.3.6" [phalcon]="3.4.5" )
             ;;
         "7.1")
@@ -5084,7 +5089,7 @@ _get_php_build_config() {
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.1 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
-            PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
+            PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.1/gd-configure-runtime-test.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.1/icu.patch:p1" )
             fi
@@ -5095,7 +5100,7 @@ _get_php_build_config() {
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.2 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
-            PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
+            PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.2/gd-configure-runtime-test.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.2/icu.patch:p1" )
             fi
@@ -5106,7 +5111,7 @@ _get_php_build_config() {
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
             # PHP 7.3 predates OpenSSL 3: RSA_SSLV23_PADDING no longer exists.
-            PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" )
+            PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.3/gd-configure-runtime-test.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
                 PHP_PATCHES+=( "php7.3/icu.patch:p1" )
             fi
