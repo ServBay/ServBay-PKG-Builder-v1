@@ -5091,12 +5091,13 @@ _get_php_build_config() {
             # "Undefined symbols ... _res_9_dn_expand". The 5.x branches already
             # carry the same flag.
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
-            # Diagnostic: 7.4/8.0 are compiled at -O3 by the dispatcher and the
-            # resulting x86_64 cli/php dies with SIGSEGV the first time make runs
-            # it (generating ext/phar/phar.php), while the same source builds and
-            # runs on arm64 and 8.1 is fine on both. Old php-src with a very new
-            # clang points at a -O3 miscompile. Dropping to -O1 and pinning
-            # strict aliasing off is the cheapest way to confirm that.
+            # The dispatcher compiles everything at -O3. php 7.4 does not
+            # survive that with the current clang on x86_64: cli/php links
+            # successfully but SIGSEGVs the first time make runs it (generating
+            # ext/phar/phar.php), so the build dies before any extension is
+            # touched. arm64 is unaffected, and 8.1 is fine on both arches, so
+            # this is a miscompile of this old source, not a build-plumbing bug.
+            # -O1 lets both architectures complete. See also 8.0 below.
             CFLAGS+=" -O1 -fno-strict-aliasing"
             export CFLAGS
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
@@ -5113,7 +5114,8 @@ _get_php_build_config() {
             # "too many arguments to function call"; 3.4.3 is the first line
             # that takes INIT_FUNC_ARGS and still supports 8.0 (its package.xml
             # minimum is 8.0.0), so it matches what 8.1 ships.
-            # Diagnostic: see the 7.4 branch. Same x86_64 SIGSEGV at -O3.
+            # Same -O3 miscompile as 7.4: the x86_64 cli/php SIGSEGVs on its
+            # first run during make. Verified fixed on both architectures.
             CFLAGS+=" -O1 -fno-strict-aliasing"
             export CFLAGS
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.4.3" [apcu]="5.1.22" [mongodb]="1.15.0" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="5.1.8" [phalcon]="5.7.0" )
