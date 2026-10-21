@@ -9,6 +9,29 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_pecl_modules_enter_a_directory_that_exists(self):
+        # phalcon 4.x ships config.m4 under build/php7/64bits and has no
+        # build/phalcon directory, so 7.2-7.4 must take the same cd as 7.0/7.1
+        # and must not fall through to the unconditional `cd build/phalcon`.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        phalcon = self._extract_shell_function(script, "_build_php_mod_phalcon")
+        self.assertIn("7.0|7.1|7.2|7.3|7.4", phalcon)
+        self.assertRegex(
+            phalcon,
+            r'if \[\[ ! "\$php_version_major" =~ \^\(5\.6\|7\.0\|7\.1\|7\.2\|7\.3\|7\.4\)\$ \]\]; '
+            r'then\s*\n\s*cd build/phalcon',
+        )
+
+        # xdebug 3.1.6 is the only line that supports 7.4 but declares its minit
+        # hooks with an empty parameter list, which PHP 8.x cannot call.
+        xdebug = self._extract_shell_function(script, "_build_php_mod_xdebug")
+        self.assertIn('"$mod_version" == "3.1.6"', xdebug)
+        self.assertIn("xdebug/3.1.6-init-func-args.patch", xdebug)
+        self.assertTrue(
+            (ROOT / "runtime" / "patch" / "xdebug" / "3.1.6-init-func-args.patch").is_file(),
+            "the xdebug declaration fix must ship with the repo",
+        )
+
     def test_macos_eol_php_series_carry_their_required_compatibility_patches(self):
         # 7.4's configure runs a GD link test program and only then reports
         # "GD build test failed"; on the current toolchain that program is
