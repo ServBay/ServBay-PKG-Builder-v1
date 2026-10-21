@@ -4934,6 +4934,7 @@ _get_php_build_config() {
             PHP_CONFIGURE_ARGS+=( "${php53_common_args[@]}" )
             PHP_PATCHES=(
                 "php5.3/php5.3-servbay-complete.patch:p1"
+                "php5.3/cve-2026-109618-109619.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -4966,6 +4967,7 @@ _get_php_build_config() {
             PHP_CONFIGURE_ARGS+=( "${php54_common_args[@]}" )
             PHP_PATCHES=(
                 "php5.4/php5.4-servbay-complete.patch:p1"
+                "php5.4/cve-2026-109618-109619.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -4998,6 +5000,7 @@ _get_php_build_config() {
             PHP_CONFIGURE_ARGS+=( "${php55_common_args[@]}" )
             PHP_PATCHES=(
                 "php5.5/php5.5-servbay-complete.patch:p1"
+                "php5.5/cve-2026-109618-109619.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
 
@@ -5016,46 +5019,59 @@ _get_php_build_config() {
                 "php5.6/php-5.6.x-OpenSSL-1.1.1.patch:p1" "php5.6/php-mbstring-onig.6.9.patch:p0"
                 "php5.6/mbstring.patch:p0" "php5.6/opcache.patch:p1"
                 "php-openssl3/openssl.patch:p1" "php7.1/icu.patch:p1" "php5.6/php5.6-macos-compile-fixes.patch:p0"
+                "php5.6/cve-2026-109618-109619.patch:p1"
             )
             PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.5.5" [apcu]="4.0.11" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" [phalcon]="3.4.5" )
             ;;
         "7.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-onig=${SERVBAY_COMMON_PATH}" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.3.6" [phalcon]="3.4.5" )
             ;;
         "7.1")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" )
+            # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
+            PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
-                PHP_PATCHES=( "php7.1/icu.patch:p1" )
+                PHP_PATCHES+=( "php7.1/icu.patch:p1" )
             fi
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.5.11" [phalcon]="3.4.5" )
             ;;
         "7.2")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
-             if [[ "$architecture" == "x86_64" ]]; then
-                PHP_PATCHES=( "php7.2/icu.patch:p1" )
+            # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
+            PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" )
+            if [[ "$architecture" == "x86_64" ]]; then
+                PHP_PATCHES+=( "php7.2/icu.patch:p1" )
             fi
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.3")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
+            # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
+            PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" )
             if [[ "$architecture" == "x86_64" ]]; then
-                PHP_PATCHES=( "php7.3/icu.patch:p1" )
+                PHP_PATCHES+=( "php7.3/icu.patch:p1" )
             fi
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.4")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" "--with-external-pcre=${SERVBAY_COMMON_PATH}" )
+            # EOL branch: official minimal source-backport (php-src 712e60f9ed).
+            PHP_PATCHES=( "php7.4/cve-2026-109618-109619.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "8.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" )
+            # EOL branch: official minimal source-backport (php-src 82f8f31b16).
+            PHP_PATCHES=( "php8.0/cve-2026-109618-109619.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.3.1" [apcu]="5.1.22" [mongodb]="1.15.0" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="6.1.6" [phalcon]="5.7.0" )
             ;;
         "8.1")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" )
+            # EOL branch: official minimal source-backport (php-src 1d7dec178a).
+            PHP_PATCHES=( "php8.1/cve-2026-109618-109619.patch:p1" )
             PHP_MODS=( [phpredis]="6.2.0" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.4.3" [apcu]="5.1.22" [mongodb]="1.19.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="6.1.6" [phalcon]="5.9.3" )
             ;;
         "8.2"|"8.3")
