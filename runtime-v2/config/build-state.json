@@ -31,7 +31,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
+      "artifact_expires_at": "2026-10-29T17:38:30Z",
+      "artifact_id": "12445273490",
+      "artifact_name": "pkg2-macos-x86_64-package-nginx-1.31.8",
+      "artifact_zip_sha256": "3d1c2a601efa31b5b3a1ca4a535917f548309e967579ad2e3c549c1c6be97605",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "8e2c406ca2f0e266116f39040f93a8e747a1a10f",
+        "run_attempt": 1,
+        "run_id": "39823823818"
+      },
+      "package_sha256": "551d4c169311fb84403ead50e33bbf3a43ac23bf1b52405769fc65f83e8cb071",
+      "producer": {
+        "commit": "8e2c406ca2f0e266116f39040f93a8e747a1a10f",
+        "run_attempt": 1,
+        "run_id": "39823823818"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -42,16 +57,7 @@
         "runtime_version": "v2",
         "version": "1.31.8"
       },
-      "reservation": {
-        "claimed_at": "2026-10-22T17:34:07+00:00",
-        "expires_at": "2026-10-23T01:34:07+00:00",
-        "producer": {
-          "commit": "8e2c406ca2f0e266116f39040f93a8e747a1a10f",
-          "run_attempt": 1,
-          "run_id": "39823823818"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     }
   }
 }
