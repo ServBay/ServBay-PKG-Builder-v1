@@ -111,13 +111,14 @@ class ModuleRecipeTests(unittest.TestCase):
     def run_recipe(self, recipe, failure="", version="6.2.0", series="8.3", source_files=None):
         root = self.root / (recipe + "-" + version + "-" + series + "-" + (failure or "success"))
         source = root / "source"
-        for part in ("build/phalcon", "phpext"):
+        for part in ("build/phalcon", "build/php7/64bits", "phpext"):
             (source / part).mkdir(parents=True)
         for relative, content in (source_files or {}).items():
             path = source / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
         prefix = root / "base/packages/php" / series
+        stage = root / "stage"
         config = prefix / "bin/php-config"
         config.parent.mkdir(parents=True)
         extension = prefix / "lib/nonstandard/extensions"
@@ -129,9 +130,20 @@ class ModuleRecipeTests(unittest.TestCase):
         php = prefix / "bin/php"
         # 模拟真实 php 对 -d extension=<so> --ri <name> 的响应：dlopen 成功时输出
         # 扩展信息段并退出 0；FAILURE=php-ri 时模拟 "Extension not present"（退出 1）。
-        # 必须保持 POSIX sh 语义（stub 以 #!/bin/sh 运行）。
+        # phalcon 4.x（PHP 7.2-7.4）带 ZEND_MOD_REQUIRED("psr")：宿主实测 -n 下 psr
+        # 缺席时启动报 "required module 'psr' is not loaded" 且 --ri 退出 1；调用行
+        # 预载了 psr.so 才放行。必须保持 POSIX sh 语义（stub 以 #!/bin/sh 运行）。
+        dep_guard = ""
+        if recipe == "phalcon" and series in ("7.2", "7.3", "7.4"):
+            # 冒烟传入的 psr.so 路径来自 _php_module_extension_dir，带 MODULE_INSTALL_ROOT 前缀。
+            dep_guard = ('case "$*" in *"-d extension=' + str(stage) + str(extension / "psr.so") + '"*) ;;\n'
+                         '  *) printf \'%s\\n\' "PHP Warning:  Cannot load module \'phalcon\' because required module \'psr\' is not loaded in Unknown on line 0" >&2\n'
+                         '     printf \'%s\\n\' "Extension \'phalcon\' not present." >&2\n'
+                         '     exit 1 ;;\n'
+                         'esac\n')
         php.write_text("#!/bin/sh\n"
                        'printf \'%s\\n\' "$*" >> "$RI_CALLS"\n'
+                       + dep_guard +
                        'for arg in "$@"; do\n'
                        '  case "$arg" in\n'
                        '    --ri) printf \'%s\\n\' "===' + RECIPES[recipe] + '-section==="\n'
@@ -141,7 +153,7 @@ class ModuleRecipeTests(unittest.TestCase):
                        'done\n'
                        "exit 0\n")
         php.chmod(0o755)
-        for directory in (source, source / "build/phalcon", source / "phpext"):
+        for directory in (source, source / "build/phalcon", source / "build/php7/64bits", source / "phpext"):
             configure = directory / "configure"
             configure.write_text("#!/bin/sh\nexit " + ("8" if failure == "configure" else "0") + "\n")
             configure.chmod(0o755)
@@ -150,7 +162,9 @@ class ModuleRecipeTests(unittest.TestCase):
         template = "; retain user options\nextension=" + RECIPES[recipe] + ".so\n"
         (assets / (RECIPES[recipe] + ".ini")).write_text(template)
         (assets / "phalcon.ini").write_text(template)
-        stage = root / "stage"
+        if recipe == "phalcon":
+            # _build_php_mod_phalcon 的 7.x 分支从 phalcon-7.x.ini 复制（目标名仍是 phalcon.ini）。
+            (assets / "phalcon-7.x.ini").write_text(template)
         conf = stage / "etc/php" / series / "conf.d"
         conf.mkdir(parents=True)
         script = ["CPU_NUMBER=2", "FAILURE=" + shlex.quote(failure), "export FAILURE",
@@ -158,8 +172,9 @@ class ModuleRecipeTests(unittest.TestCase):
                   "RI_CALLS=" + shlex.quote(str(root / "ri-calls")), "export RI_CALLS",
                   "SERVBAY_BUILD_DIR=" + shlex.quote(str(root)),
                   "PROJECT_ROOT=" + shlex.quote(str(root / "assets")),
-                  "SERVBAY_ETC_PATH=" + shlex.quote(str(stage / "etc")),
-                  "SERVBAY_LOG_PATH=" + shlex.quote(str(stage / "log")),
+                   "SERVBAY_ETC_PATH=" + shlex.quote(str(stage / "etc")),
+                   "SERVBAY_LOG_PATH=" + shlex.quote(str(stage / "log")),
+                   "EXTRA_SO=" + shlex.quote("psr.so" if recipe == "phalcon" else ""),
                   "SOURCE=" + shlex.quote(str(source)), "EXTENSION=" + shlex.quote(str(extension)),
                   "SO=" + shlex.quote(RECIPES[recipe] + ".so"), "log_message() { :; }",
                   "_download_pecl_source() { [[ $FAILURE != download ]]; }",
@@ -167,7 +182,7 @@ class ModuleRecipeTests(unittest.TestCase):
                   "cleanup_source_directory() { :; }", "PATCH_DIR=" + shlex.quote(str(root / "assets/patch")),
                   "PATCH_CALLS=" + shlex.quote(str(root / "patch-calls")), '_apply_single_patch() { print -r -- "$1" >> "$PATCH_CALLS"; [[ $FAILURE != patch ]]; }',
                   "aclocal() { :; }; autoconf() { :; }; autoheader() { :; }; glibtoolize() { :; }; automake() { :; }",
-                  'make() { if [[ $1 == install ]]; then [[ $FAILURE == install ]] && return 9; local target="$EXTENSION"; for arg in "$@"; do [[ $arg == INSTALL_ROOT=* ]] && target="${arg#INSTALL_ROOT=}$EXTENSION"; done; mkdir -p "$target"; [[ $FAILURE != missing-so ]] && print -r -- "fresh $SO" > "$target/$SO"; return 0; fi; [[ $FAILURE != build ]]; }']
+                  'make() { if [[ $1 == install ]]; then [[ $FAILURE == install ]] && return 9; local target="$EXTENSION"; for arg in "$@"; do [[ $arg == INSTALL_ROOT=* ]] && target="${arg#INSTALL_ROOT=}$EXTENSION"; done; mkdir -p "$target"; if [[ $FAILURE != missing-so ]]; then print -r -- "fresh $SO" > "$target/$SO"; [[ -n "$EXTRA_SO" ]] && print -r -- "fresh $EXTRA_SO" > "$target/$EXTRA_SO"; fi; return 0; fi; [[ $FAILURE != build ]]; }']
         for name in ("_install_php_module", "_php_module_extension_dir", "_verify_php_module_loads"):
             try:
                 body = self.extract(self.text, name)
@@ -287,6 +302,28 @@ class ModuleRecipeTests(unittest.TestCase):
         self.assertIn("-d extension=", smoke[0])
         self.assertIn("memcache.so", smoke[0])
         self.assertTrue((root / "handoff").is_file())
+
+    def test_phalcon_4x_smoke_preloads_the_required_psr_dependency_before_the_module(self):
+        # P1：phalcon 4.1.2（PHP 7.2-7.4）带 ZEND_MOD_REQUIRED("psr")，宿主实测 -n 下
+        # psr 缺席时 --ri 报 "required module 'psr' is not loaded" 且退出 1，导致构建
+        # 中断。冒烟必须先 -d extension=<同链 psr.so> 预载再加载 phalcon 本体；psr 由
+        # bundle（build_module.sh）先于 phalcon 构建到同一 extension dir。3.4.5 与
+        # 5.7.0/5.9.3（宿主 5.6/7.1/8.0/8.3 实测）无此依赖，不预载。
+        for series, version, needs_psr in (("7.4", "4.1.2", True), ("8.3", "5.9.3", False)):
+            with self.subTest(series=series, version=version, needs_psr=needs_psr):
+                result, root, extension, stage, conf, template = self.run_recipe("phalcon", version=version, series=series)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                calls = (root / "ri-calls").read_text().splitlines()
+                smoke = [line for line in calls if "--ri phalcon" in line]
+                self.assertEqual(1, len(smoke), calls)
+                # 冒烟传入的 psr.so 路径带 MODULE_INSTALL_ROOT 前缀（_php_module_extension_dir）。
+                psr_flag = "-d extension=" + str(stage) + str(extension / "psr.so")
+                self.assertEqual(needs_psr, psr_flag in smoke[0], smoke[0])
+                if needs_psr:
+                    # 依赖必须先于被测模块出现在调用行。
+                    self.assertLess(smoke[0].index(psr_flag),
+                                    smoke[0].index("-d extension=" + str(stage) + str(extension / "phalcon.so")), smoke[0])
+                self.assertTrue((root / "handoff").is_file())
 
     def test_xdebug_316_uses_the_current_v1_declaration_fix_and_propagates_patch_failure(self):
         for version, failure in [('3.1.6', ''), ('3.1.6', 'patch'), ('3.4.3', '')]:
