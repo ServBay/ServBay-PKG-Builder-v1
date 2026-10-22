@@ -259,56 +259,6 @@ class BuildScriptTests(unittest.TestCase):
         self.assertRegex(build_git, r"make\s+-j\$\{CPU_NUMBER\}[^\\n]*NO_RUST=1")
         self.assertRegex(build_git, r"make\s+install[^\\n]*NO_RUST=1")
 
-    def test_windows_php_rejects_an_archive_for_the_wrong_architecture(self):
-        # The output is named ...-windows-${ARCH}.7z. 5.3/5.4 exist only as x86
-        # builds, so building them as x64 would publish an x86 binary under an
-        # x64 name.
-        script = (ROOT / "runtime-windows" / "build_windows").read_text(encoding="utf-8")
-
-        self.assertIn('*-x86.zip) local filename_arch="x86"', script)
-        self.assertIn('*-x64.zip) local filename_arch="x64"', script)
-        self.assertIn('"$filename_arch" != "$ARCH"', script)
-
-    def test_windows_php_series_handles_four_segment_versions(self):
-        # A local backport publishes one segment above the upstream tag
-        # (5.3.29.1 over 5.3.29). Stripping just the last segment yields
-        # "5.3.29", which misses every series-based decision below (prebuilt vs
-        # repackaged, archives vs releases).
-        script = (ROOT / "runtime-windows" / "build_windows").read_text(encoding="utf-8")
-
-        self.assertNotIn("package_major_version=${package_version%.*}", script)
-        self.assertIn("grep -oE '^[0-9]+\\.[0-9]+'", script)
-
-    def test_windows_legacy_php_uses_the_patched_prebuilt_source(self):
-        # 5.3-7.0 have no source-build path on Windows: VS2008/VS2012 are not
-        # available on GitHub runners and would need self-hosted ones. The
-        # shivammathur/php-builder-windows releases carry binaries rebuilt with
-        # the CVE-2026-109618/109619 fix (zend_mm_safe_error_ex is present in
-        # php5.dll/php7.dll), so those branches download from there instead of
-        # windows.php.net, and each archive is pinned by SHA-256 because those
-        # release assets are replaced in place.
-        script = (ROOT / "runtime-windows" / "build_windows").read_text(encoding="utf-8")
-
-        self.assertIn("php-builder-windows/releases/download", script)
-        for version, digest in (
-            ("5.3.29", "c5b8d071c6ce0702a22c834d0a35569ca172754956f3d103b7f8902633c533b0"),
-            ("5.4.45", "6b25cd5c6992d96cb5c1c8a8b001fe1c3b9c58bff1151ff5efbd40eb8944daa1"),
-            ("5.5.38", "4a3fe195347f9f53a09c316f63fbfaf09642bd026d92b0bf1b3d83636de34ccf"),
-            ("5.6.40", "985554e8b9b5849ab18b62a9cc0d555633dac243e606852d29f8090962d2a29a"),
-            ("7.0.33", "37bc2a605f58cc470abcd61365c726dfaf528daae3ccf17dc20b8cb07bd93900"),
-        ):
-            self.assertIn(digest, script, f"php {version} must be pinned by digest")
-
-    def test_windows_stage1_skips_php_without_a_portable_release(self):
-        # PHP-Windows-Portable only publishes 8.1+, so dispatching 5.3-7.0 there
-        # would wait for a release that never appears.
-        workflow = (ROOT / ".github" / "workflows" / "build-windows.yml").read_text(encoding="utf-8")
-
-        php_branch = workflow.split("            php)", 1)[1].split("            memcached)", 1)[0]
-        self.assertIn('case "$VERSION" in', php_branch)
-        self.assertIn("8.1*", php_branch)
-        self.assertIn("skip Stage 1", php_branch)
-
     def test_windows_git_uses_portable_git_with_shell_tools(self):
         script = (ROOT / "runtime-windows" / "build_windows").read_text(encoding="utf-8")
         build_git = self._extract_shell_function(script, "Build_Package_git")

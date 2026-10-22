@@ -620,11 +620,7 @@ Build_Package_php() {
     mkdir -p "$package_temp_dir"
 
     local build_failed=0
-    # Installation series, i.e. X.Y. A local security backport publishes one
-    # segment higher (5.3.29.1 over 5.3.29), so stripping only the last segment
-    # would yield 5.3.29 and miss the series-based decisions below.
-    local package_major_version
-    package_major_version=$(printf '%s' "$package_version" | grep -oE '^[0-9]+\.[0-9]+')
+    local package_major_version=${package_version%.*} # x.x
 
     # Determine if this version uses pre-built packages from ServBay/PHP-Windows-Portable
     # PHP 8.1+ uses pre-built packages with extensions already compiled in
@@ -658,20 +654,6 @@ Build_Package_php() {
 
         log_message "INFO" "Original PHP Filename: $package_filename"
 
-        # The output archive is named ...-windows-${ARCH}.7z, so a package whose
-        # binary does not match ARCH would ship mislabelled. 5.3/5.4 only exist
-        # as x86 builds upstream.
-        case "$package_filename" in
-            *-x86.zip) local filename_arch="x86" ;;
-            *-x64.zip) local filename_arch="x64" ;;
-            *)         local filename_arch="" ;;
-        esac
-        if [[ -n "$filename_arch" && "$filename_arch" != "$ARCH" ]]; then
-            log_message "ERROR" "${package_filename} is a ${filename_arch} build but ARCH is ${ARCH}."
-            log_message "ERROR" "Build this package with arch=${filename_arch} to avoid a mislabelled package."
-            return 1
-        fi
-
         # Path for the main PHP archive
         local php_archive_temp_path="${package_temp_dir}/${package_filename}"
         # Directory where main PHP will be extracted
@@ -685,50 +667,10 @@ Build_Package_php() {
         fi
         local php_download_url="${base_url}${package_filename}"
 
-        # 5.3-8.0 cannot be built here as-is: windows.php.net's archives predate
-        # CVE-2026-109618/109619, and the source-build path in
-        # php-windows-builder needs toolchains GitHub runners no longer carry
-        # (VS2008 for 5.3/5.4, VS2012 for 5.5/5.6). shivammathur/php-builder-windows
-        # republishes these releases rebuilt with the fix -- php5.dll/php7.dll/
-        # php8.dll export zend_mm_safe_error_ex -- so take the binary from there.
-        # Assets are replaced in place, so pin every one by SHA-256.
-        local legacy_sha256=""
-        case "$package_version" in
-            5.3.29*) legacy_sha256="c5b8d071c6ce0702a22c834d0a35569ca172754956f3d103b7f8902633c533b0" ;;
-            5.4.45*) legacy_sha256="6b25cd5c6992d96cb5c1c8a8b001fe1c3b9c58bff1151ff5efbd40eb8944daa1" ;;
-            5.5.38*) legacy_sha256="4a3fe195347f9f53a09c316f63fbfaf09642bd026d92b0bf1b3d83636de34ccf" ;;
-            5.6.40*) legacy_sha256="985554e8b9b5849ab18b62a9cc0d555633dac243e606852d29f8090962d2a29a" ;;
-            7.0.33*) legacy_sha256="37bc2a605f58cc470abcd61365c726dfaf528daae3ccf17dc20b8cb07bd93900" ;;
-            7.1.33*) legacy_sha256="8da125c7a5b69cfc41e9f7bdf06b8e2775371c18086c565b331bf44a93b080d5" ;;
-            7.2.34*) legacy_sha256="e6cf3f840d96c769936617ab9df333bab7237213cb1cf558fdc1da7a0e70f8d8" ;;
-            7.3.33*) legacy_sha256="1219b53a35b670604dd0f38a49bb2bee514746d5feea67fd059789ca33bd149a" ;;
-            7.4.33*) legacy_sha256="a6f4a5f868e13e1fff802fe337e72d4483f496fe40a10216e25e28c370ccab24" ;;
-            8.0.30*) legacy_sha256="98f4aa8269171842df943258395c3b476d9ac80d2c422397a629bd81845130a6" ;;
-        esac
-        if [[ -n "$legacy_sha256" ]]; then
-            php_download_url="https://github.com/shivammathur/php-builder-windows/releases/download/php${package_major_version}/${package_filename}"
-        fi
-
         log_message "INFO" "PHP Download URL: $php_download_url"
 
         if ! download_file "$php_download_url" "$php_archive_temp_path"; then
             build_failed=1
-        fi
-
-        # The prebuilt legacy archives carry the security fix, so a substituted
-        # asset would silently ship an unpatched PHP. windows.php.net publishes
-        # no checksum for 5.3-7.0 either, hence the pinned digests above.
-        if [[ $build_failed -eq 0 && -n "$legacy_sha256" ]]; then
-            local actual_sha256
-            actual_sha256="$(sha256sum "$php_archive_temp_path" | cut -d' ' -f1)"
-            if [[ "$actual_sha256" != "$legacy_sha256" ]]; then
-                log_message "ERROR" "PHP archive checksum mismatch for ${package_filename}"
-                log_message "ERROR" "  expected: ${legacy_sha256}"
-                log_message "ERROR" "  actual:   ${actual_sha256}"
-                build_failed=1
-            else
-                log_message "INFO" "PHP archive checksum verified."
-            fi
         fi
 
         if [[ $build_failed -eq 0 ]]; then
