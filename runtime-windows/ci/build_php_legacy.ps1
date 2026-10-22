@@ -268,29 +268,47 @@ try {
         throw 'OOM run did not report the memory limit exhausting'
     }
 
+    # --- Stage -------------------------------------------------------------
+    # Release\ also holds every object file, resource script and import
+    # library the build produced, laid out to mirror the source tree. The
+    # package must look like an official Windows build instead: the binaries
+    # and core DLLs at the root, the extensions under ext\, and the
+    # third-party runtime DLLs alongside them.
+    Write-Step 'Staging the package layout'
+    $Stage = Join-Path $Root 'stage'
+    if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
+    $StageExt = Join-Path $Stage 'ext'
+    New-Item -ItemType Directory -Force -Path $StageExt | Out-Null
+
+    Get-ChildItem $ReleaseDir -File -Filter '*.exe' | Copy-Item -Destination $Stage
+    Get-ChildItem $ReleaseDir -File -Filter 'php*.dll' |
+        Where-Object { $_.Name -notmatch '^php_' } |
+        Copy-Item -Destination $Stage
+    Get-ChildItem $ReleaseDir -File -Filter 'php_*.dll' | Copy-Item -Destination $StageExt
+
     # PHP statically links most of the dependency bundle, but the libraries it
     # does not (OpenSSL, ICU, libpq, libssh2, ...) have to travel with the
-    # binary or those extensions fail to load on a machine without the build
-    # tree. The official packages carry the same set.
-    Write-Step 'Copying runtime dependencies from the dependency bundle'
+    # binary or those extensions fail to load outside the build tree.
     $DepsBin = Join-Path $BuildDir 'deps\bin'
     if (Test-Path $DepsBin) {
-        Get-ChildItem $DepsBin -Filter *.dll -File |
+        Get-ChildItem $DepsBin -Filter '*.dll' -File |
             Where-Object { $_.Name -notmatch '_debug\.dll$' } |
-            ForEach-Object {
-                Copy-Item $_.FullName (Join-Path $ReleaseDir $_.Name) -Force
-            }
+            Copy-Item -Destination $Stage
     }
     foreach ($ini in @('php.ini-development', 'php.ini-production')) {
         $iniSrc = Join-Path $SourceDir $ini
-        if (Test-Path $iniSrc) { Copy-Item $iniSrc (Join-Path $ReleaseDir $ini) -Force }
+        if (Test-Path $iniSrc) { Copy-Item $iniSrc -Destination $Stage }
+    }
+
+    if (-not (Get-ChildItem $StageExt -Filter 'php_*.dll' -File)) {
+        throw "Staged package has no extensions in $StageExt"
     }
 
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $Archive = Join-Path $OutputDir "php-$Version-windows-$Arch.7z"
     if (Test-Path $Archive) { Remove-Item -Force $Archive }
     Write-Step "Packing $Archive"
-    Push-Location $ReleaseDir
+    Push-Location $Stage
     try {
         & $SevenZip a -t7z -m0=lzma2 -mx=9 -mmt=on $Archive . | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "7z failed with $LASTEXITCODE" }
