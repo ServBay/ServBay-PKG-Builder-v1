@@ -4999,7 +4999,7 @@ _get_php_build_config() {
                 "php5.3/php5.3-servbay-complete.patch:p1"
                 "php5.3/cve-2026-109618-109619.patch:p1"
             )
-            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
+            PHP_POST_BUILD_CMDS=( 'LDFLAGS="${LDFLAGS} -lresolv" make -j${CPU_NUMBER}' )
 
             # PHP 5.3 不支持 MongoDB 和 Phalcon
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.2.7" [apcu]="4.0.11" [scws]="1.2.4-pre" [imagick]="3.7.0" )
@@ -5032,7 +5032,7 @@ _get_php_build_config() {
                 "php5.4/php5.4-servbay-complete.patch:p1"
                 "php5.4/cve-2026-109618-109619.patch:p1"
             )
-            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
+            PHP_POST_BUILD_CMDS=( 'LDFLAGS="${LDFLAGS} -lresolv" make -j${CPU_NUMBER}' )
 
             # PHP 5.4 不支持 MongoDB 和 Phalcon
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.4.1" [apcu]="4.0.11" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" )
@@ -5065,7 +5065,7 @@ _get_php_build_config() {
                 "php5.5/php5.5-servbay-complete.patch:p1"
                 "php5.5/cve-2026-109618-109619.patch:p1"
             )
-            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
+            PHP_POST_BUILD_CMDS=( 'LDFLAGS="${LDFLAGS} -lresolv" make -j${CPU_NUMBER}' )
 
             # PHP 5.5 不支持 Phalcon
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.5.5" [apcu]="4.0.11" [mongodb]="1.5.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" )
@@ -5089,7 +5089,7 @@ _get_php_build_config() {
                 "php5.6/gd-configure-runtime-test.patch:p1"
                 "php5.6/tidy-buffio-header.patch:p1"
             )
-            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
+            PHP_POST_BUILD_CMDS=( 'LDFLAGS="${LDFLAGS} -lresolv" make -j${CPU_NUMBER}' )
             PHP_MODS=( [phpredis]="4.3.0" [memcache]="2.2.7" [memcached]="2.2.0" [xdebug]="2.5.5" [apcu]="4.0.11" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="1.10.5" [phalcon]="3.4.5" )
             ;;
         "7.0")
@@ -5140,7 +5140,7 @@ _get_php_build_config() {
             # libresolv as res_9_*; without this the CLI and FPM links fail with
             # "Undefined symbols ... _res_9_dn_expand". The 5.x branches already
             # carry the same flag.
-            PHP_POST_BUILD_CMDS=( "LDFLAGS='-lresolv' make -j${CPU_NUMBER}" )
+            PHP_POST_BUILD_CMDS=( 'LDFLAGS="${LDFLAGS} -lresolv" make -j${CPU_NUMBER}' )
             # The dispatcher compiles everything at -O3. php 7.4 does not
             # survive that with the current clang on x86_64: cli/php links
             # successfully but SIGSEGVs the first time make runs it (generating
