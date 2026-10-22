@@ -228,6 +228,14 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("php_*.dll", text)
         self.assertIn("$StageExt", text)
 
+    def test_extension_runtime_dependencies_travel_with_the_package(self):
+        # A PECL archive bundles what the module links against: ImageMagick's
+        # CORE_RL_*.dll, libyaml's yaml.dll. Dropping those left php_imagick
+        # and php_yaml unable to load ("The specified module could not be
+        # found"). They belong beside php.exe, not under ext\.
+        text = PS1.read_text()
+        self.assertRegex(text, r"else\s*\{\s*Copy-Item \$dll\.FullName -Destination \$Stage -Force")
+
     def test_pecl_extensions_are_smoke_tested(self):
         text = PS1.read_text()
         self.assertRegex(text, r"extension=php_\$ext\.dll")
@@ -241,6 +249,9 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("PHP_COMPILER_ID", text)
         self.assertIn("$Crt.ToUpper()", text)
         self.assertIn("main\\config.w32.h", text)
+        # Branches that recognise the toolset write a bare identifier, the
+        # ones that do not write a quoted version, so both have to match.
+        self.assertIn('("[^"]*"|\\S+)', text)
         # A silent no-op would ship a package whose extensions all fail.
         self.assertIn("cannot align the module build ID", text)
 
