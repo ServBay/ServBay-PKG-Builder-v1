@@ -18,7 +18,10 @@ class BuildScriptTests(unittest.TestCase):
         script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
         config = self._extract_shell_function(script, "_get_php_build_config")
 
-        self.assertIn("-L${SERVBAY_COMMON_LIB_PATH} -liconv", config)
+        # The bare -liconv resolves against the system/SDK stub, whose
+        # libiconv has no _libiconv symbol, so the base's dylib is named
+        # outright instead of relying on search order.
+        self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib", config)
         self.assertIn('LIBS="${LIBS} ', config)
 
     def test_macos_php_post_build_keeps_the_configured_ldflags(self):
