@@ -4,11 +4,13 @@
 
 .DESCRIPTION
     PHP 7.0 is the newest branch that can still be built on a GitHub-hosted
-    runner. Its official toolchain is Visual C++ 14.0 (VS2015), which is no
-    longer part of any runner image but can still be installed from Microsoft's
-    bootstrapper. Everything else - source, dependency libraries, build tools -
-    comes from php.net, so the only non-upstream input is the security patch
-    this repository carries.
+    runner. Its official toolchain is Visual C++ 14.0, which no runner image
+    carries; the standalone VS2015 bootstrapper is retired (aka.ms/vs/14 is
+    dead and aka.ms/vs/15 is the VS2017 installer). The toolset is instead
+    added to the installed Visual Studio as the VC.140 component, exactly as
+    php-windows-builder does for the branches above it. Everything else -
+    source, dependency libraries, build tools - comes from php.net, so the
+    only non-upstream input is the security patch this repository carries.
 
     Two compatibility shims are required, both discovered by building 7.0 on a
     clean Windows 11 machine:
@@ -75,33 +77,64 @@ Write-Step "PHP $Version ($Arch) from upstream $BaseVersion"
 New-Item -ItemType Directory -Force -Path $Root, $SdkDir, $ToolsDir | Out-Null
 
 # --- Toolchain -------------------------------------------------------------
-# VS2015 Build Tools is not on the runner image; the bootstrapper still resolves.
-$VsInstaller = Join-Path $ToolsDir 'vs_buildtools_2015.exe'
-if (-not (Test-Path $VsInstaller)) {
-    Write-Step 'Downloading Visual Studio 2015 Build Tools'
-    Invoke-WebRequest -Uri 'https://aka.ms/vs/15/release/vs_buildtools.exe' -OutFile $VsInstaller
+# PHP derives the dependency layout from the compiler version, and php.net only
+# published a VC14 dependency bundle for 7.0. Hosted runners ship VS2022, which
+# can still add MSVC v140 as an optional component - the standalone VS2015
+# bootstrapper is gone (aka.ms/vs/14 is dead, aka.ms/vs/15 is VS2017).
+$InstallerDir = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+$VsWhere = Join-Path $InstallerDir 'vswhere.exe'
+if (-not (Test-Path $VsWhere)) { throw "vswhere not found at $VsWhere" }
+
+$VsInstances = & $VsWhere -products '*' -format json | ConvertFrom-Json
+$VsInstance = $VsInstances |
+    Where-Object { Test-Path (Join-Path $_.installationPath 'VC\Tools\MSVC') } |
+    Select-Object -First 1
+if (-not $VsInstance) { $VsInstance = $VsInstances | Select-Object -First 1 }
+if (-not $VsInstance) { throw 'No Visual Studio instance found' }
+$VsPath = $VsInstance.installationPath
+$VsChannel = $VsInstance.installationVersion.Split('.')[0]
+$MsvcRoot = Join-Path $VsPath 'VC\Tools\MSVC'
+
+function Get-V140Toolset {
+    if (-not (Test-Path $MsvcRoot)) { return $null }
+    Get-ChildItem $MsvcRoot -Directory |
+        Where-Object { $_.Name -match '^14\.0\d*\.' } |
+        Sort-Object Name -Descending |
+        Select-Object -First 1
 }
-$VsRoot = 'C:\VS2015BT'
-$VcVars = Join-Path $VsRoot 'VC\vcvarsall.bat'
-if (-not (Test-Path $VcVars)) {
-    Write-Step 'Installing Visual Studio 2015 Build Tools (several minutes)'
-    $p = Start-Process -FilePath $VsInstaller -PassThru -Wait -ArgumentList @(
-        '/Quiet', '/NoRestart', "/InstallPath $VsRoot", '/Full'
-    )
-    Write-Host "  bootstrapper exit code: $($p.ExitCode)"
-    # The bootstrapper can hand off to a second process and return before the
-    # install finishes, so wait for the compiler itself rather than the process.
-    $deadline = (Get-Date).AddMinutes(60)
-    while (-not (Test-Path $VcVars)) {
-        if ((Get-Date) -gt $deadline) { throw "Timed out waiting for $VcVars" }
-        Start-Sleep -Seconds 30
-        Write-Host '  waiting for the VC14 toolchain...'
+
+$Toolset = Get-V140Toolset
+if (-not $Toolset) {
+    Write-Step 'Adding the MSVC v140 (VS2015) toolset to Visual Studio'
+    $ProductId = $null
+    if ($VsInstance.catalog -and $VsInstance.catalog.PSObject.Properties['productId']) {
+        $ProductId = $VsInstance.catalog.productId
+    } elseif ($VsInstance.PSObject.Properties['productId']) {
+        $ProductId = $VsInstance.productId
     }
-    Write-Host '  VC14 toolchain present'
+    $InstallerExe = if ($ProductId -match '(Enterprise|Professional|Community)$') {
+        "vs_$($Matches[1].ToLower()).exe"
+    } else { 'vs_buildtools.exe' }
+
+    $Installer = Join-Path $ToolsDir $InstallerExe
+    if (-not (Test-Path $Installer)) {
+        Invoke-WebRequest -Uri "https://aka.ms/vs/$VsChannel/release/$InstallerExe" -OutFile $Installer
+    }
+    # --wait is what makes the bootstrapper block and return the child's exit
+    # code; the plain /Quiet form leaves a resident process behind and returns
+    # immediately.
+    & $Installer modify --installPath $VsPath --quiet --wait --norestart --nocache `
+        --add Microsoft.VisualStudio.Component.VC.140 `
+        --add Microsoft.VisualStudio.Component.VC.ATL `
+        --add Microsoft.VisualStudio.Component.Windows10SDK.19041
+    Write-Host "  vs_installer exit code: $LASTEXITCODE"
+    $Toolset = Get-V140Toolset
+    if (-not $Toolset) { throw 'MSVC v140 was requested but no 14.0 toolset is installed' }
 }
-if (-not (Test-Path $VcVars)) {
-    throw "Visual C++ 14.0 not installed: $VcVars is missing"
-}
+$ToolsetVer = $Toolset.Name
+$VcVars = Join-Path $VsPath 'VC\Auxiliary\Build\vcvarsall.bat'
+if (-not (Test-Path $VcVars)) { throw "vcvarsall.bat is missing: $VcVars" }
+Write-Step "Using MSVC $ToolsetVer from $VsPath"
 
 # --- Upstream inputs -------------------------------------------------------
 $SdkZip = Join-Path $ToolsDir 'php-sdk-binary-tools.zip'
@@ -110,6 +143,9 @@ if (-not (Test-Path $SdkZip)) {
     Invoke-WebRequest -Uri 'https://downloads.php.net/~windows/php-sdk/php-sdk-binary-tools-20110915.zip' -OutFile $SdkZip
 }
 Expand-Archive -Path $SdkZip -DestinationPath $SdkDir -Force
+# configure.js treats bison as a hard requirement (the SDK bundle carries it);
+# the runner has no bison of its own.
+$env:PATH = "$(Join-Path $SdkDir 'bin');" + $env:PATH
 
 $DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-vc14-$Arch.7z"
 if (-not (Test-Path $DepsArchive)) {
@@ -201,7 +237,7 @@ try {
     # puts the 37 php_*.dll files in ext/. Without it the package would be a
     # bare CLI that cannot serve a ServBay site.
     $configureArgs = @('--enable-snapshot-build', '--disable-zts', '--enable-cli', '--enable-cgi')
-    & cmd /c "`"$VcVars`" $ArchArg && cscript //nologo configure.js $($configureArgs -join ' ')"
+    & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && cscript //nologo configure.js $($configureArgs -join ' ')"
 
     # --- Inject the shim ---------------------------------------------------
     $Makefile = Join-Path $SourceDir 'Makefile'
@@ -213,7 +249,7 @@ try {
 
     # --- Compile -----------------------------------------------------------
     Write-Step 'Compiling (nmake)'
-    & cmd /c "`"$VcVars`" $ArchArg && nmake"
+    & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && nmake"
     if ($LASTEXITCODE -ne 0) { throw "nmake failed with $LASTEXITCODE" }
 
     # --- Package -----------------------------------------------------------

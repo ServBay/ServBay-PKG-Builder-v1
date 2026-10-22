@@ -39,8 +39,6 @@ permissions:
 
 jobs:
   build:
-    # VS2015 Build Tools installs and runs on windows-2022; the newer image
-    # replaces too much of the CRT for VC14 to link against.
     runs-on: windows-2022
     timeout-minutes: 180
     env:
