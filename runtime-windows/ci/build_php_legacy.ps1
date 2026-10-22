@@ -3,17 +3,28 @@
     Compile an EOL PHP release for Windows with the toolchain that release targets.
 
 .DESCRIPTION
-    PHP 7.0 is the newest branch that can still be built on a GitHub-hosted
-    runner. Its official toolchain is Visual C++ 14.0, which no runner image
-    carries; the standalone VS2015 bootstrapper is retired (aka.ms/vs/14 is
-    dead and aka.ms/vs/15 is the VS2017 installer). The toolset is instead
-    added to the installed Visual Studio as the VC.140 component, exactly as
-    php-windows-builder does for the branches above it. Everything else -
-    source, dependency libraries, build tools - comes from php.net, so the
-    only non-upstream input is the security patch this repository carries.
+    The stock Windows pipeline repackages an already-built upstream zip, so it
+    cannot apply a source patch. Every EOL branch that has to carry a security
+    backport is therefore compiled here instead:
 
-    Two compatibility shims are required, both discovered by building 7.0 on a
-    clean Windows 11 machine:
+      7.0, 7.1   VC14 (MSVC 14.0)  - aggregate deps-<branch>-vc14-<arch>.7z
+      7.2 - 7.4  VC15 (MSVC 19.1)  - per-library series manifest
+      8.0, 8.1   VS16 (MSVC 19.2)  - per-library series manifest
+
+    Nothing is built by hand: source and dependency libraries come from
+    php.net, and the SDK comes from php-sdk-binary-tools. The only non-upstream
+    input is the security patch this repository carries.
+
+    VC14 is special. No hosted runner image carries that toolset and Microsoft
+    no longer ships it: aka.ms/vs/14 is dead, aka.ms/vs/15 is the VS2017
+    installer, and asking the runner's own VS installer for the VC.140
+    component returns 0 while changing nothing ("Status changed to NoUpdate").
+    So v140 is used when the image happens to have it, and otherwise the newest
+    installed toolset. That is safe: MSVC has kept the vcruntime140 ABI since
+    2015, and configure.js only warns about an untested compiler version.
+
+    Two compatibility shims are required for VC14 only, both discovered by
+    building 7.0 on a clean Windows 11 machine:
 
       * MC must be set explicitly. PHP's win32 Makefile expands $(MC) but its
         configure never probes for mc.exe, so nmake runs an empty command.
@@ -38,13 +49,22 @@
     Directory holding this repository's patches for the branch. Only the
     cve-*.patch files are applied: the rest of that directory compensates for
     macOS-only build behaviour and does not belong in a Windows build.
+
+.PARAMETER ExtManifest
+    JSON object mapping a PECL extension name to its download URL for this
+    branch and architecture, as flattened from runtime-windows/php-exts.json.
+    --enable-snapshot-build only builds the core ext/ modules; the published
+    packages also carry imagick, redis, mongodb and friends, so without this
+    the source build is a regression against the package it replaces. Omitted
+    means no PECL extensions, which is only appropriate for a local smoke run.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string] $Version,
     [Parameter(Mandatory = $true)][ValidateSet('x64', 'x86')][string] $Arch,
     [Parameter(Mandatory = $true)][string] $OutputDir,
-    [Parameter(Mandatory = $true)][string] $PatchDir
+    [Parameter(Mandatory = $true)][string] $PatchDir,
+    [string] $ExtManifest = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,10 +77,22 @@ if ($Version -match '^(\d+\.\d+\.\d+)\.\d+$') {
 }
 $MajorMinor = ($BaseVersion -split '\.')[0] + '.' + ($BaseVersion -split '\.')[1]
 
-# This branch of PHP shipped prebuilt dependencies for VC14 only on 7.0 and 7.1.
-# 7.2 and later moved to VC15 and build through the main Windows pipeline.
-if ($MajorMinor -notin @('7.0', '7.1')) {
-    throw "build_php_legacy.ps1 covers the VC14 branches (7.0, 7.1); got $MajorMinor"
+# The compiler each branch was released against. It selects both the starter
+# toolset and the dependency series, and the two must agree: the deps/series
+# manifests are keyed by CRT, and the import libraries in them are the ones
+# the official binaries linked against.
+$CrtByBranch = @{
+    '7.0' = 'vc14'
+    '7.1' = 'vc14'
+    '7.2' = 'vc15'
+    '7.3' = 'vc15'
+    '7.4' = 'vc15'
+    '8.0' = 'vs16'
+    '8.1' = 'vs16'
+}
+$Crt = $CrtByBranch[$MajorMinor]
+if (-not $Crt) {
+    throw "build_php_legacy.ps1 does not cover PHP $MajorMinor; known branches: $($CrtByBranch.Keys -join ', ')"
 }
 
 function Write-Step($msg) {
@@ -70,25 +102,24 @@ function Write-Step($msg) {
 $Root = 'C:\phplegacy'
 $SdkDir = Join-Path $Root 'sdk'
 $PhpDevRoot = Join-Path $Root 'phpdev'
-$BuildRoot = Join-Path $PhpDevRoot 'vc14'
+$BuildRoot = Join-Path $PhpDevRoot $Crt
 $BuildDir = Join-Path $BuildRoot $Arch
 $ToolsDir = Join-Path $Root 'tools'
 
-Write-Step "PHP $Version ($Arch) from upstream $BaseVersion"
+Write-Step "PHP $Version ($Arch) from upstream $BaseVersion on $Crt"
 New-Item -ItemType Directory -Force -Path $Root, $SdkDir, $ToolsDir | Out-Null
 
 # --- Toolchain -------------------------------------------------------------
-# PHP 7.0 shipped against MSVC 14.0, and php.net only published a VC14
-# dependency bundle for it. No hosted runner image carries that toolset and
-# Microsoft no longer ships it: aka.ms/vs/14 is dead, aka.ms/vs/15 is the
-# VS2017 installer, and asking the runner's own VS installer for the VC.140
-# component returns 0 while changing nothing ("Status changed to NoUpdate").
-#
-# So v140 is used when the image happens to have it, and otherwise the newest
-# installed toolset. That is safe for this branch: MSVC has kept the
-# vcruntime140 ABI since 2015, configure.js only warns about an untested
-# compiler version, and the VC14 import libraries link fine under a newer
-# linker.
+# Each branch prefers the toolset it was released against, and falls back to
+# the newest installed one. The fallback matters most for VC14: no hosted
+# runner image carries 14.0 any more and Microsoft no longer ships it, so 7.0
+# and 7.1 routinely build with a newer linker against the VC14 import
+# libraries. MSVC has kept the vcruntime140 ABI since 2015, so that links.
+$ToolsetPattern = switch ($Crt) {
+    'vc14' { '^14\.0\d*\.' }
+    'vc15' { '^14\.1\d*\.' }
+    'vs16' { '^14\.2\d*\.' }
+}
 $InstallerDir = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
 $VsWhere = Join-Path $InstallerDir 'vswhere.exe'
 if (-not (Test-Path $VsWhere)) { throw "vswhere not found at $VsWhere" }
@@ -102,15 +133,15 @@ $VsPath = $VsInstance.installationPath
 $MsvcRoot = Join-Path $VsPath 'VC\Tools\MSVC'
 
 $Toolset = Get-ChildItem $MsvcRoot -Directory |
-    Where-Object { $_.Name -match '^14\.0\d*\.' } |
+    Where-Object { $_.Name -match $ToolsetPattern } |
     Sort-Object Name -Descending |
     Select-Object -First 1
 if ($Toolset) {
-    Write-Step "Using the MSVC v140 toolset $($Toolset.Name)"
+    Write-Step "Using the $Crt toolset $($Toolset.Name)"
 } else {
     $Toolset = Get-ChildItem $MsvcRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
     if (-not $Toolset) { throw "No MSVC toolset under $MsvcRoot" }
-    Write-Warning "MSVC v140 is not available; building PHP $BaseVersion with $($Toolset.Name)"
+    Write-Warning "No $Crt toolset is available; building PHP $BaseVersion with $($Toolset.Name)"
 }
 $ToolsetVer = $Toolset.Name
 $VcVars = Join-Path $VsPath 'VC\Auxiliary\Build\vcvarsall.bat'
@@ -118,20 +149,65 @@ if (-not (Test-Path $VcVars)) { throw "vcvarsall.bat is missing: $VcVars" }
 Write-Step "Using MSVC $ToolsetVer from $VsPath"
 
 # --- Upstream inputs -------------------------------------------------------
-$SdkZip = Join-Path $ToolsDir 'php-sdk-binary-tools.zip'
+# SDK 2.1 (20110915) is the last one that can build 7.0/7.1; its buildtree also
+# lacks the vc15/vs16 layouts. 7.2+ use the current SDK, whose buildtree knows
+# every supported compiler.
+$SdkZip = Join-Path $ToolsDir "php-sdk-$Crt.zip"
+if ($Crt -eq 'vc14') {
+    $SdkUrl = 'https://downloads.php.net/~windows/php-sdk/php-sdk-binary-tools-20110915.zip'
+} else {
+    $SdkUrl = 'https://github.com/php/php-sdk-binary-tools/archive/refs/tags/php-sdk-2.8.4.zip'
+}
 if (-not (Test-Path $SdkZip)) {
-    Write-Step 'Downloading php-sdk-binary-tools'
-    Invoke-WebRequest -Uri 'https://downloads.php.net/~windows/php-sdk/php-sdk-binary-tools-20110915.zip' -OutFile $SdkZip
+    Write-Step "Downloading $SdkUrl"
+    Invoke-WebRequest -Uri $SdkUrl -OutFile $SdkZip
 }
 Expand-Archive -Path $SdkZip -DestinationPath $SdkDir -Force
-# configure.js treats bison as a hard requirement (the SDK bundle carries it);
-# the runner has no bison of its own.
-$env:PATH = "$(Join-Path $SdkDir 'bin');" + $env:PATH
+# The GitHub archive carries the tag name as its only top-level directory; the
+# php.net bundle puts bin/ and lib/ at the root.
+$SdkRoot = $SdkDir
+if (-not (Test-Path (Join-Path $SdkRoot 'bin'))) {
+    $inner = Get-ChildItem $SdkDir -Directory | Select-Object -First 1
+    if ($inner) { $SdkRoot = $inner.FullName }
+}
+if (-not (Test-Path (Join-Path $SdkRoot 'bin'))) {
+    throw "SDK layout not recognised under $SdkDir"
+}
+# configure.js treats bison as a hard requirement. The 2.x SDK keeps it in
+# msys2\usr\bin rather than bin; the 2.1 bundle has it under bin.
+$env:PHP_SDK_ROOT_PATH = $SdkRoot
+$env:PATH = "$(Join-Path $SdkRoot 'bin');$(Join-Path $SdkRoot 'msys2\usr\bin');" + $env:PATH
 
-$DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-vc14-$Arch.7z"
-if (-not (Test-Path $DepsArchive)) {
-    Write-Step "Downloading PHP $MajorMinor VC14 dependency libraries ($Arch)"
-    Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/deps-$MajorMinor-vc14-$Arch.7z" -OutFile $DepsArchive
+# VC14 is the only branch php.net published an aggregate dependency bundle
+# for. Everything above it ships one zip per library plus a series manifest
+# that pins the exact versions that branch was released against.
+$DepsArchive = $null
+$DepsPackages = @()
+$DepsCache = Join-Path $ToolsDir "deps-$MajorMinor-$Crt-$Arch"
+if ($Crt -eq 'vc14') {
+    $DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-vc14-$Arch.7z"
+    if (-not (Test-Path $DepsArchive)) {
+        Write-Step "Downloading PHP $MajorMinor VC14 dependency libraries ($Arch)"
+        Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/deps-$MajorMinor-vc14-$Arch.7z" -OutFile $DepsArchive
+    }
+} else {
+    $SeriesUrl = "https://downloads.php.net/~windows/php-sdk/deps/series/packages-$MajorMinor-$Crt-$Arch-stable.txt"
+    $SeriesFile = Join-Path $ToolsDir "packages-$MajorMinor-$Crt-$Arch-stable.txt"
+    if (-not (Test-Path $SeriesFile)) {
+        Write-Step "Downloading PHP $MajorMinor $Crt dependency manifest ($Arch)"
+        Invoke-WebRequest -Uri $SeriesUrl -OutFile $SeriesFile
+    }
+    $DepsPackages = @(Get-Content $SeriesFile | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if (-not $DepsPackages) { throw "Empty dependency manifest: $SeriesFile" }
+
+    New-Item -ItemType Directory -Force -Path $DepsCache | Out-Null
+    Write-Step "Downloading $($DepsPackages.Count) PHP $MajorMinor $Crt dependency libraries"
+    foreach ($name in $DepsPackages) {
+        $local = Join-Path $DepsCache $name
+        if (-not (Test-Path $local)) {
+            Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/deps/$Crt/$Arch/$name" -OutFile $local
+        }
+    }
 }
 
 $SourceArchive = Join-Path $ToolsDir "php-$BaseVersion.tar.gz"
@@ -147,16 +223,20 @@ if (Test-Path $BuildDir) { Remove-Item -Recurse -Force $BuildDir }
 # from $Root rather than from wherever the caller happened to be.
 Push-Location $Root
 try {
-    & (Join-Path $SdkDir 'bin\phpsdk_buildtree.bat') phpdev | Out-Null
+    & (Join-Path $SdkRoot 'bin\phpsdk_buildtree.bat') phpdev | Out-Null
 }
 finally { Pop-Location }
-# buildtree predates vc14 and only creates vc6..vc9, all as siblings under
-# phpdev; copy vc9 to get the vc14 layout.
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 if (-not (Test-Path $BuildDir)) {
-    $Vc9Dir = Join-Path $PhpDevRoot 'vc9'
-    if (-not (Test-Path $Vc9Dir)) { throw "phpsdk_buildtree did not create $Vc9Dir" }
-    Copy-Item -Recurse -Force $Vc9Dir $BuildDir
+    if ($Crt -eq 'vc14') {
+        # SDK 2.1 predates vc14 and only creates vc6..vc9, all as siblings
+        # under phpdev; copy vc9 to get the vc14 layout.
+        $Vc9Dir = Join-Path $PhpDevRoot 'vc9'
+        if (-not (Test-Path $Vc9Dir)) { throw "phpsdk_buildtree did not create $Vc9Dir" }
+        Copy-Item -Recurse -Force $Vc9Dir $BuildDir
+    } else {
+        throw "phpsdk_buildtree did not create $BuildDir"
+    }
 }
 
 $SevenZip = 'C:\Program Files\7-Zip\7z.exe'
@@ -166,7 +246,16 @@ if (-not (Test-Path $SevenZip)) {
     $SevenZip = Join-Path $ToolsDir '7zr.exe'
 }
 Write-Step 'Extracting dependency libraries'
-& $SevenZip x $DepsArchive "-o$BuildDir" -y | Out-Null
+if ($Crt -eq 'vc14') {
+    & $SevenZip x $DepsArchive "-o$BuildDir" -y | Out-Null
+} else {
+    # The per-library zips are already laid out as deps\{bin,include,lib}.
+    $DepsDir = Join-Path $BuildDir 'deps'
+    New-Item -ItemType Directory -Force -Path $DepsDir | Out-Null
+    foreach ($name in $DepsPackages) {
+        Expand-Archive -Path (Join-Path $DepsCache $name) -DestinationPath $DepsDir -Force
+    }
+}
 
 $SourceDir = Join-Path $BuildDir "php-$BaseVersion-src"
 if (Test-Path $SourceDir) { Remove-Item -Recurse -Force $SourceDir }
@@ -189,11 +278,15 @@ try {
     }
 
     # --- Configure ---------------------------------------------------------
-    # PHP regenerates CFLAGS inside configure, so the shim is forced in twice:
+    # VC14 regenerates CFLAGS inside configure, so the shim is forced in twice:
     # through CL for configure's own probe compiles, and through the generated
-    # Makefile for the real build.
-    $Shim = Join-Path $Root 'vc14-intrinsics.h'
-    if (-not (Test-Path $Shim)) { throw "Missing intrinsics shim: $Shim" }
+    # Makefile for the real build. Newer toolsets ship _mm_loadu_si64 and must
+    # not see the shim at all.
+    $Shim = $null
+    if ($Crt -eq 'vc14') {
+        $Shim = Join-Path $Root 'vc14-intrinsics.h'
+        if (-not (Test-Path $Shim)) { throw "Missing intrinsics shim: $Shim" }
+    }
 
     Write-Step 'Running buildconf'
     & cmd /c 'buildconf.bat' | Out-Null
@@ -210,11 +303,13 @@ try {
 
     $env:MC = $Mc
     $env:PATH = "$(Split-Path $Mc);" + $env:PATH
-    # cl.exe honours the CL variable on every invocation, including the probe
-    # compiles configure.js runs. Setting it here keeps the extra probes that
-    # --enable-snapshot-build performs from tripping over the UCRT header
-    # before we get to touch the Makefile.
-    $env:CL = "/FI`"$Shim`""
+    if ($Shim) {
+        # cl.exe honours the CL variable on every invocation, including the
+        # probe compiles configure.js runs. Setting it here keeps the extra
+        # probes that --enable-snapshot-build performs from tripping over the
+        # UCRT header before we get to touch the Makefile.
+        $env:CL = "/FI`"$Shim`""
+    }
 
     # --enable-snapshot-build is what php.net's own Windows releases use: it
     # turns on every optional module and builds each one shared, which is what
@@ -224,12 +319,14 @@ try {
     & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && cscript //nologo configure.js $($configureArgs -join ' ')"
 
     # --- Inject the shim ---------------------------------------------------
-    $Makefile = Join-Path $SourceDir 'Makefile'
-    $lines = Get-Content $Makefile
-    $patched = foreach ($l in $lines) {
-        if ($l -match '^CFLAGS=' -and $l -notmatch 'vc14-intrinsics') { $l + " /FI`"$Shim`"" } else { $l }
+    if ($Shim) {
+        $Makefile = Join-Path $SourceDir 'Makefile'
+        $lines = Get-Content $Makefile
+        $patched = foreach ($l in $lines) {
+            if ($l -match '^CFLAGS=' -and $l -notmatch 'vc14-intrinsics') { $l + " /FI`"$Shim`"" } else { $l }
+        }
+        $patched | Set-Content -Path $Makefile -Encoding ASCII
     }
-    $patched | Set-Content -Path $Makefile -Encoding ASCII
 
     # --- Compile -----------------------------------------------------------
     Write-Step 'Compiling (nmake)'
@@ -300,17 +397,63 @@ try {
         if (Test-Path $iniSrc) { Copy-Item $iniSrc -Destination $Stage }
     }
 
+    # --- PECL extensions ---------------------------------------------------
+    # --enable-snapshot-build only compiles the modules under ext/. The
+    # package this replaces also shipped imagick, redis, mongodb and the rest,
+    # so they are fetched from the same table the stock pipeline uses and
+    # dropped into ext\.
+    $PeclExts = @{}
+    if ($ExtManifest) {
+        if (-not (Test-Path $ExtManifest)) { throw "Missing extension manifest: $ExtManifest" }
+        $Manifest = Get-Content -Path $ExtManifest -Raw | ConvertFrom-Json
+        $ExtCache = Join-Path $ToolsDir "pecl-$MajorMinor-$Arch"
+        New-Item -ItemType Directory -Force -Path $ExtCache | Out-Null
+
+        Write-Step "Staging PECL extensions from $ExtManifest"
+        foreach ($prop in $Manifest.PSObject.Properties) {
+            $name = $prop.Name
+            $url = $prop.Value
+            if (-not $url) { continue }
+
+            $zip = Join-Path $ExtCache (Split-Path $url -Leaf)
+            if (-not (Test-Path $zip)) {
+                Write-Host "    downloading $name"
+                Invoke-WebRequest -Uri $url -OutFile $zip
+            }
+            $unpack = Join-Path $ExtCache "$name-unpacked"
+            if (Test-Path $unpack) { Remove-Item -Recurse -Force $unpack }
+            Expand-Archive -Path $zip -DestinationPath $unpack -Force
+
+            $dlls = @(Get-ChildItem $unpack -Recurse -Filter 'php_*.dll' -File)
+            if (-not $dlls) { throw "Extension package for $name carries no php_*.dll" }
+            foreach ($dll in $dlls) {
+                Copy-Item $dll.FullName -Destination $StageExt -Force
+                $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
+            }
+            Write-Host "    $name -> $($dlls.BaseName -join ', ')"
+        }
+        Write-Step "Staged $($PeclExts.Count) PECL extensions"
+    }
+
     if (-not (Get-ChildItem $StageExt -Filter 'php_*.dll' -File)) {
         throw "Staged package has no extensions in $StageExt"
     }
 
     # Load the extensions that depend on the bundled DLLs. php -v only proves
     # the CLI starts; this proves the layout actually resolves OpenSSL, ICU,
-    # libpq and libsasl the way an installed copy will.
+    # libpq and libsasl the way an installed copy will. The same applies to
+    # the PECL DLLs: they link the dependency bundle too.
     Write-Step 'Smoke-testing extension loading from the staged layout'
     $SmokeArgs = @('-n', '-d', "extension_dir=$StageExt")
-    foreach ($ext in @('openssl', 'curl', 'intl', 'pgsql', 'ldap', 'gd2')) {
-        $SmokeArgs += @('-d', "extension=php_$ext.dll")
+    $SmokeExts = @('openssl', 'curl', 'intl', 'pgsql', 'ldap', 'gd2')
+    # igbinary first: redis and msgpack pick it as their serializer if present.
+    foreach ($ext in @('igbinary', 'redis', 'mongodb', 'imagick', 'yaml', 'msgpack', 'oauth')) {
+        if ($PeclExts.ContainsKey($ext)) { $SmokeExts += $ext }
+    }
+    foreach ($ext in $SmokeExts) {
+        if (Test-Path (Join-Path $StageExt "php_$ext.dll")) {
+            $SmokeArgs += @('-d', "extension=php_$ext.dll")
+        }
     }
     $Smoke = & (Join-Path $Stage 'php.exe') @SmokeArgs -r "echo 'extensions ok';" 2>&1
     $SmokeText = ($Smoke | Out-String)
