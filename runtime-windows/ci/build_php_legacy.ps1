@@ -242,8 +242,11 @@ try {
         throw "Build produced no php.exe in $ReleaseDir"
     }
     $Verify = & (Join-Path $ReleaseDir 'php.exe') -v 2>&1
-    Write-Host ($Verify | Out-String)
-    if ($Verify -notmatch [regex]::Escape($BaseVersion)) {
+    # -notmatch on an array filters it, so it is true whenever any single line
+    # fails to match. Flatten it first.
+    $VerifyText = ($Verify | Out-String)
+    Write-Host $VerifyText
+    if ($VerifyText -notmatch [regex]::Escape($BaseVersion)) {
         throw "php.exe does not report $BaseVersion"
     }
 

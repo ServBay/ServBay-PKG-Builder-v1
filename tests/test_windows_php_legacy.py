@@ -102,6 +102,14 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("--enable-snapshot-build", text)
         self.assertNotIn("--disable-all", text)
 
+    def test_version_check_flattens_captured_output(self):
+        # `php -v` is multi-line, and -notmatch against an array filters it,
+        # so every line but the first makes the condition true. The first
+        # hosted build failed its own sanity check this way.
+        text = PS1.read_text()
+        self.assertNotIn("$Verify -notmatch", text)
+        self.assertIn("$VerifyText -notmatch", text)
+
     def test_ooms_are_gated_on_the_exit_path(self):
         # The whole point of the backport: an allocated-out process must leave
         # through _exit(1), not longjmp. Vanilla PHP exits 255, so asserting on
