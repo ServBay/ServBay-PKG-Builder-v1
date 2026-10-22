@@ -500,7 +500,10 @@ try {
     # the PECL DLLs: they link the dependency bundle too.
     Write-Step 'Smoke-testing extension loading from the staged layout'
     $SmokeArgs = @('-n', '-d', "extension_dir=$StageExt")
-    $SmokeExts = @('openssl', 'curl', 'intl', 'pgsql', 'ldap', 'gd2')
+    # 7.x ships php_gd2.dll and registers "gd"; 8.x ships php_gd.dll.
+    $GdFile = @('gd2', 'gd') | Where-Object { Test-Path (Join-Path $StageExt "php_$_.dll") } | Select-Object -First 1
+    $SmokeExts = @('openssl', 'curl', 'intl', 'pgsql', 'ldap')
+    if ($GdFile) { $SmokeExts += $GdFile }
     # igbinary first: redis and msgpack pick it as their serializer if present.
     foreach ($ext in @('igbinary', 'redis', 'mongodb', 'imagick', 'yaml', 'msgpack', 'oauth')) {
         if ($PeclExts.ContainsKey($ext)) { $SmokeExts += $ext }
