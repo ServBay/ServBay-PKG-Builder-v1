@@ -594,11 +594,12 @@ try {
         }
     }
 
-    # Loading imagick only proves the DLL resolves. Its coder modules
-    # (IM_MOD_RL_*) are looked up at runtime, so a package that puts them
-    # somewhere ImageMagick does not search looks fine until someone converts
-    # an image. Encode and decode for real.
-    if (Test-Path (Join-Path $Stage 'IM_MOD_RL_png_.dll')) {
+    # Loading imagick only proves the DLL resolves. Its coder modules are
+    # looked up at runtime, so a package that puts them somewhere ImageMagick
+    # does not search looks fine until someone converts an image. Encode and
+    # decode for real. The 7.0 archive is built without separate coders, so
+    # this runs whenever the module is present rather than keying off them.
+    if (Test-Path (Join-Path $StageExt 'php_imagick.dll')) {
         Write-Step 'Smoke-testing an imagick encode/decode round trip'
         $ImagickArgs = @('-n', '-d', "extension_dir=$StageExt", '-d', 'extension=php_imagick.dll')
         $ImagickCode = @'
