@@ -413,33 +413,64 @@ try {
     # --- Stage -------------------------------------------------------------
     # Release\ also holds every object file, resource script and import
     # library the build produced, laid out to mirror the source tree. The
-    # package must look like an official Windows build instead: the binaries
-    # and core DLLs at the root, the extensions under ext\, and the
-    # third-party runtime DLLs alongside them.
+    # package must look like an official Windows build instead.
+    #
+    # The official release archive is the base layer: it carries what a source
+    # build cannot produce on a hosted runner - dev\*.lib for phpize, sasl2\,
+    # lib\enchant, extras\ssl, deplister.exe, phar.phar.bat, the docs, and the
+    # extensions that need an external SDK (com_dotnet, oci8, pdo_oci). The
+    # compiled binaries then replace the unpatched ones on top of it.
     Write-Step 'Staging the package layout'
     $Stage = Join-Path $Root 'stage'
     if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
     $StageExt = Join-Path $Stage 'ext'
     New-Item -ItemType Directory -Force -Path $StageExt | Out-Null
 
-    Get-ChildItem $ReleaseDir -File -Filter '*.exe' | Copy-Item -Destination $Stage
+    $ArchZip = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
+    # windows.php.net spells the 7.4 CRT tag in lower case and puts the EOL
+    # branches under archives\.
+    $CrtTag = switch ($Crt) { 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
+    if ($MajorMinor -eq '7.4') { $CrtTag = 'vc15' }
+    $OfficialName = "php-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip"
+    $OfficialBase = if ($MajorMinor -in @('7.0', '7.1', '7.2', '7.3')) {
+        'https://windows.php.net/downloads/releases/archives/'
+    } else {
+        'https://windows.php.net/downloads/releases/'
+    }
+    $OfficialZip = Join-Path $ToolsDir $OfficialName
+    if (-not (Test-Path $OfficialZip)) {
+        Write-Step "Downloading the official $BaseVersion archive as the package base"
+        Invoke-WebRequest -Uri "$OfficialBase$OfficialName" -OutFile $OfficialZip
+    }
+    Expand-Archive -Path $OfficialZip -DestinationPath $Stage -Force
+
+    # --- Compiled binaries replace the unpatched ones ----------------------
+    Get-ChildItem $ReleaseDir -File -Filter '*.exe' | Copy-Item -Destination $Stage -Force
     Get-ChildItem $ReleaseDir -File -Filter 'php*.dll' |
         Where-Object { $_.Name -notmatch '^php_' } |
-        Copy-Item -Destination $Stage
-    Get-ChildItem $ReleaseDir -File -Filter 'php_*.dll' | Copy-Item -Destination $StageExt
+        Copy-Item -Destination $Stage -Force
+    Get-ChildItem $ReleaseDir -File -Filter 'php_*.dll' | Copy-Item -Destination $StageExt -Force
+    # phpize links extensions against this import library; the archive's copy
+    # predates the security backport.
+    $StageDev = Join-Path $Stage 'dev'
+    if (Test-Path $StageDev) {
+        Get-ChildItem $ReleaseDir -File -Filter '*.lib' | Copy-Item -Destination $StageDev -Force
+    }
 
     # PHP statically links most of the dependency bundle, but the libraries it
     # does not (OpenSSL, ICU, libpq, libssh2, ...) have to travel with the
-    # binary or those extensions fail to load outside the build tree.
+    # binary. The archive already carries the ones its extensions need, so
+    # only fill in what is missing rather than overriding a matched set.
     $DepsBin = Join-Path $BuildDir 'deps\bin'
     if (Test-Path $DepsBin) {
         Get-ChildItem $DepsBin -Filter '*.dll' -File |
             Where-Object { $_.Name -notmatch '_debug\.dll$' } |
+            Where-Object { -not (Test-Path (Join-Path $Stage $_.Name)) } |
             Copy-Item -Destination $Stage
     }
     foreach ($ini in @('php.ini-development', 'php.ini-production')) {
         $iniSrc = Join-Path $SourceDir $ini
-        if (Test-Path $iniSrc) { Copy-Item $iniSrc -Destination $Stage }
+        if (Test-Path $iniSrc) { Copy-Item $iniSrc -Destination $Stage -Force }
     }
 
     # --- PECL extensions ---------------------------------------------------
@@ -470,19 +501,18 @@ try {
             Expand-Archive -Path $zip -DestinationPath $unpack -Force
 
             # The archive also carries the third-party runtime the extension
-            # links against (ImageMagick's CORE_RL_*.dll, libyaml's yaml.dll).
-            # Those belong beside php.exe like in an official build; only the
-            # php_*.dll modules go under ext\.
+            # links against (ImageMagick's CORE_RL_*/IM_MOD_RL_*, libyaml's
+            # yaml.dll). An official build keeps those in ext\ beside the
+            # module that loads them, which is also where ImageMagick looks
+            # for its coders.
             $dlls = @(Get-ChildItem $unpack -Recurse -Filter '*.dll' -File)
             if (-not @($dlls | Where-Object { $_.Name -match '^php_' })) {
                 throw "Extension package for $name carries no php_*.dll"
             }
             foreach ($dll in $dlls) {
+                Copy-Item $dll.FullName -Destination $StageExt -Force
                 if ($dll.Name -match '^php_') {
-                    Copy-Item $dll.FullName -Destination $StageExt -Force
                     $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
-                } else {
-                    Copy-Item $dll.FullName -Destination $Stage -Force
                 }
             }
             Write-Host "    $name -> $(($dlls | Where-Object { $_.Name -match '^php_' }).BaseName -join ', ')"
@@ -493,6 +523,20 @@ try {
     if (-not (Get-ChildItem $StageExt -Filter 'php_*.dll' -File)) {
         throw "Staged package has no extensions in $StageExt"
     }
+
+    # The official archive is what supplies the parts a source build cannot
+    # make. Losing them is silent until someone tries to use the package, so
+    # check the ones that matter before anything is packed.
+    Write-Step 'Checking the archive-provided layout'
+    $RequiredPaths = @('deplister.exe', 'dev', 'extras\ssl\openssl.cnf', 'phar.phar.bat', 'pharcommand.phar')
+    if ($MajorMinor -in @('7.0', '7.1', '7.2', '7.3', '7.4')) { $RequiredPaths += 'sasl2' }
+    $RequiredPaths += 'lib\enchant\libenchant_ispell.dll'
+    $MissingPaths = @($RequiredPaths | Where-Object { -not (Test-Path (Join-Path $Stage $_)) })
+    if ($MissingPaths) {
+        throw "The official archive did not provide: $($MissingPaths -join ', ')"
+    }
+    $DevLib = Get-ChildItem (Join-Path $Stage 'dev') -Filter 'php*.lib' -File -ErrorAction SilentlyContinue
+    if (-not $DevLib) { throw 'dev\ carries no php*.lib; phpize could not build an extension' }
 
     # Load the extensions that depend on the bundled DLLs. php -v only proves
     # the CLI starts; this proves the layout actually resolves OpenSSL, ICU,
@@ -505,7 +549,9 @@ try {
     $SmokeExts = @('openssl', 'curl', 'intl', 'pgsql', 'ldap')
     if ($GdFile) { $SmokeExts += $GdFile }
     # igbinary first: redis and msgpack pick it as their serializer if present.
-    foreach ($ext in @('igbinary', 'redis', 'mongodb', 'imagick', 'yaml', 'msgpack', 'oauth')) {
+    # sqlsrv/pdo_sqlsrv and oci8 need an external driver, and xdebug only loads
+    # as a zend_extension, so none of those are exercised here.
+    foreach ($ext in @('igbinary', 'redis', 'mongodb', 'imagick', 'yaml', 'msgpack', 'oauth', 'apcu', 'grpc', 'protobuf', 'memcache', 'memcached')) {
         if ($PeclExts.ContainsKey($ext)) { $SmokeExts += $ext }
     }
     $Loaded = @()
@@ -536,6 +582,31 @@ try {
     foreach ($ext in $Loaded) {
         if ($LoadedModules -notcontains $ext) {
             throw "Extension $ext is in the package but not loaded: $ModuleLine"
+        }
+    }
+
+    # Loading imagick only proves the DLL resolves. Its coder modules
+    # (IM_MOD_RL_*) are looked up at runtime, so a package that puts them
+    # somewhere imagick does not search looks fine until someone converts an
+    # image. Encode and decode for real.
+    if (Test-Path (Join-Path $StageExt 'IM_MOD_RL_png_.dll')) {
+        Write-Step 'Smoke-testing an imagick encode/decode round trip'
+        $ImagickArgs = @('-n', '-d', "extension_dir=$StageExt", '-d', 'extension=php_imagick.dll')
+        $ImagickCode = @'
+$im = new Imagick();
+$im->newImage(8, 8, 'red');
+$im->setImageFormat('png');
+$blob = $im->getImageBlob();
+$back = new Imagick();
+$back->readImageBlob($blob);
+echo $back->getImageWidth() . 'x' . $back->getImageHeight();
+'@
+        $ImagickOut = & (Join-Path $Stage 'php.exe') @ImagickArgs -r $ImagickCode 2>&1
+        $ImagickText = ($ImagickOut | Out-String)
+        Write-Host "  $($ImagickText.Trim())"
+        if ($LASTEXITCODE -ne 0) { throw "imagick round trip failed with $LASTEXITCODE" }
+        if ($ImagickText -notmatch '8x8') {
+            throw "imagick could not encode/decode PNG; its coders are not where it looks: $ImagickText"
         }
     }
 
