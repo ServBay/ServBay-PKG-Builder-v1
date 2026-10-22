@@ -324,6 +324,33 @@ try {
     $configureArgs = @('--enable-snapshot-build', '--disable-zts', '--enable-cli', '--enable-cgi')
     & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && cscript //nologo configure.js $($configureArgs -join ' ')"
 
+    # --- Align the module build ID with the official extensions -------------
+    # configure.js derives PHP_COMPILER_ID from the detected cl.exe. Its
+    # version table stops at VS2017, so any newer toolset produces the raw
+    # version number (e.g. "19.44.35229"). The module build ID then reads
+    # "API...,NTS,19.44.35229" while every php.net and PECL extension for the
+    # branch was built as "...NTS,VC15"/"VS16", and the loader rejects them:
+    #
+    #   Module compiled with build ID=API20170718,NTS,VC15
+    #   PHP    compiled with build ID=API20170718,NTS,19.44.35229
+    #
+    # The hosted image no longer carries the branch's original toolset, so the
+    # ID is set to the one the official binaries use. This is safe across
+    # MSVC 2015-2022: they share the vcruntime140 ABI, which is what the check
+    # is standing in for. Nothing else in the build ID changes - the API
+    # number, ZTS and debug flags are still compared for real.
+    $ConfigHeader = Join-Path $SourceDir 'main\config.w32.h'
+    if (-not (Test-Path $ConfigHeader)) { throw "Missing $ConfigHeader after configure" }
+    # "vc14" -> "VC14", "vs16" -> "VS16", matching the PECL archive names.
+    $CompatId = $Crt.ToUpper()
+    $headerText = Get-Content $ConfigHeader -Raw
+    $updated = [regex]::Replace($headerText, '#define\s+PHP_COMPILER_ID\s+"[^"]*"', "#define PHP_COMPILER_ID `"$CompatId`"")
+    if ($updated -eq $headerText) {
+        throw "PHP_COMPILER_ID is not defined in $ConfigHeader; cannot align the module build ID"
+    }
+    Set-Content -Path $ConfigHeader -Value $updated -Encoding ASCII
+    Write-Step "Module build ID set to $CompatId"
+
     # --- Inject the shim ---------------------------------------------------
     if ($Shim) {
         $Makefile = Join-Path $SourceDir 'Makefile'
@@ -456,18 +483,29 @@ try {
     foreach ($ext in @('igbinary', 'redis', 'mongodb', 'imagick', 'yaml', 'msgpack', 'oauth')) {
         if ($PeclExts.ContainsKey($ext)) { $SmokeExts += $ext }
     }
+    $Loaded = @()
     foreach ($ext in $SmokeExts) {
         if (Test-Path (Join-Path $StageExt "php_$ext.dll")) {
             $SmokeArgs += @('-d', "extension=php_$ext.dll")
+            # php_gd2.dll registers itself as "gd".
+            $Loaded += ($ext -replace '2$', '')
         }
     }
-    $Smoke = & (Join-Path $Stage 'php.exe') @SmokeArgs -r "echo 'extensions ok';" 2>&1
+    # Ask PHP which modules it actually registered. A startup failure is a
+    # warning, not a non-zero exit, so the exit code alone proves nothing:
+    # an earlier build printed "igbinary: Unable to initialize module" and
+    # still exited 0.
+    $Smoke = & (Join-Path $Stage 'php.exe') @SmokeArgs -r "echo implode(',', get_loaded_extensions());" 2>&1
     $SmokeText = ($Smoke | Out-String)
     Write-Host "  $($SmokeText.Trim())"
     if ($LASTEXITCODE -ne 0) { throw "Extension smoke test failed with $LASTEXITCODE" }
-    if ($SmokeText -notmatch 'extensions ok') { throw 'Extension smoke test produced no output' }
-    if ($SmokeText -match 'Unable to load dynamic library') {
-        throw 'An extension could not load from the staged layout'
+    if ($SmokeText -match 'Unable to (load dynamic library|initialize module)') {
+        throw "An extension could not start: $SmokeText"
+    }
+    foreach ($ext in $Loaded) {
+        if ($SmokeText -notmatch "(^|,)$([regex]::Escape($ext))(,|$)") {
+            throw "Extension $ext is in the package but not loaded: $SmokeText"
+        }
     }
 
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null

@@ -154,7 +154,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # staged copy is exercised before it is packed.
         text = PS1.read_text()
         self.assertIn("extension_dir=$StageExt", text)
-        self.assertIn("Unable to load dynamic library", text)
+        self.assertIn("Unable to (load dynamic library|initialize module)", text)
 
     def test_version_check_flattens_captured_output(self):
         # `php -v` is multi-line, and -notmatch against an array filters it,
@@ -230,8 +230,28 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
 
     def test_pecl_extensions_are_smoke_tested(self):
         text = PS1.read_text()
-        self.assertIn("Unable to load dynamic library", text)
         self.assertRegex(text, r"extension=php_\$ext\.dll")
+
+    def test_module_build_id_matches_the_official_extensions(self):
+        # configure.js stops mapping toolsets at VS2017, so a newer cl.exe
+        # yields the raw version ("19.44.35229") while every php.net and PECL
+        # extension was built as ",VC15"/",VS16". The loader then refuses
+        # them. The build sets the ID to the branch's official one.
+        text = PS1.read_text()
+        self.assertIn("PHP_COMPILER_ID", text)
+        self.assertIn("$Crt.ToUpper()", text)
+        self.assertIn("main\\config.w32.h", text)
+        # A silent no-op would ship a package whose extensions all fail.
+        self.assertIn("cannot align the module build ID", text)
+
+    def test_smoke_test_checks_loaded_modules_not_just_exit_code(self):
+        # "Unable to initialize module" is a warning: php.exe still exits 0.
+        # The first 7.2 build passed this way with none of the PECL DLLs
+        # actually registered, so the test has to read back the module list.
+        text = PS1.read_text()
+        self.assertIn("get_loaded_extensions", text)
+        self.assertIn("Unable to (load dynamic library|initialize module)", text)
+        self.assertNotIn("echo 'extensions ok'", text)
 
 
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
