@@ -72,6 +72,19 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         text = PS1.read_text()
         self.assertIn("$MajorMinor -notin @('7.0', '7.1')", text)
 
+    def test_toolset_comes_from_the_installed_visual_studio(self):
+        # The standalone VS2015 bootstrapper is retired: aka.ms/vs/14 is dead
+        # and aka.ms/vs/15 is the VS2017 installer, whose /InstallPath is
+        # ignored. A three-hour CI run was lost to that mistake.
+        text = PS1.read_text()
+        self.assertNotIn("aka.ms/vs/15/release/vs_buildtools.exe", text)
+        self.assertIn("Microsoft.VisualStudio.Component.VC.140", text)
+        self.assertIn("--wait", text)
+        # configure.js and the dependency bundle both key off cl.exe reporting
+        # 14.0x, and the v140 toolset is only selected explicitly. Both the
+        # configure and the nmake invocation need it.
+        self.assertEqual(text.count("-vcvars_ver=$ToolsetVer"), 2)
+
     def test_configure_enables_the_release_module_set(self):
         # --disable-all produced a bare CLI with no ext/ at all, while every
         # other Windows PHP package ships the 37 php_*.dll of the official
