@@ -260,7 +260,13 @@ if ($Crt -eq 'vc14') {
 $SourceDir = Join-Path $BuildDir "php-$BaseVersion-src"
 if (Test-Path $SourceDir) { Remove-Item -Recurse -Force $SourceDir }
 Write-Step 'Extracting PHP source'
-& tar -xzf $SourceArchive -C $BuildDir
+# The 2.x SDK puts an MSYS2 GNU tar on PATH, and that tar reads "C:\..." as a
+# remote host ("Cannot connect to C: resolve failed"). The system tar is
+# bsdtar and handles drive letters, so call it by absolute path.
+$SystemTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+if (-not (Test-Path $SystemTar)) { throw "System tar not found at $SystemTar" }
+& $SystemTar -xzf $SourceArchive -C $BuildDir
+if ($LASTEXITCODE -ne 0) { throw "tar failed with $LASTEXITCODE" }
 Rename-Item (Join-Path $BuildDir "php-$BaseVersion") $SourceDir
 
 Push-Location $SourceDir
