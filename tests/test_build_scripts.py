@@ -11,18 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 class BuildScriptTests(unittest.TestCase):
     def test_macos_php_post_build_links_the_base_libiconv(self):
         # 7.x maps iconv() to GNU libiconv() (checking if using GNU libiconv...
-        # yes), and the system /usr/lib/libiconv has no _libiconv symbol -- only
-        # the base's GNU build does. LDFLAGS alone is not enough because
-        # configure regenerates the link line, so the base path goes into LIBS
-        # on the make command too.
+        # yes), and the system/SDK libiconv only exports _iconv/_iconv_open.
+        # A bare -liconv resolves to that stub whatever the -L order, so the
+        # base's dylib is named outright and exported as LIBS before configure.
         script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
-        config = self._extract_shell_function(script, "_get_php_build_config")
+        build_php = self._extract_shell_function(script, "build_php")
 
-        # The bare -liconv resolves against the system/SDK stub, whose
-        # libiconv has no _libiconv symbol, so the base's dylib is named
-        # outright instead of relying on search order.
-        self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib", config)
-        self.assertIn('LIBS="${LIBS} ', config)
+        self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib", build_php)
+        li = build_php.index('export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib"')
+        configure = build_php.index('./configure --prefix="${prefix}"')
+        self.assertLess(li, configure, "LIBS must be exported before configure")
 
     def test_macos_php_post_build_keeps_the_configured_ldflags(self):
         # 7.x links iconv/libxml from the ServBay base, so LDFLAGS must keep the
