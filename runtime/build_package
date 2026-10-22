@@ -5121,6 +5121,11 @@ _get_php_build_config() {
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.3")
+            # Same -O3 miscompile as 7.4/8.0: the x86_64 cli/php aborts
+            # (SIGABRT) the first time make runs it to generate phar.php, while
+            # arm64 is fine.
+            CFLAGS+=" -O1 -fno-strict-aliasing"
+            export CFLAGS
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" "--with-sodium=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
             # The ICU patch is x86_64-only, but the CVE patch applies to both arches.
