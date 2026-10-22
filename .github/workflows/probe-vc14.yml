@@ -36,7 +36,7 @@ jobs:
           $vsPath = $inst.installationPath
           "modifying $vsPath"
           & (Join-Path $InstallerDir 'setup.exe') modify --installPath $vsPath `
-              --quiet --norestart --nocache `
+              --quiet --norestart `
               --add Microsoft.VisualStudio.Component.VC.140 2>&1 | ForEach-Object { $_ }
           "setup.exe exit code: $LASTEXITCODE"
 
