@@ -102,6 +102,15 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("--enable-snapshot-build", text)
         self.assertNotIn("--disable-all", text)
 
+    def test_package_layout_matches_an_official_build(self):
+        # Release\ mirrors the source tree and is full of .obj/.res/.pdb. The
+        # package has to be staged instead: binaries at the root, extensions
+        # under ext\, or nothing loads on an installed machine.
+        text = PS1.read_text()
+        self.assertIn("$StageExt = Join-Path $Stage 'ext'", text)
+        self.assertIn("-Filter 'php_*.dll'", text)
+        self.assertIn("Push-Location $Stage", text)
+
     def test_runtime_dependencies_are_packed(self):
         # php -v only proves the CLI starts. Without the dependency bundle's
         # DLLs (OpenSSL, ICU, libpq, libssh2) the matching extensions fail to
