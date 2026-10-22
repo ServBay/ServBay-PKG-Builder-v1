@@ -4981,9 +4981,22 @@ _verify_php_module_loads() {
     # 用 -n 跳过宿主 ini，-d extension=<绝对路径> 直接加载刚安装的 .so，
     # --ri <模块名> 触发真正的 dlopen + MINIT；非零退出（含 "not present"）
     # 或无任何输出段都视为失败。不解析输出内容。
+    # 第 4 个参数起为可选依赖扩展 .so：带 ZEND_MOD_REQUIRED 的模块（phalcon 4.1.2
+    # 依赖 psr）在 -n 下依赖缺席时 --ri 直接报 "required module ... is not loaded"，
+    # 必须先逐个 -d extension=<dep.so> 预载；依赖 .so 不存在时指明路径并失败。
     local php_bin=$1 module_so=$2 ext_name=$3
+    shift 3
+    local -a preload_args=()
+    local dependency
+    for dependency in "$@"; do
+        if [[ ! -f "$dependency" ]]; then
+            log_message "ERROR" "PHP module ${ext_name} smoke dependency missing: ${dependency}. Build ${dependency:t} for this PHP series first."
+            return 1
+        fi
+        preload_args+=(-d "extension=${dependency}")
+    done
     local smoke_output
-    smoke_output=$("${php_bin}" -n -d "extension=${module_so}" --ri "${ext_name}" 2>&1)
+    smoke_output=$("${php_bin}" -n "${preload_args[@]}" -d "extension=${module_so}" --ri "${ext_name}" 2>&1)
     if [[ $? -ne 0 || -z "${smoke_output//[[:space:]]/}" ]]; then
         log_message "ERROR" "PHP module ${ext_name} failed the dlopen smoke test (php --ri ${ext_name} exited nonzero or printed nothing)."
         return 1
@@ -5502,7 +5515,14 @@ _build_php_mod_phalcon() {
             ini_source_path="${PROJECT_ROOT}/conf/php/phalcon-7.x.ini"
         fi
         cp "$ini_source_path" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/${ini_file_name}" || return 1
-        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/phalcon.so" "phalcon" || return 1
+        # phalcon 4.1.2（7.2-7.4）带 ZEND_MOD_REQUIRED("psr")，冒烟必须预载同链 psr.so；
+        # 宿主实测 3.4.5 与 5.7.0/5.9.3 均无此依赖，8.x 无 psr 模块、不传依赖。
+        # 顺序：bundle 场景 build_module.sh 先构建 psr 再进本函数，psr.so 必已就位。
+        local -a phalcon_smoke_deps=()
+        if [[ "$php_version_major" =~ ^(7\.[2-4])$ ]]; then
+            phalcon_smoke_deps+=("${extension_dir}/psr.so")
+        fi
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/phalcon.so" "phalcon" "${phalcon_smoke_deps[@]}" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
