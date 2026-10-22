@@ -77,10 +77,17 @@ Write-Step "PHP $Version ($Arch) from upstream $BaseVersion"
 New-Item -ItemType Directory -Force -Path $Root, $SdkDir, $ToolsDir | Out-Null
 
 # --- Toolchain -------------------------------------------------------------
-# PHP derives the dependency layout from the compiler version, and php.net only
-# published a VC14 dependency bundle for 7.0. Hosted runners ship VS2022, which
-# can still add MSVC v140 as an optional component - the standalone VS2015
-# bootstrapper is gone (aka.ms/vs/14 is dead, aka.ms/vs/15 is VS2017).
+# PHP 7.0 shipped against MSVC 14.0, and php.net only published a VC14
+# dependency bundle for it. No hosted runner image carries that toolset and
+# Microsoft no longer ships it: aka.ms/vs/14 is dead, aka.ms/vs/15 is the
+# VS2017 installer, and asking the runner's own VS installer for the VC.140
+# component returns 0 while changing nothing ("Status changed to NoUpdate").
+#
+# So v140 is used when the image happens to have it, and otherwise the newest
+# installed toolset. That is safe for this branch: MSVC has kept the
+# vcruntime140 ABI since 2015, configure.js only warns about an untested
+# compiler version, and the VC14 import libraries link fine under a newer
+# linker.
 $InstallerDir = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
 $VsWhere = Join-Path $InstallerDir 'vswhere.exe'
 if (-not (Test-Path $VsWhere)) { throw "vswhere not found at $VsWhere" }
@@ -89,47 +96,20 @@ $VsInstances = & $VsWhere -products '*' -format json | ConvertFrom-Json
 $VsInstance = $VsInstances |
     Where-Object { Test-Path (Join-Path $_.installationPath 'VC\Tools\MSVC') } |
     Select-Object -First 1
-if (-not $VsInstance) { $VsInstance = $VsInstances | Select-Object -First 1 }
-if (-not $VsInstance) { throw 'No Visual Studio instance found' }
+if (-not $VsInstance) { throw "No Visual Studio instance with a C++ toolset found" }
 $VsPath = $VsInstance.installationPath
-$VsChannel = $VsInstance.installationVersion.Split('.')[0]
 $MsvcRoot = Join-Path $VsPath 'VC\Tools\MSVC'
 
-function Get-V140Toolset {
-    if (-not (Test-Path $MsvcRoot)) { return $null }
-    Get-ChildItem $MsvcRoot -Directory |
-        Where-Object { $_.Name -match '^14\.0\d*\.' } |
-        Sort-Object Name -Descending |
-        Select-Object -First 1
-}
-
-$Toolset = Get-V140Toolset
-if (-not $Toolset) {
-    Write-Step 'Adding the MSVC v140 (VS2015) toolset to Visual Studio'
-    $ProductId = $null
-    if ($VsInstance.catalog -and $VsInstance.catalog.PSObject.Properties['productId']) {
-        $ProductId = $VsInstance.catalog.productId
-    } elseif ($VsInstance.PSObject.Properties['productId']) {
-        $ProductId = $VsInstance.productId
-    }
-    $InstallerExe = if ($ProductId -match '(Enterprise|Professional|Community)$') {
-        "vs_$($Matches[1].ToLower()).exe"
-    } else { 'vs_buildtools.exe' }
-
-    $Installer = Join-Path $ToolsDir $InstallerExe
-    if (-not (Test-Path $Installer)) {
-        Invoke-WebRequest -Uri "https://aka.ms/vs/$VsChannel/release/$InstallerExe" -OutFile $Installer
-    }
-    # --wait is what makes the bootstrapper block and return the child's exit
-    # code; the plain /Quiet form leaves a resident process behind and returns
-    # immediately.
-    & $Installer modify --installPath $VsPath --quiet --wait --norestart --nocache `
-        --add Microsoft.VisualStudio.Component.VC.140 `
-        --add Microsoft.VisualStudio.Component.VC.ATL `
-        --add Microsoft.VisualStudio.Component.Windows10SDK.19041
-    Write-Host "  vs_installer exit code: $LASTEXITCODE"
-    $Toolset = Get-V140Toolset
-    if (-not $Toolset) { throw 'MSVC v140 was requested but no 14.0 toolset is installed' }
+$Toolset = Get-ChildItem $MsvcRoot -Directory |
+    Where-Object { $_.Name -match '^14\.0\d*\.' } |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+if ($Toolset) {
+    Write-Step "Using the MSVC v140 toolset $($Toolset.Name)"
+} else {
+    $Toolset = Get-ChildItem $MsvcRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+    if (-not $Toolset) { throw "No MSVC toolset under $MsvcRoot" }
+    Write-Warning "MSVC v140 is not available; building PHP $BaseVersion with $($Toolset.Name)"
 }
 $ToolsetVer = $Toolset.Name
 $VcVars = Join-Path $VsPath 'VC\Auxiliary\Build\vcvarsall.bat'
