@@ -9,18 +9,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
-    def test_macos_php_post_build_links_the_base_libiconv(self):
-        # 7.x maps iconv() to GNU libiconv() (checking if using GNU libiconv...
-        # yes), and the system/SDK libiconv only exports _iconv/_iconv_open.
-        # A bare -liconv resolves to that stub whatever the -L order, so the
-        # base's dylib is named outright and exported as LIBS before configure.
+    def test_macos_php7_resolves_and_iconv_reach_the_configure_link_line(self):
+        # 7.0-7.3 need two libraries that configure must know about before it
+        # writes the Makefile: the base's GNU libiconv (the system/SDK stub has
+        # no _libiconv*) and libresolv for dns.c's res_9_* symbols. Passing them
+        # on the make command does not work -- configure has already generated
+        # the link line by then -- so they are exported as LIBS beforehand.
         script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
         build_php = self._extract_shell_function(script, "build_php")
 
         self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib", build_php)
-        li = build_php.index('export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib"')
+        li = build_php.index('export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib -lresolv"')
         configure = build_php.index('./configure --prefix="${prefix}"')
         self.assertLess(li, configure, "LIBS must be exported before configure")
+
+        # 5.3-5.5 already work with the make-time LDFLAGS form; keep it.
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("5.3", "5.4", "5.5"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn("-lresolv", branch)
 
     def test_macos_php_post_build_keeps_the_configured_ldflags(self):
         # 7.x links iconv/libxml from the ServBay base, so LDFLAGS must keep the
