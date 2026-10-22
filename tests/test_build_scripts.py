@@ -20,7 +20,9 @@ class BuildScriptTests(unittest.TestCase):
 
         self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib", build_php)
         self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libtidy.dylib", build_php)
-        li = build_php.index('export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib ${SERVBAY_COMMON_LIB_PATH}/libtidy.dylib -lresolv"')
+        self.assertIn("${SERVBAY_COMMON_LIB_PATH}/libldap.dylib", build_php)
+        li = build_php.index('export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib')
+        self.assertIn("-lresolv", build_php[li:build_php.index('\n', li)])
         configure = build_php.index('./configure --prefix="${prefix}"')
         self.assertLess(li, configure, "LIBS must be exported before configure")
 
