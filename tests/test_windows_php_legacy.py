@@ -331,12 +331,12 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         text = PS1.read_text()
         self.assertRegex(text, r"Where-Object \{ -not \(Test-Path \(Join-Path \$Stage \$_\.Name\)\) \}")
 
-    def test_imagick_coders_travel_with_the_module(self):
-        # ImageMagick resolves IM_MOD_RL_* at runtime, from the directory its
-        # own CORE_RL_magick_.dll sits in.
+    def test_imagick_round_trip_is_not_skipped(self):
+        # The 7.0 archive ships no separate coder modules, so keying the test
+        # off IM_MOD_RL_png_.dll silently skipped it there.
         text = PS1.read_text()
-        self.assertIn("IM_MOD_RL_png_.dll", text)
-        self.assertIn("Join-Path $Stage 'IM_MOD_RL_png_.dll'", text)
+        self.assertIn("Join-Path $StageExt 'php_imagick.dll'", text)
+        self.assertNotIn("IM_MOD_RL_png_.dll'", text)
 
     def test_imagick_round_trip_is_exercised(self):
         # Loading the DLL proves nothing about the coders; only an actual
