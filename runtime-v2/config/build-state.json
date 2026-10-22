@@ -1,4 +1,28 @@
 {
   "schema_version": 1,
-  "units": {}
+  "units": {
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "nginx",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.8"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-22T17:04:30+00:00",
+        "expires_at": "2026-10-23T01:04:30+00:00",
+        "producer": {
+          "commit": "8e2c406ca2f0e266116f39040f93a8e747a1a10f",
+          "run_attempt": 1,
+          "run_id": "39819433208"
+        }
+      },
+      "status": "discovered"
+    }
+  }
 }
