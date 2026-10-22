@@ -121,7 +121,20 @@ jobs:
               DISPATCH_ARGS=(-f "apache_version=${VERSION}")
               ;;
             php)
+              # PHP-Windows-Portable builds 8.2+ only. 8.1 and below are
+              # repackaged in build_windows -- 8.1 from this repo's release (so
+              # it still needs the dispatch) and 8.0 and older from the upstream
+              # archive (nothing to dispatch).
+              case "$VERSION" in
+                8.2*|8.3*|8.4*|8.5*|8.6*|8.7*|8.1*) ;;
+                *)
+                  echo "pkg=php version=${VERSION} is repackaged from an upstream archive; skip Stage 1."
+                  exit 0
+                  ;;
+              esac
               REPO="ServBay/PHP-Windows-Portable"; WF="build.yml"
+              # A local backport (x.y.z.N) keeps its own tag, so it never
+              # collides with the upstream-tagged release of x.y.z.
               TAG="php-${VERSION}-${ARCH}-nts"
               case "$VERSION_TYPE" in
                 stable)      VER_ARG=(-f "stable_version=${VERSION}");;

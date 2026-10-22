@@ -259,6 +259,20 @@ class BuildScriptTests(unittest.TestCase):
         self.assertRegex(build_git, r"make\s+-j\$\{CPU_NUMBER\}[^\\n]*NO_RUST=1")
         self.assertRegex(build_git, r"make\s+install[^\\n]*NO_RUST=1")
 
+    def test_windows_stage1_skips_repackaged_php_but_not_81(self):
+        # build_windows uses prebuilt=1 for 8.1+, so 8.1 must still dispatch to
+        # PHP-Windows-Portable (the source-build side that applies our patch).
+        # 8.0 and below are repackaged from the upstream archive, so there is
+        # nothing to dispatch and a dispatch would wait ~90min for a release
+        # that never appears.
+        workflow = (ROOT / ".github" / "workflows" / "build-windows.yml").read_text(encoding="utf-8")
+        php_branch = workflow.split("            php)", 1)[1].split("            memcached)", 1)[0]
+
+        self.assertIn("8.1*", php_branch, "8.1 must not be skipped")
+        self.assertIn("8.2*", php_branch)
+        self.assertIn("skip Stage 1", php_branch)
+        self.assertIn("upstream archive", php_branch)
+
     def test_windows_git_uses_portable_git_with_shell_tools(self):
         script = (ROOT / "runtime-windows" / "build_windows").read_text(encoding="utf-8")
         build_git = self._extract_shell_function(script, "Build_Package_git")
