@@ -355,7 +355,15 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         # grew the package by ~40 files per branch.
         text = PS1.read_text()
         self.assertIn("Get-ChildItem $ReleaseDir -File -Filter '*.lib'", text)
-        self.assertIn("Where-Object { $_.Name -notmatch '^php_' }", text)
+        self.assertIn("$_.Name -match '^php\d+(embed)?\.lib$'", text)
+
+    def test_extension_archives_contribute_their_config(self):
+        # imagick ships ImageMagick's policy/delegates XML and memcached a
+        # sample ini. policy.xml drives ImageMagick's security limits, so it
+        # belongs in the package rather than being dropped with the pdb files.
+        text = PS1.read_text()
+        self.assertIn("Join-Path $unpack 'config'", text)
+        self.assertIn("-Filter '*.ini'", text)
 
     def test_dispatch_routes_legacy_php_away_from_the_ubuntu_pipeline(self):
         dispatch = yaml.safe_load(DISPATCH.read_text())

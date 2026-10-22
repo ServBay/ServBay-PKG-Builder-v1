@@ -457,7 +457,7 @@ try {
     $StageDev = Join-Path $Stage 'dev'
     if (Test-Path $StageDev) {
         Get-ChildItem $ReleaseDir -File -Filter '*.lib' |
-            Where-Object { $_.Name -notmatch '^php_' } |
+            Where-Object { $_.Name -match '^php\d+(embed)?\.lib$' } |
             Copy-Item -Destination $StageDev -Force
     }
 
@@ -524,6 +524,17 @@ try {
                 }
             }
             Write-Host "    $name -> $(($dlls | Where-Object { $_.Name -match '^php_' }).BaseName -join ', ')"
+
+            # Some archives also carry runtime configuration: ImageMagick's
+            # policy/delegates XML (imagick) and a sample ini (memcached).
+            # They belong in the package - policy.xml drives ImageMagick's
+            # own security limits.
+            $extraIni = @(Get-ChildItem $unpack -Filter '*.ini' -File)
+            foreach ($ini in $extraIni) { Copy-Item $ini.FullName -Destination $Stage -Force }
+            $configDir = Join-Path $unpack 'config'
+            if (Test-Path $configDir) {
+                Copy-Item $configDir -Destination $Stage -Recurse -Force
+            }
         }
         Write-Step "Staged $($PeclExts.Count) PECL extensions"
     }
