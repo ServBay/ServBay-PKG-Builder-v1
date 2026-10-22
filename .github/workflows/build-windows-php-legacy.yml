@@ -1,12 +1,18 @@
 name: build-windows-php-legacy
 
-# Compile an EOL PHP release on Windows with the Visual C++ toolchain that
-# release targets.
+# Compile an EOL PHP release on Windows from source, with the Visual C++
+# toolchain that release targets.
 #
-# PHP 7.0 is the oldest branch still buildable on a hosted runner: it needs
-# VC14 (VS2015), which is not on the image but can still be installed from
-# Microsoft's bootstrapper. Everything below 7.0 needs VS2012 (5.5/5.6) or
-# VS2008 (5.3/5.4), neither of which is obtainable here.
+# The stock pipeline repackages an upstream zip and therefore cannot apply a
+# source patch. Every branch that has to carry a security backport is built
+# here instead:
+#
+#   7.0, 7.1   VC14 (VS2015 toolset, falls back to the newest installed one)
+#   7.2 - 7.4  VC15
+#   8.0, 8.1   VS16
+#
+# Everything below 7.0 needs VS2012 (5.5/5.6) or VS2008 (5.3/5.4), neither of
+# which is obtainable here.
 #
 # The output mirrors build-windows.yml's contract exactly - a 7z of the PHP
 # release directory plus meta.json - so the downstream Uploader needs no
@@ -64,6 +70,43 @@ jobs:
           git --version
           & 'C:\Program Files\7-Zip\7z.exe' | Select-Object -First 2
 
+      - name: Generate extension manifest
+        # --enable-snapshot-build only builds the core ext/ modules. The
+        # published packages also carry the PECL extensions listed in
+        # php-exts.json, so flatten the entry for this branch/arch into the
+        # shape the build script expects. Only the same set the stock pipeline
+        # installs is taken: php-exts.json also lists extras (phalcon,
+        # rdkafka, ...) that the published packages never carried, and adding
+        # them would ship unverified runtime dependencies.
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ inputs.arch }}
+        run: |
+          $required = @(
+            'imagick', 'xdebug', 'redis', 'apcu', 'yaml', 'memcached',
+            'mongodb', 'memcache', 'sqlsrv', 'pdo_sqlsrv', 'msgpack',
+            'protobuf', 'grpc', 'oauth', 'igbinary', 'imap'
+          )
+          $table = Get-Content 'runtime-windows\php-exts.json' -Raw | ConvertFrom-Json
+          $branch = ($env:VERSION -split '\.')[0..1] -join '.'
+          $manifest = @{}
+          foreach ($name in $required) {
+            $package = $table.PSObject.Properties[$name]
+            if (-not $package) { continue }
+            $entry = $package.Value.PSObject.Properties[$branch]
+            if (-not $entry) { continue }
+            $value = $entry.Value
+            if ($value.arch -eq $env:ARCH -and $value.download_url) {
+              $manifest[$name] = $value.download_url
+            }
+          }
+          if ($manifest.Count -eq 0) {
+            throw "No PECL extensions defined for PHP $branch ($env:ARCH)"
+          }
+          $manifest | ConvertTo-Json | Set-Content -Path 'ext-manifest.json' -Encoding ASCII
+          Write-Host "PHP $branch ($env:ARCH) extensions: $(($manifest.Keys | Sort-Object) -join ', ')"
+
       - name: Build PHP
         shell: pwsh
         run: |
@@ -83,7 +126,8 @@ jobs:
 
           $outDir = Join-Path $env:REPO_ROOT "dist-windows\php\$env:ARCH"
           $script = Join-Path $env:REPO_ROOT 'runtime-windows\ci\build_php_legacy.ps1'
-          & $script -Version $env:VERSION -Arch $env:ARCH -OutputDir $outDir -PatchDir $patchDir
+          & $script -Version $env:VERSION -Arch $env:ARCH -OutputDir $outDir -PatchDir $patchDir `
+                    -ExtManifest (Join-Path $env:REPO_ROOT 'ext-manifest.json')
 
       - name: Generate meta.json
         id: meta

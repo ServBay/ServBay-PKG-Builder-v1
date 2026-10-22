@@ -25,8 +25,31 @@ PS1 = ROOT / "runtime-windows/ci/build_php_legacy.ps1"
 SHIM = ROOT / "runtime-windows/ci/vc14-intrinsics.h"
 PATCH_ROOT = ROOT / "runtime/patch"
 
-# The branches whose official dependency bundles exist for VC14.
+# Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
+# VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
+EOL_VERSIONS = [
+    "7.0.33.1",
+    "7.1.33.1",
+    "7.2.34.1",
+    "7.3.33.1",
+    "7.4.33.1",
+    "8.0.30.1",
+    "8.1.34.1",
+]
 VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
+
+# The compiler branch each PHP branch was released against. The series
+# manifest is keyed by it, so getting this wrong downloads the wrong CRT's
+# libraries and links instead of failing outright.
+CRT_BY_BRANCH = {
+    "7.0": "vc14",
+    "7.1": "vc14",
+    "7.2": "vc15",
+    "7.3": "vc15",
+    "7.4": "vc15",
+    "8.0": "vs16",
+    "8.1": "vs16",
+}
 
 
 def major_minor(version):
@@ -38,7 +61,7 @@ class WindowsPhpLegacyPatchTests(unittest.TestCase):
     def test_patch_directory_follows_php_prefix(self):
         # runtime/patch/<branch> is named php7.0, not 7.0. The workflow once
         # joined the bare version and failed on the runner.
-        for version in VC14_VERSIONS:
+        for version in EOL_VERSIONS:
             branch_dir = PATCH_ROOT / f"php{major_minor(version)}"
             self.assertTrue(
                 branch_dir.is_dir(),
@@ -68,11 +91,14 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
         self.assertNotIn("deps-7.0-vc14-x64.7z", text)
 
-    def test_rejects_branches_without_vc14_deps(self):
+    def test_rejects_branches_outside_the_supported_series(self):
+        # The script has no dependency source for anything outside the table,
+        # so it must fail before configure rather than build a bare CLI.
         text = PS1.read_text()
-        self.assertIn("$MajorMinor -notin @('7.0', '7.1')", text)
+        self.assertIn("$CrtByBranch", text)
+        self.assertIn("does not cover PHP", text)
 
-    def test_toolset_prefers_v140_and_falls_back(self):
+    def test_toolset_prefers_the_branch_toolset_and_falls_back(self):
         # Microsoft no longer ships the v140 toolset to hosted runners: the
         # standalone VS2015 bootstrapper is retired, and asking the runner's
         # own installer for the VC.140 component returns 0 without changing
@@ -80,8 +106,10 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # image does have.
         text = PS1.read_text()
         self.assertNotIn("aka.ms/vs/15/release/vs_buildtools.exe", text)
-        self.assertIn(r"^14\.0\d*\.", text)
-        self.assertIn("MSVC v140 is not available", text)
+        self.assertIn(r"'^14\.0\d*\.'", text)
+        self.assertIn(r"'^14\.1\d*\.'", text)
+        self.assertIn(r"'^14\.2\d*\.'", text)
+        self.assertIn("toolset is available; building PHP", text)
         # configure.js and the dependency bundle key off the compiler, and the
         # toolset is only selected explicitly. Both the configure and the nmake
         # invocation need it.
@@ -152,6 +180,60 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("_mm_loadu_si64", text)
 
 
+class WindowsPhpEolBranchTests(unittest.TestCase):
+    """PHP 7.2-8.1 have no VC14 bundle; they build from the series manifest."""
+
+    def test_crt_table_covers_every_eol_branch(self):
+        text = PS1.read_text()
+        for branch, crt in CRT_BY_BRANCH.items():
+            self.assertRegex(
+                text,
+                rf"'{re.escape(branch)}'\s*=\s*'{crt}'",
+                f"{branch} must map to {crt}",
+            )
+
+    def test_upper_branches_read_the_series_manifest(self):
+        # php.net publishes one deps/series/packages-<branch>-<crt>-<arch>-
+        # stable.txt per branch. The branch is what selects the library
+        # versions; guessing latest would link a newer CRT's import libraries.
+        text = PS1.read_text()
+        self.assertIn("deps/series/packages-$MajorMinor-$Crt-$Arch-stable.txt", text)
+        self.assertIn("deps/$Crt/$Arch/$name", text)
+
+    def test_upper_branches_use_the_modern_sdk(self):
+        # SDK 2.1 (20110915) predates 7.2 and cannot build it; its buildtree
+        # also lacks the vc15/vs16 layouts.
+        text = PS1.read_text()
+        self.assertIn("php-sdk-2.8.4", text)
+        self.assertIn("phpsdk_buildtree.bat", text)
+
+    def test_vc14_bundle_stays_single_archive(self):
+        # 7.0/7.1 are the only branches php.net shipped an aggregate bundle
+        # for. Keep that path, it is the one already proven on the runner.
+        text = PS1.read_text()
+        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+
+    def test_intrinsics_shim_is_vc14_only(self):
+        # _mm_loadu_si64 exists from VS2017 on. Injecting the shim into a
+        # vc15/vs16 build would shadow the real intrinsic.
+        text = PS1.read_text()
+        self.assertRegex(text, r"if\s*\(\s*\$Crt\s+-eq\s+'vc14'\s*\)")
+
+    def test_pecl_extensions_are_staged(self):
+        # --enable-snapshot-build builds the core ext/ modules only. The
+        # published packages also carry imagick, redis, mongodb and friends,
+        # so a source build without them is a regression.
+        text = PS1.read_text()
+        self.assertIn("$ExtManifest", text)
+        self.assertIn("php_*.dll", text)
+        self.assertIn("$StageExt", text)
+
+    def test_pecl_extensions_are_smoke_tested(self):
+        text = PS1.read_text()
+        self.assertIn("Unable to load dynamic library", text)
+        self.assertRegex(text, r"extension=php_\$ext\.dll")
+
+
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
     def setUp(self):
         self.workflow = yaml.safe_load(WORKFLOW.read_text())
@@ -193,12 +275,40 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
             jobs["build-windows-legacy"]["uses"],
             "./.github/workflows/build-windows-php-legacy.yml",
         )
-        # The normal pipeline must stand down for the same versions, otherwise
-        # both jobs build php and the second one overwrites the artifact.
+        # Every EOL branch has to be diverted: the stock pipeline repackages
+        # the upstream zip and cannot apply a source patch, so a version that
+        # slips through ships unfixed.
         normal = jobs["build-windows"]["if"]
-        self.assertIn("startsWith(inputs.windows_version, '7.0.')", normal)
-        self.assertIn("startsWith(inputs.windows_version, '7.1.')", normal)
+        legacy = jobs["build-windows-legacy"]["if"]
+        for version in EOL_VERSIONS:
+            prefix = major_minor(version) + "."
+            self.assertIn(f"startsWith(inputs.windows_version, '{prefix}')", normal)
+            self.assertIn(f"startsWith(inputs.windows_version, '{prefix}')", legacy)
         self.assertIn("build-windows-legacy", jobs["dispatch-downstream"]["needs"])
+
+    def test_extension_manifest_is_generated_for_the_legacy_build(self):
+        # PECL extension URLs live in php-exts.json; the workflow flattens
+        # them for the requested branch/arch so the script does not have to
+        # parse that file on Windows.
+        steps = self.workflow["jobs"]["build"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        self.assertTrue(
+            any("extension manifest" in n.lower() for n in names),
+            f"no extension manifest step in {names}",
+        )
+        build = next(s for s in steps if s.get("name") == "Build PHP")
+        self.assertIn("-ExtManifest", build["run"])
+        # Only the set the stock pipeline installs: php-exts.json also lists
+        # extras the published packages never carried.
+        manifest_step = next(s for s in steps if "extension manifest" in s.get("name", "").lower())
+        for ext in ("imagick", "redis", "mongodb", "igbinary"):
+            self.assertIn(f"'{ext}'", manifest_step["run"])
+        self.assertIn("$required", manifest_step["run"])
+        for step in steps:
+            run = step.get("run")
+            if not run:
+                continue
+            self.assertNotIn("${{ inputs.", run, f"step {step.get('name')} inlines an input")
 
 
 if __name__ == "__main__":
