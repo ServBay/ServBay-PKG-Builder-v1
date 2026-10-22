@@ -532,12 +532,17 @@ try {
     # make. Losing them is silent until someone tries to use the package, so
     # check the ones that matter before anything is packed.
     Write-Step 'Checking the archive-provided layout'
-    $RequiredPaths = @('deplister.exe', 'dev', 'extras\ssl\openssl.cnf', 'phar.phar.bat', 'pharcommand.phar')
+    $RequiredPaths = @('deplister.exe', 'dev', 'extras\ssl\openssl.cnf', 'phar.phar.bat', 'pharcommand.phar', 'lib\enchant')
     if ($MajorMinor -in @('7.0', '7.1', '7.2', '7.3', '7.4')) { $RequiredPaths += 'sasl2' }
-    $RequiredPaths += 'lib\enchant\libenchant_ispell.dll'
     $MissingPaths = @($RequiredPaths | Where-Object { -not (Test-Path (Join-Path $Stage $_)) })
     if ($MissingPaths) {
         throw "The official archive did not provide: $($MissingPaths -join ', ')"
+    }
+    # The enchant backend is named per branch (libenchant_ispell/myspell on
+    # 7.x, libenchant2_hunspell on 8.x), so just require the directory to be
+    # populated.
+    if (-not (Get-ChildItem (Join-Path $Stage 'lib\enchant') -Filter '*.dll' -File -ErrorAction SilentlyContinue)) {
+        throw 'lib\enchant\ carries no engines; the enchant extension cannot spell-check'
     }
     $DevLib = Get-ChildItem (Join-Path $Stage 'dev') -Filter 'php*.lib' -File -ErrorAction SilentlyContinue
     if (-not $DevLib) { throw 'dev\ carries no php*.lib; phpize could not build an extension' }
