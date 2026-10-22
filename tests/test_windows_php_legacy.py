@@ -230,11 +230,13 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
 
     def test_extension_runtime_dependencies_travel_with_the_package(self):
         # A PECL archive bundles what the module links against: ImageMagick's
-        # CORE_RL_*.dll, libyaml's yaml.dll. Dropping those left php_imagick
-        # and php_yaml unable to load ("The specified module could not be
-        # found"). They belong beside php.exe, not under ext\.
+        # CORE_RL_*/IM_MOD_RL_*, libyaml's yaml.dll. Dropping those left
+        # php_imagick and php_yaml unable to load ("The specified module could
+        # not be found"). An official build keeps them under ext\ beside the
+        # module that loads them.
         text = PS1.read_text()
-        self.assertRegex(text, r"else\s*\{\s*Copy-Item \$dll\.FullName -Destination \$Stage -Force")
+        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$StageExt -Force")
+        self.assertNotRegex(text, r"Copy-Item \$dll\.FullName -Destination \$Stage -Force")
 
     def test_pecl_extensions_are_smoke_tested(self):
         text = PS1.read_text()
@@ -300,6 +302,49 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
             self.assertNotIn("${{ inputs.", run, f"step {step.get('name')} inlines an input")
             self.assertNotIn("${{ github.event", run)
 
+    def test_official_archive_is_the_package_base(self):
+        # A source build cannot produce dev\*.lib, sasl2\, lib\enchant,
+        # extras\ssl, deplister.exe, the phar launcher, the docs, or the
+        # extensions that need the .NET/Oracle SDKs. The published packages
+        # carried all of them, so the official archive is unpacked first and
+        # the compiled binaries replace the unpatched ones on top.
+        text = PS1.read_text()
+        self.assertIn("php-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip", text)
+        self.assertIn("windows.php.net/downloads/releases/", text)
+        self.assertIn("Expand-Archive -Path $OfficialZip", text)
+
+    def test_archive_provided_layout_is_verified(self):
+        # Dropping the base layer is silent: the package still loads, it just
+        # cannot build extensions or load enchant/SASL any more.
+        text = PS1.read_text()
+        self.assertIn("deplister.exe", text)
+        self.assertIn("extras\\ssl\\openssl.cnf", text)
+        self.assertIn("phar.phar.bat", text)
+        self.assertIn("did not provide", text)
+        self.assertIn("phpize could not build an extension", text)
+
+    def test_dependency_dlls_do_not_override_the_archive(self):
+        # The archive carries the runtime its own extensions link against.
+        # Overwriting those with the build tree's copies can break com_dotnet
+        # and oci8, so only missing names are added.
+        text = PS1.read_text()
+        self.assertRegex(text, r"Where-Object \{ -not \(Test-Path \(Join-Path \$Stage \$_\.Name\)\) \}")
+
+    def test_imagick_coders_travel_with_the_module(self):
+        # ImageMagick resolves IM_MOD_RL_* at runtime. An official 7.x build
+        # keeps them under ext\ next to php_imagick.dll.
+        text = PS1.read_text()
+        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$StageExt -Force")
+        self.assertIn("IM_MOD_RL_png_.dll", text)
+
+    def test_imagick_round_trip_is_exercised(self):
+        # Loading the DLL proves nothing about the coders; only an actual
+        # encode/decode does.
+        text = PS1.read_text()
+        self.assertIn("newImage(8, 8, 'red')", text)
+        self.assertIn("readImageBlob", text)
+        self.assertIn("not where it looks", text)
+
     def test_dispatch_routes_legacy_php_away_from_the_ubuntu_pipeline(self):
         dispatch = yaml.safe_load(DISPATCH.read_text())
         jobs = dispatch["jobs"]
@@ -337,6 +382,12 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         for ext in ("imagick", "redis", "mongodb", "igbinary"):
             self.assertIn(f"'{ext}'", manifest_step["run"])
         self.assertIn("$required", manifest_step["run"])
+        # apcu and grpc were in the EOL packages but are not in php-exts.json.
+        self.assertIn("$pinned", manifest_step["run"])
+        for branch in ("7.0", "7.1", "7.2", "7.3", "7.4", "8.0"):
+            self.assertIn(f"'{branch}'", manifest_step["run"])
+        # 8.1 never shipped either, so pinning one would invent a dependency.
+        self.assertNotIn("'8.1' = @{", manifest_step["run"])
         for step in steps:
             run = step.get("run")
             if not run:

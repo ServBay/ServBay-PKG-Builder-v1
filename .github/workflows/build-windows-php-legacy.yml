@@ -78,6 +78,11 @@ jobs:
         # installs is taken: php-exts.json also lists extras (phalcon,
         # rdkafka, ...) that the published packages never carried, and adding
         # them would ship unverified runtime dependencies.
+        #
+        # apcu and grpc are not in php-exts.json but the EOL packages shipped
+        # them, so their last builds for each branch are pinned here. 8.1 never
+        # had either. com_dotnet, oci8 and pdo_oci come from the official
+        # release archive instead - they need the .NET and Oracle SDKs.
         shell: pwsh
         env:
           VERSION: ${{ inputs.version }}
@@ -88,6 +93,33 @@ jobs:
             'mongodb', 'memcache', 'sqlsrv', 'pdo_sqlsrv', 'msgpack',
             'protobuf', 'grpc', 'oauth', 'igbinary', 'imap'
           )
+          $pecl = 'https://downloads.php.net/~windows/pecl/releases'
+          $pinned = @{
+            '7.0' = @{
+              apcu = "$pecl/apcu/5.1.15/php_apcu-5.1.15-7.0-nts-vc14-x64.zip"
+              grpc = "$pecl/grpc/1.17.0/php_grpc-1.17.0-7.0-nts-vc14-x64.zip"
+            }
+            '7.1' = @{
+              apcu = "$pecl/apcu/5.1.18/php_apcu-5.1.18-7.1-nts-vc14-x64.zip"
+              grpc = "$pecl/grpc/1.25.0/php_grpc-1.25.0-7.1-nts-vc14-x64.zip"
+            }
+            '7.2' = @{
+              apcu = "$pecl/apcu/5.1.28/php_apcu-5.1.28-7.2-nts-vc15-x64.zip"
+              grpc = "$pecl/grpc/1.30.0/php_grpc-1.30.0-7.2-nts-vc15-x64.zip"
+            }
+            '7.3' = @{
+              apcu = "$pecl/apcu/5.1.28/php_apcu-5.1.28-7.3-nts-vc15-x64.zip"
+              grpc = "$pecl/grpc/1.40.0/php_grpc-1.40.0-7.3-nts-vc15-x64.zip"
+            }
+            '7.4' = @{
+              apcu = "$pecl/apcu/5.1.28/php_apcu-5.1.28-7.4-nts-vc15-x64.zip"
+              grpc = "$pecl/grpc/1.40.0/php_grpc-1.40.0-7.4-nts-vc15-x64.zip"
+            }
+            '8.0' = @{
+              apcu = "$pecl/apcu/5.1.28/php_apcu-5.1.28-8.0-nts-vs16-x64.zip"
+              grpc = "$pecl/grpc/1.84.0/php_grpc-1.84.0-8.0-nts-vs16-x64.zip"
+            }
+          }
           $table = Get-Content 'runtime-windows\php-exts.json' -Raw | ConvertFrom-Json
           $branch = ($env:VERSION -split '\.')[0..1] -join '.'
           $manifest = @{}
@@ -99,6 +131,11 @@ jobs:
             $value = $entry.Value
             if ($value.arch -eq $env:ARCH -and $value.download_url) {
               $manifest[$name] = $value.download_url
+            }
+          }
+          if ($pinned.ContainsKey($branch)) {
+            foreach ($name in $pinned[$branch].Keys) {
+              $manifest[$name] = $pinned[$branch][$name]
             }
           }
           if ($manifest.Count -eq 0) {
