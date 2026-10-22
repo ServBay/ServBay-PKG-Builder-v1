@@ -121,6 +121,16 @@ jobs:
               DISPATCH_ARGS=(-f "apache_version=${VERSION}")
               ;;
             php)
+              # PHP-Windows-Portable only builds 8.1+; older branches are
+              # repackaged from a prebuilt archive in build_windows and must not
+              # wait on a release that will never appear.
+              case "$VERSION" in
+                8.1*|8.2*|8.3*|8.4*|8.5*|8.6*|8.7*) ;;
+                *)
+                  echo "pkg=php version=${VERSION} has no PHP-Windows-Portable build; skip Stage 1."
+                  exit 0
+                  ;;
+              esac
               REPO="ServBay/PHP-Windows-Portable"; WF="build.yml"
               TAG="php-${VERSION}-${ARCH}-nts"
               case "$VERSION_TYPE" in
