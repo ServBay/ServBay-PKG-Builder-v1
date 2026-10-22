@@ -349,6 +349,14 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         self.assertIn("readImageBlob", text)
         self.assertIn("not where it looks", text)
 
+    def test_only_core_import_libraries_go_to_dev(self):
+        # Release\ holds one .lib per extension plus object-layout mirrors;
+        # the official package ships only php<major>.lib. Copying them all
+        # grew the package by ~40 files per branch.
+        text = PS1.read_text()
+        self.assertIn("Get-ChildItem $ReleaseDir -File -Filter '*.lib'", text)
+        self.assertIn("Where-Object { $_.Name -notmatch '^php_' }", text)
+
     def test_dispatch_routes_legacy_php_away_from_the_ubuntu_pipeline(self):
         dispatch = yaml.safe_load(DISPATCH.read_text())
         jobs = dispatch["jobs"]

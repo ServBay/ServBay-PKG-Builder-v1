@@ -451,10 +451,14 @@ try {
         Copy-Item -Destination $Stage -Force
     Get-ChildItem $ReleaseDir -File -Filter 'php_*.dll' | Copy-Item -Destination $StageExt -Force
     # phpize links extensions against this import library; the archive's copy
-    # predates the security backport.
+    # predates the security backport. Release\ also holds one .lib per
+    # extension and an object-layout mirror, none of which the official
+    # package ships, so only the core libraries are taken.
     $StageDev = Join-Path $Stage 'dev'
     if (Test-Path $StageDev) {
-        Get-ChildItem $ReleaseDir -File -Filter '*.lib' | Copy-Item -Destination $StageDev -Force
+        Get-ChildItem $ReleaseDir -File -Filter '*.lib' |
+            Where-Object { $_.Name -notmatch '^php_' } |
+            Copy-Item -Destination $StageDev -Force
     }
 
     # PHP statically links most of the dependency bundle, but the libraries it
