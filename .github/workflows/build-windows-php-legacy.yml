@@ -1,0 +1,132 @@
+name: build-windows-php-legacy
+
+# Compile an EOL PHP release on Windows with the Visual C++ toolchain that
+# release targets.
+#
+# PHP 7.0 is the oldest branch still buildable on a hosted runner: it needs
+# VC14 (VS2015), which is not on the image but can still be installed from
+# Microsoft's bootstrapper. Everything below 7.0 needs VS2012 (5.5/5.6) or
+# VS2008 (5.3/5.4), neither of which is obtainable here.
+#
+# The output mirrors build-windows.yml's contract exactly - a 7z of the PHP
+# release directory plus meta.json - so the downstream Uploader needs no
+# special case.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'PHP version, e.g. 7.0.33.1'
+        required: true
+        type: string
+      arch:
+        description: 'Architecture'
+        required: true
+        type: choice
+        options: [x64, x86]
+        default: x64
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      arch:
+        type: string
+        required: false
+        default: x64
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # VS2015 Build Tools installs and runs on windows-2022; the newer image
+    # replaces too much of the CRT for VC14 to link against.
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      ARCH: ${{ inputs.arch }}
+      VERSION: ${{ inputs.version }}
+      REPO_ROOT: ${{ github.workspace }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up git and 7-Zip
+        shell: pwsh
+        run: |
+          # git applies the security patches; the SDK's bundled patch 2.5.9
+          # aborts on multi-hunk diffs. 7-Zip extracts the official deps archive.
+          if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            throw 'git is required to apply the security patches'
+          }
+          if (-not (Test-Path 'C:\Program Files\7-Zip\7z.exe')) {
+            choco install -y 7zip --no-progress
+          }
+          git --version
+          & 'C:\Program Files\7-Zip\7z.exe' | Select-Object -First 2
+
+      - name: Build PHP
+        shell: pwsh
+        run: |
+          $patchRoot = Join-Path $env:REPO_ROOT 'runtime\patch'
+          $major = ($env:VERSION -split '\.')[0..1] -join '.'
+          $patchDir = Join-Path $patchRoot "php$major"
+          if (-not (Test-Path $patchDir)) {
+            throw "No patch directory for PHP $major at $patchDir"
+          }
+
+          # The shim has to live outside the source tree so it cannot be
+          # mistaken for a PHP source file.
+          $root = 'C:\phplegacy'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Copy-Item (Join-Path $env:REPO_ROOT 'runtime-windows\ci\vc14-intrinsics.h') `
+                    (Join-Path $root 'vc14-intrinsics.h') -Force
+
+          $outDir = Join-Path $env:REPO_ROOT "dist-windows\php\$env:ARCH"
+          $script = Join-Path $env:REPO_ROOT 'runtime-windows\ci\build_php_legacy.ps1'
+          & $script -Version $env:VERSION -Arch $env:ARCH -OutputDir $outDir -PatchDir $patchDir
+
+      - name: Generate meta.json
+        id: meta
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:REPO_ROOT "dist-windows\php\$env:ARCH"
+          $filename = "php-$env:VERSION-windows-$env:ARCH.7z"
+          $path = Join-Path $dir $filename
+          if (-not (Test-Path $path)) {
+            Get-ChildItem -Recurse (Join-Path $env:REPO_ROOT 'dist-windows') | Out-String | Write-Host
+            throw "Expected package not found: $path"
+          }
+          $sha256 = (Get-FileHash -Algorithm SHA256 $path).Hash.ToLower()
+          @{
+            name = 'php'
+            version = $env:VERSION
+            arch = $env:ARCH
+            os = 'windows'
+            sha256 = $sha256
+            filename = $filename
+          } | ConvertTo-Json -Compress | Set-Content -Path (Join-Path $dir 'meta.json') -Encoding ASCII
+          Get-Content (Join-Path $dir 'meta.json')
+          "pkg_dir=$dir" >> $env:GITHUB_OUTPUT
+          "filename=$filename" >> $env:GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-windows-${{ env.ARCH }}-php-${{ env.VERSION }}
+          path: |
+            ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
+            ${{ steps.meta.outputs.pkg_dir }}/meta.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows-${{ env.ARCH }}-php-${{ env.VERSION }}
+          path: |
+            C:\phplegacy\**\*.log
+          if-no-files-found: warn
+          retention-days: 7

@@ -76,7 +76,9 @@ jobs:
     secrets: inherit
 
   build-windows:
-    if: ${{ inputs.targets == 'both' || inputs.targets == 'windows' }}
+    # PHP 7.0 and 7.1 need Visual C++ 14.0, which is not on the Ubuntu image
+    # build-windows.yml runs on; they go through build-windows-legacy instead.
+    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && !(inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.'))) }}
     uses: ./.github/workflows/build-windows.yml
     with:
       pkg: ${{ inputs.windows_pkg }}
@@ -85,8 +87,17 @@ jobs:
       version_type: ${{ inputs.windows_version_type }}
     secrets: inherit
 
+  build-windows-legacy:
+    # Same artifact contract as build-windows.yml, so dispatch-downstream picks
+    # the result up without a special case.
+    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.')) && (inputs.windows_arch == 'x64' || inputs.windows_arch == 'x86') }}
+    uses: ./.github/workflows/build-windows-php-legacy.yml
+    with:
+      version: ${{ inputs.windows_version }}
+      arch: ${{ inputs.windows_arch }}
+
   dispatch-downstream:
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-windows, build-windows-legacy]
     # Fire when the platform(s) we actually ran succeeded — a platform skipped by
     # `targets` is fine — and at least one produced artifacts. Never on a real
     # failure/cancellation. `always()` is required so a skipped need doesn't skip
@@ -95,7 +106,9 @@ jobs:
       ${{ always()
           && needs.build-macos.result != 'failure' && needs.build-macos.result != 'cancelled'
           && needs.build-windows.result != 'failure' && needs.build-windows.result != 'cancelled'
-          && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success') }}
+          && needs.build-windows-legacy.result != 'failure' && needs.build-windows-legacy.result != 'cancelled'
+          && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success'
+              || needs.build-windows-legacy.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       # On build success, fire a repository_dispatch in the downstream repo so it
