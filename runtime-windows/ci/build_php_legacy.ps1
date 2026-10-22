@@ -268,6 +268,24 @@ try {
         throw 'OOM run did not report the memory limit exhausting'
     }
 
+    # PHP statically links most of the dependency bundle, but the libraries it
+    # does not (OpenSSL, ICU, libpq, libssh2, ...) have to travel with the
+    # binary or those extensions fail to load on a machine without the build
+    # tree. The official packages carry the same set.
+    Write-Step 'Copying runtime dependencies from the dependency bundle'
+    $DepsBin = Join-Path $BuildDir 'deps\bin'
+    if (Test-Path $DepsBin) {
+        Get-ChildItem $DepsBin -Filter *.dll -File |
+            Where-Object { $_.Name -notmatch '_debug\.dll$' } |
+            ForEach-Object {
+                Copy-Item $_.FullName (Join-Path $ReleaseDir $_.Name) -Force
+            }
+    }
+    foreach ($ini in @('php.ini-development', 'php.ini-production')) {
+        $iniSrc = Join-Path $SourceDir $ini
+        if (Test-Path $iniSrc) { Copy-Item $iniSrc (Join-Path $ReleaseDir $ini) -Force }
+    }
+
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $Archive = Join-Path $OutputDir "php-$Version-windows-$Arch.7z"
     if (Test-Path $Archive) { Remove-Item -Force $Archive }
