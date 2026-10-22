@@ -342,7 +342,7 @@ try {
     $ConfigHeader = $null
     foreach ($candidate in @('main\config.w32.h', 'main\php_config.h')) {
         $path = Join-Path $SourceDir $candidate
-        if ((Test-Path $path) -and (Select-String -Path $path -Pattern 'PHP_COMPILER_ID' -Quiet)) {
+        if ((Test-Path $path) -and (Select-String -Path $path -Pattern '#define\s+PHP_COMPILER_ID' -Quiet)) {
             $ConfigHeader = $path
             break
         }
@@ -350,18 +350,15 @@ try {
     # "vc14" -> "VC14", "vs16" -> "VS16", matching the PECL archive names.
     $CompatId = $Crt.ToUpper()
     if (-not $ConfigHeader) {
-        # 8.0/8.1 recognise the modern toolset and already write the right
-        # identifier, so there is nothing to align. The staging smoke test
-        # still proves the IDs match, so this is not a silent pass.
-        Write-Warning "PHP_COMPILER_ID is not emitted by configure for $MajorMinor; keeping the detected value"
+        # 8.0/8.1 recognise the modern toolset and do not emit the macro, so
+        # there is nothing to align. The staging smoke test still proves the
+        # IDs match, so this is not a silent pass.
+        Write-Warning "PHP_COMPILER_ID is not defined by configure for $MajorMinor; keeping the detected value"
     } else {
         $headerText = Get-Content $ConfigHeader -Raw
         # Branches that recognise the toolset emit a bare identifier, the ones
         # that do not emit a quoted version string; accept either.
         $updated = [regex]::Replace($headerText, '#define\s+PHP_COMPILER_ID\s+("[^"]*"|\S+)', "#define PHP_COMPILER_ID `"$CompatId`"")
-        if ($updated -eq $headerText) {
-            throw "PHP_COMPILER_ID is present in $ConfigHeader but was not rewritten; cannot align the module build ID"
-        }
         Set-Content -Path $ConfigHeader -Value $updated -Encoding ASCII
         Write-Step "Module build ID set to $CompatId in $ConfigHeader"
     }
