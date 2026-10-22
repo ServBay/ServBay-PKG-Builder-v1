@@ -29,6 +29,29 @@
         "version": "1.31.8"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "nginx",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.8"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-22T17:34:07+00:00",
+        "expires_at": "2026-10-23T01:34:07+00:00",
+        "producer": {
+          "commit": "8e2c406ca2f0e266116f39040f93a8e747a1a10f",
+          "run_attempt": 1,
+          "run_id": "39823823818"
+        }
+      },
+      "status": "discovered"
     }
   }
 }
