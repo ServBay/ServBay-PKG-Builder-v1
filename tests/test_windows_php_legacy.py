@@ -102,6 +102,15 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("--enable-snapshot-build", text)
         self.assertNotIn("--disable-all", text)
 
+    def test_runtime_dependencies_are_packed(self):
+        # php -v only proves the CLI starts. Without the dependency bundle's
+        # DLLs (OpenSSL, ICU, libpq, libssh2) the matching extensions fail to
+        # load on a clean machine, so they have to be in the archive.
+        text = PS1.read_text()
+        self.assertIn("deps\\bin", text)
+        self.assertIn("'_debug\\.dll$'", text)
+        self.assertIn("php.ini-production", text)
+
     def test_version_check_flattens_captured_output(self):
         # `php -v` is multi-line, and -notmatch against an array filters it,
         # so every line but the first makes the condition true. The first
