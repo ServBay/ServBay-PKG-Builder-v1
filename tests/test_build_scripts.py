@@ -9,6 +9,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php_post_build_keeps_the_configured_ldflags(self):
+        # 7.x links iconv/libxml from the ServBay base, so LDFLAGS must keep the
+        # -L paths configure picked up. Overwriting it with a bare `-lresolv`
+        # drops them and the final link fails with
+        #     "_libiconv", referenced from: ...
+        # even though configure reported "checking for libiconv in -liconv... yes".
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+
+        self.assertNotIn("LDFLAGS='-lresolv'", config)
+        self.assertIn('LDFLAGS="${LDFLAGS} -lresolv"', config)
+
     def test_macos_php7_branches_use_the_posix_readdir_r_form(self):
         # configure still reports "checking for readdir_r... yes" on the current
         # SDK, but the declaration is the POSIX three-argument one; the legacy
