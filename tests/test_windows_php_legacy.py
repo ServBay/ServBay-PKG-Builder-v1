@@ -234,9 +234,10 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         # php_imagick and php_yaml unable to load ("The specified module could
         # not be found"). An official build keeps them under ext\ beside the
         # module that loads them.
+        # Windows resolves an extension's imports against php.exe's
+        # directory, not ext\, so the runtime goes to the package root.
         text = PS1.read_text()
-        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$StageExt -Force")
-        self.assertNotRegex(text, r"Copy-Item \$dll\.FullName -Destination \$Stage -Force")
+        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$Stage -Force")
 
     def test_pecl_extensions_are_smoke_tested(self):
         text = PS1.read_text()
@@ -331,11 +332,11 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         self.assertRegex(text, r"Where-Object \{ -not \(Test-Path \(Join-Path \$Stage \$_\.Name\)\) \}")
 
     def test_imagick_coders_travel_with_the_module(self):
-        # ImageMagick resolves IM_MOD_RL_* at runtime. An official 7.x build
-        # keeps them under ext\ next to php_imagick.dll.
+        # ImageMagick resolves IM_MOD_RL_* at runtime, from the directory its
+        # own CORE_RL_magick_.dll sits in.
         text = PS1.read_text()
-        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$StageExt -Force")
         self.assertIn("IM_MOD_RL_png_.dll", text)
+        self.assertIn("Join-Path $Stage 'IM_MOD_RL_png_.dll'", text)
 
     def test_imagick_round_trip_is_exercised(self):
         # Loading the DLL proves nothing about the coders; only an actual

@@ -502,17 +502,21 @@ try {
 
             # The archive also carries the third-party runtime the extension
             # links against (ImageMagick's CORE_RL_*/IM_MOD_RL_*, libyaml's
-            # yaml.dll). An official build keeps those in ext\ beside the
-            # module that loads them, which is also where ImageMagick looks
-            # for its coders.
+            # yaml.dll). Windows resolves an extension's imports against
+            # php.exe's directory, not ext\, so these go to the package root -
+            # beside the module rather than inside ext\. A PECL-only runtime
+            # kept under ext\ makes php_imagick and php_yaml fail with "The
+            # specified module could not be found".
             $dlls = @(Get-ChildItem $unpack -Recurse -Filter '*.dll' -File)
             if (-not @($dlls | Where-Object { $_.Name -match '^php_' })) {
                 throw "Extension package for $name carries no php_*.dll"
             }
             foreach ($dll in $dlls) {
-                Copy-Item $dll.FullName -Destination $StageExt -Force
                 if ($dll.Name -match '^php_') {
+                    Copy-Item $dll.FullName -Destination $StageExt -Force
                     $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
+                } else {
+                    Copy-Item $dll.FullName -Destination $Stage -Force
                 }
             }
             Write-Host "    $name -> $(($dlls | Where-Object { $_.Name -match '^php_' }).BaseName -join ', ')"
@@ -587,9 +591,9 @@ try {
 
     # Loading imagick only proves the DLL resolves. Its coder modules
     # (IM_MOD_RL_*) are looked up at runtime, so a package that puts them
-    # somewhere imagick does not search looks fine until someone converts an
-    # image. Encode and decode for real.
-    if (Test-Path (Join-Path $StageExt 'IM_MOD_RL_png_.dll')) {
+    # somewhere ImageMagick does not search looks fine until someone converts
+    # an image. Encode and decode for real.
+    if (Test-Path (Join-Path $Stage 'IM_MOD_RL_png_.dll')) {
         Write-Step 'Smoke-testing an imagick encode/decode round trip'
         $ImagickArgs = @('-n', '-d', "extension_dir=$StageExt", '-d', 'extension=php_imagick.dll')
         $ImagickCode = @'
