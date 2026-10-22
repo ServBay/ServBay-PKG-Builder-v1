@@ -254,6 +254,9 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn('("[^"]*"|\\S+)', text)
         # A silent no-op would ship a package whose extensions all fail.
         self.assertIn("cannot align the module build ID", text)
+        # 8.0/8.1 already emit the right identifier; the smoke test is the
+        # guard there, so skipping the rewrite must be recorded.
+        self.assertIn("keeping the detected value", text)
 
     def test_smoke_test_checks_loaded_modules_not_just_exit_code(self):
         # "Unable to initialize module" is a warning: php.exe still exits 0.
