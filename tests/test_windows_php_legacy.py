@@ -87,6 +87,13 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # invocation need it.
         self.assertEqual(text.count("-vcvars_ver=$ToolsetVer"), 2)
 
+    def test_build_tree_copies_vc9_from_its_phpdev_sibling(self):
+        # buildtree creates phpdev\vc9, not phpdev\vc14\vc9. Looking in the
+        # wrong place failed the first hosted build outright.
+        text = PS1.read_text()
+        self.assertNotIn("Join-Path $BuildRoot 'vc9'", text)
+        self.assertIn("Join-Path $PhpDevRoot 'vc9'", text)
+
     def test_configure_enables_the_release_module_set(self):
         # --disable-all produced a bare CLI with no ext/ at all, while every
         # other Windows PHP package ships the 37 php_*.dll of the official

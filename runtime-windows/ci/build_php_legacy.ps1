@@ -69,7 +69,8 @@ function Write-Step($msg) {
 
 $Root = 'C:\phplegacy'
 $SdkDir = Join-Path $Root 'sdk'
-$BuildRoot = Join-Path $Root 'phpdev\vc14'
+$PhpDevRoot = Join-Path $Root 'phpdev'
+$BuildRoot = Join-Path $PhpDevRoot 'vc14'
 $BuildDir = Join-Path $BuildRoot $Arch
 $ToolsDir = Join-Path $Root 'tools'
 
@@ -149,10 +150,13 @@ try {
     & (Join-Path $SdkDir 'bin\phpsdk_buildtree.bat') phpdev | Out-Null
 }
 finally { Pop-Location }
-# buildtree predates vc14 and only creates vc6..vc9; copy vc9 to get the layout.
+# buildtree predates vc14 and only creates vc6..vc9, all as siblings under
+# phpdev; copy vc9 to get the vc14 layout.
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 if (-not (Test-Path $BuildDir)) {
-    Copy-Item -Recurse -Force (Join-Path $BuildRoot 'vc9') $BuildDir
+    $Vc9Dir = Join-Path $PhpDevRoot 'vc9'
+    if (-not (Test-Path $Vc9Dir)) { throw "phpsdk_buildtree did not create $Vc9Dir" }
+    Copy-Item -Recurse -Force $Vc9Dir $BuildDir
 }
 
 $SevenZip = 'C:\Program Files\7-Zip\7z.exe'
