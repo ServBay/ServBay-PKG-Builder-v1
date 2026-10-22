@@ -141,6 +141,81 @@ print -rl -- "${{PHP_CONFIGURE_ARGS[@]}}"
                 self.assertEqual(expected, selected)
                 self.assertFalse(any("postgresql/current" in value for value in options))
 
+    def test_php86_mounts_the_xtoffsetof_core_patch_while_other_series_do_not(self):
+        # PHP 8.6 移除了 Zend/zend_portability.h 中的 XtOffsetOf 宏，而大量 PECL
+        # 扩展仍在使用；v1 (32c50ef) 通过核心补丁一次性恢复，随 make install 分发。
+        body = self.helper._extract_shell_function(self.text, "_get_php_build_config")
+        common = self.root / "runtime-common"
+        source = self.root / "php-src"
+        header = source / "Zend" / "zend_portability.h"
+        header.parent.mkdir(parents=True)
+        # 仿照真实 zend_portability.h 的行位（hunk 落在第 58 行）构造夹具。
+        header.write_text("".join(f"/* filler {n} */\n" for n in range(1, 58))
+                          + "\n#include <stdarg.h>\n#include <stddef.h>\n\n#ifdef HAVE_DLFCN_H\n# include <dlfcn.h>\n#endif\n")
+        for series in ("8.5", "8.6"):
+            with self.subTest(series=series):
+                script = f'''SERVBAY_COMMON_PATH={shlex.quote(str(common))}
+SERVBAY_PACKAGE_FULL_PATH={shlex.quote(str(self.root / 'packages'))}
+OPENSSL_VERSION=3.5
+architecture=x86_64
+typeset -A PHP_MODS
+_get_php_build_config() {{
+{body}
+}}
+_get_php_build_config {shlex.quote(series)} || exit 1
+print -rl -- "${{PHP_PATCHES[@]}}"
+'''
+                result = subprocess.run(["/bin/zsh", "-c", script], capture_output=True, text=True)
+                self.assertEqual(0, result.returncode, result.stderr)
+                patches = result.stdout.splitlines()
+                if series == "8.6":
+                    self.assertIn("php8.6/zend_portability-xtoffsetof.patch:p0", patches)
+                else:
+                    self.assertNotIn("php8.6/zend_portability-xtoffsetof.patch:p0", patches)
+        patch_file = ROOT / "runtime-v2/patch/php8.6/zend_portability-xtoffsetof.patch"
+        self.assertTrue(patch_file.is_file(), "php8.6 XtOffsetOf core patch must ship")
+        applied = subprocess.run(["/usr/bin/patch", "--ignore-whitespace", "-N", "-p0", "-i", str(patch_file)],
+                                 cwd=source, capture_output=True, text=True)
+        self.assertEqual(0, applied.returncode, applied.stdout + applied.stderr)
+        self.assertIn("# define XtOffsetOf(s_type, field) offsetof(s_type, field)", header.read_text())
+
+    def test_each_pre_80_series_carries_its_own_gd_configure_runtime_patch(self):
+        # 5.6-7.4 的 configure 里 GD 构建测试编译 char foobar() 小程序并**运行**它，
+        # 当前工具链下该二进制 entryoff=0，一启动就 SIGILL，configure 误判失败。
+        # 修复为 link-only（v1 09db682/6dcee8a）。各 release 的 hunk 行号不同：
+        # 复用别的版本的补丁会静默改写另一处 ac_fn_c_try_run 而 GD 检查原样留下，
+        # 所以六个文件必须各就各位、且内容互不相同（禁止合并成一份）。
+        body = self.helper._extract_shell_function(self.text, "_get_php_build_config")
+        for series in ("5.6", "7.0", "7.1", "7.2", "7.3", "7.4"):
+            branch = body.split(f'"{series}")', 1)[1].split(';;', 1)[0]
+            with self.subTest(series=series):
+                self.assertIn(f'"php{series}/gd-configure-runtime-test.patch:p1"', branch)
+                patch_file = ROOT / "runtime-v2" / "patch" / f"php{series}" / "gd-configure-runtime-test.patch"
+                self.assertTrue(patch_file.is_file(), f"php {series} GD patch must ship")
+                self.assertIn("if ac_fn_c_try_link \"$LINENO\"; then :", patch_file.read_text())
+        digests = {
+            series: (ROOT / "runtime-v2" / "patch" / f"php{series}" / "gd-configure-runtime-test.patch").read_bytes()
+            for series in ("5.6", "7.0", "7.1", "7.2", "7.3", "7.4")
+        }
+        self.assertEqual(len(set(digests.values())), len(digests),
+                         "each release needs its own hunk line numbers; do not share one file")
+
+    def test_php56_and_70_find_the_renamed_tidy_header(self):
+        # libtidy 5 把 buffio.h 改名为 tidybuffio.h（本机 ServBay common/include 只装
+        # tidybuffio.h，没有兼容头）。7.1+ 由 configure 探测，5.6/7.0 无条件 include
+        # 旧名而直接失败；其 configure 不探测新名，补丁用 __has_include 兜底
+        # （v1 f21be82）。
+        body = self.helper._extract_shell_function(self.text, "_get_php_build_config")
+        for major in ("5.6", "7.0"):
+            with self.subTest(major=major):
+                branch = body.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+                self.assertIn(f'"php{major}/tidy-buffio-header.patch:p1"', branch)
+                patch_file = ROOT / "runtime-v2" / "patch" / f"php{major}" / "tidy-buffio-header.patch"
+                self.assertTrue(patch_file.is_file())
+                content = patch_file.read_text()
+                self.assertIn("__has_include(<tidybuffio.h>)", content)
+                self.assertIn("#include \"buffio.h\"", content)
+
     def test_core_and_extension_cli_initialize_the_same_isolated_sdk_contract(self):
         for extension_only in (False, True):
             with self.subTest(extension_only=extension_only):

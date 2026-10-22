@@ -108,11 +108,15 @@ class ModuleRecipeTests(unittest.TestCase):
                     self.assertEqual({"psr.so", "phalcon.so"}, {p.name for p in (Path(str(stage) + str(prefix)) / "lib/extensions").iterdir()})
                 self.assertFalse((prefix / "lib/extensions").exists())
 
-    def run_recipe(self, recipe, failure="", version="6.2.0", series="8.3"):
+    def run_recipe(self, recipe, failure="", version="6.2.0", series="8.3", source_files=None):
         root = self.root / (recipe + "-" + version + "-" + series + "-" + (failure or "success"))
         source = root / "source"
         for part in ("build/phalcon", "phpext"):
             (source / part).mkdir(parents=True)
+        for relative, content in (source_files or {}).items():
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
         prefix = root / "base/packages/php" / series
         config = prefix / "bin/php-config"
         config.parent.mkdir(parents=True)
@@ -123,7 +127,19 @@ class ModuleRecipeTests(unittest.TestCase):
         phpize.write_text("#!/bin/sh\nexit " + ("7" if failure == "phpize" else "0") + "\n")
         phpize.chmod(0o755)
         php = prefix / "bin/php"
-        php.write_text("#!/bin/sh\nexit 0\n")
+        # 模拟真实 php 对 -d extension=<so> --ri <name> 的响应：dlopen 成功时输出
+        # 扩展信息段并退出 0；FAILURE=php-ri 时模拟 "Extension not present"（退出 1）。
+        # 必须保持 POSIX sh 语义（stub 以 #!/bin/sh 运行）。
+        php.write_text("#!/bin/sh\n"
+                       'printf \'%s\\n\' "$*" >> "$RI_CALLS"\n'
+                       'for arg in "$@"; do\n'
+                       '  case "$arg" in\n'
+                       '    --ri) printf \'%s\\n\' "===' + RECIPES[recipe] + '-section==="\n'
+                       '          [ "$FAILURE" = "php-ri" ] && exit 1\n'
+                       '          exit 0 ;;\n'
+                       '  esac\n'
+                       'done\n'
+                       "exit 0\n")
         php.chmod(0o755)
         for directory in (source, source / "build/phalcon", source / "phpext"):
             configure = directory / "configure"
@@ -137,8 +153,9 @@ class ModuleRecipeTests(unittest.TestCase):
         stage = root / "stage"
         conf = stage / "etc/php" / series / "conf.d"
         conf.mkdir(parents=True)
-        script = ["CPU_NUMBER=2", "FAILURE=" + shlex.quote(failure),
+        script = ["CPU_NUMBER=2", "FAILURE=" + shlex.quote(failure), "export FAILURE",
                   "MODULE_INSTALL_ROOT=" + shlex.quote(str(stage)),
+                  "RI_CALLS=" + shlex.quote(str(root / "ri-calls")), "export RI_CALLS",
                   "SERVBAY_BUILD_DIR=" + shlex.quote(str(root)),
                   "PROJECT_ROOT=" + shlex.quote(str(root / "assets")),
                   "SERVBAY_ETC_PATH=" + shlex.quote(str(stage / "etc")),
@@ -151,7 +168,7 @@ class ModuleRecipeTests(unittest.TestCase):
                   "PATCH_CALLS=" + shlex.quote(str(root / "patch-calls")), '_apply_single_patch() { print -r -- "$1" >> "$PATCH_CALLS"; [[ $FAILURE != patch ]]; }',
                   "aclocal() { :; }; autoconf() { :; }; autoheader() { :; }; glibtoolize() { :; }; automake() { :; }",
                   'make() { if [[ $1 == install ]]; then [[ $FAILURE == install ]] && return 9; local target="$EXTENSION"; for arg in "$@"; do [[ $arg == INSTALL_ROOT=* ]] && target="${arg#INSTALL_ROOT=}$EXTENSION"; done; mkdir -p "$target"; [[ $FAILURE != missing-so ]] && print -r -- "fresh $SO" > "$target/$SO"; return 0; fi; [[ $FAILURE != build ]]; }']
-        for name in ("_install_php_module", "_php_module_extension_dir"):
+        for name in ("_install_php_module", "_php_module_extension_dir", "_verify_php_module_loads"):
             try:
                 body = self.extract(self.text, name)
             except AssertionError:
@@ -178,7 +195,7 @@ class ModuleRecipeTests(unittest.TestCase):
 
     def test_every_php_recipe_propagates_each_actual_build_stage_failure_without_handoff(self):
         for recipe in RECIPES:
-            for failure in ("download", "unpack", "phpize", "configure", "build", "install", "missing-so"):
+            for failure in ("download", "unpack", "phpize", "configure", "build", "install", "missing-so", "php-ri"):
                 with self.subTest(recipe=recipe, failure=failure):
                     result, root, extension, stage, conf, template = self.run_recipe(recipe, failure)
                     self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
@@ -195,7 +212,7 @@ class ModuleRecipeTests(unittest.TestCase):
 
 
     def test_php_core_and_extension_commands_share_confirmed_legacy_optimization_without_changing_other_series(self):
-        for version in ('7.4.33.1', '8.0.30.1', '8.1.34.1', '8.4.27', '8.5.12'):
+        for version in ('7.3.33.1', '7.4.33.1', '8.0.30.1', '8.1.34.1', '8.4.27', '8.5.12'):
             series = '.'.join(version.split('.')[:2])
             for arch in ('x86_64', 'arm64'):
                 for extension_only in (False, True):
@@ -235,11 +252,41 @@ class ModuleRecipeTests(unittest.TestCase):
                         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
                         flags = shlex.split(capture.read_text())
                         optimizations = [flag for flag in flags if flag in ('-O0', '-O1', '-O2', '-O3')]
-                        expected = '-O1' if series in ('7.4', '8.0') or series == '8.5' and arch == 'x86_64' else '-O3'
+                        # v1 0918cc7：7.3 与 7.4/8.0 同样的 -O3 误编译（x86_64 cli/php
+                        # 在 make 首次运行时 SIGABRT），无条件按 -O1 构建。
+                        expected = '-O1' if series in ('7.3', '7.4', '8.0') or series == '8.5' and arch == 'x86_64' else '-O3'
                         self.assertEqual(expected, optimizations[-1], capture.read_text())
-                        if series in ('7.4', '8.0'):self.assertIn('-fno-strict-aliasing', flags)
+                        if series in ('7.3', '7.4', '8.0'):self.assertIn('-fno-strict-aliasing', flags)
                         print('PHP_COMMAND_FLAGS ' + json.dumps({'version': version, 'arch': arch, 'extension_only': extension_only, 'cflags': capture.read_text().strip()}))
 
+
+    def test_memcache86_expands_ps_mod_and_proves_the_module_dlopens(self):
+        # v1 d3e4301: PHP 8.6 重写 PS_MOD(x)，要求扩展自带 ps_create_sid/ps_validate_sid；
+        # memcache 8.0 不实现，.so 链接期不报错、dlopen 时才炸缺符号。除 PS_FUNCS/save_path
+        # 两个 sed 外，必须把 PS_MOD(memcache) 手工展开为 8.5 语义；并在安装成功路径用
+        # php --ri <name> 做 dlopen 冒烟（ini 已复制之后执行）。
+        result, root, extension, stage, conf, template = self.run_recipe(
+            "memcache", series="8.6",
+            source_files={
+                "src/php_memcache.h": "PS_FUNCS(memcache);\n",
+                "src/memcache_session.c": "ps_mod = PS_MOD(memcache);\npath = save_path;\n",
+            })
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        header = (root / "source/src/php_memcache.h").read_text()
+        self.assertNotIn("PS_FUNCS(memcache);", header)
+        self.assertIn("PS_CREATE_SID_FUNC(memcache); PS_VALIDATE_SID_FUNC(memcache);", header)
+        session = (root / "source/src/memcache_session.c").read_text()
+        self.assertNotIn("PS_MOD(memcache)", session)
+        self.assertIn("php_session_create_id, php_session_validate_sid, php_session_update_timestamp", session)
+        self.assertIn("path = ZSTR_VAL(save_path);", session)
+        calls = (root / "ri-calls").read_text().splitlines()
+        self.assertTrue(calls, "php --ri smoke must run")
+        smoke = [line for line in calls if "--ri" in line]
+        self.assertEqual(1, len(smoke), calls)
+        self.assertIn("--ri memcache", smoke[0])
+        self.assertIn("-d extension=", smoke[0])
+        self.assertIn("memcache.so", smoke[0])
+        self.assertTrue((root / "handoff").is_file())
 
     def test_xdebug_316_uses_the_current_v1_declaration_fix_and_propagates_patch_failure(self):
         for version, failure in [('3.1.6', ''), ('3.1.6', 'patch'), ('3.4.3', '')]:

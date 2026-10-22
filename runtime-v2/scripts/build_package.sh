@@ -1640,6 +1640,27 @@ _get_mysql_cmake_args() {
             ;;
         # 8.4+ / 9.4+: all needed args covered by shared sections above
     esac
+
+    # 8.4+/9.x: MySQL Router 的 harness_tls 会自己跑一遍 find_package(OpenSSL)；
+    # 不 pin OPENSSL_ROOT_DIR 时它会抓到 CI runner 的 brew openssl@3，按 3.x 头文件
+    # 编译 tls_*_context.cc 却链接 base 的 OpenSSL，产生未定义的
+    # OSSL_DECODER_*/OSSL_PARAM_* 符号（v1 bf1d8e2）。
+    if [[ "$version_major" == "8.4" || "$version_major" == 9.* ]]; then
+        CMAKE_ARGS+=("-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
+    fi
+
+    # MySQL 9.7 引入基于 OpenTelemetry 的 telemetry（client plugin + server component），
+    # 二者都经 ext::curl 链接 opentelemetry_http_client_curl。WITH_CURL 指向 ServBay 的
+    # 静态 libcurl.a 时，cmake/curl.cmake 的 FIND_CUSTOM_CURL 只把 libcurl.a 本身传播进
+    # curl_interface，不传播其私有依赖（libnghttp2/libbrotli），telemetry_client.so 链接
+    # 必现未定义 _nghttp2_* 符号（v1 1c73242）。ServBay 是本地开发环境，从不导出 OTLP
+    # telemetry，两个开关全部关闭，顺带跳过捆绑的 opentelemetry-cpp 编译。
+    if [[ "$version_major" == "9.7" ]]; then
+        CMAKE_ARGS+=(
+            "-DWITH_MYSQL_CLIENT_TELEMETRY=OFF"
+            "-DWITH_MYSQL_SERVER_TELEMETRY=OFF"
+        )
+    fi
 }
 
 ###
@@ -3677,6 +3698,20 @@ build_openjdk() {
         return 1
     fi
 
+    # 3. Flatten macOS App bundle layout. Azul Zulu 的 macOS tarball 把 JDK 打成
+    # .jdk App bundle：--strip-components=1 之后载荷位于 Contents/Home/ 下，
+    # bin/java 不在包根，下游工具链全部找不到（v1 dfd05d4）。把 Contents/Home/*
+    # 上提一层并丢弃壳目录。
+    if [[ -d "${final_install_path}/Contents/Home" ]]; then
+        log_message "INFO" "🧯 Flattening macOS App bundle layout (Contents/Home/*) for OpenJDK..."
+        mv "${final_install_path}/Contents/Home"/*(DN) "${final_install_path}/"
+        if [[ $? -ne 0 ]]; then
+            log_message "ERROR" "Failed to flatten Contents/Home for ${packageFullName}"
+            return 1
+        fi
+        rm -rf "${final_install_path}/Contents"
+    fi
+
     # Clean up unnecessary files
     log_message "INFO" "Cleaning up unnecessary files..."
     rm -f "${final_install_path}/lib/src.zip"
@@ -3872,6 +3907,32 @@ build_mono() {
     fi
     if [[ $? -ne 0 ]]; then log_message "ERROR" "Mono configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
+    # mono 6.14.0 在 Xcode 26 工具链下编不过 icall.c：
+    #   error: use of undeclared identifier 'ICALL_SIG_TYPE__Bool';
+    #          did you mean 'ICALL_SIG_TYPE_bool'?
+    # C99 的 <stdbool.h> 有 `#define bool _Bool`，icall 的宏做 token paste 时便
+    # 拼出了不存在的 ICALL_SIG_TYPE__Bool；C23 起 bool 是内建关键字、stdbool.h
+    # 不再做该替换，拼接结果才正确。
+    # mono 在 CFLAGS 之后硬加 -std=gnu99，把 CC 自带的 -std=gnu23 覆盖掉了
+    # （编译命令中 gnu23 在位置 13、gnu99 在位置 87，clang 取最后一个），
+    # 因此只能在 configure 生成 Makefile 之后改写，从 CFLAGS 侧追加无效。
+    # 只改 icall.c 所在目录：全局改写会波及 minizip 等 K&R 风格的老代码，
+    # 而 C23 移除了 K&R 函数定义，会报
+    #   minizip/ioapi.c: unknown type name 'pzlib_filefunc_def'
+    #   minizip/ioapi.c: expected identifier or '('
+    # 需要 C23 的只有 icall 的 token paste，范围限定到那一个 Makefile 即可。
+    local _icall_makefile
+    _icall_makefile=$(find . -name icall.c -path "*/metadata/*" -print -quit 2>/dev/null)
+    if [[ -n "$_icall_makefile" ]]; then
+        _icall_makefile="$(dirname "$_icall_makefile")/Makefile"
+    fi
+    if [[ -f "$_icall_makefile" ]]; then
+        log_message "INFO" "Rewriting -std=gnu99 to -std=gnu23 in ${_icall_makefile} (icall.c C23 requirement)..."
+        sed -i '' 's/-std=gnu99/-std=gnu23/g' "$_icall_makefile"
+    else
+        log_message "WARN" "icall.c Makefile not found; skipping the C23 rewrite. The build may fail in icall.c."
+    fi
+
     # Compile and install Mono
     log_message "INFO" "Compiling Mono (make -j${CPU_NUMBER})..."
     make -j${CPU_NUMBER}
@@ -3962,7 +4023,12 @@ build_ruby() {
     unpack_package "$libyaml_package_fullname" "$libyaml_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
-    # Configure, compile, and install libyaml
+    # Configure, compile, and install libyaml.
+    # libyaml 0.2.5 的 configure.ac 使用过时的 AC_PROG_LIBTOOL 宏，autoconf >= 2.70
+    # （arm64 runner）会直接拒绝（"undefined or overquoted macro"），./bootstrap 失败；
+    # x86_64 runner 的旧 autoconf 仍接受。bootstrap 前 sed 成 LT_INIT，
+    # 两种 runner 都能过（v1 e47f814）。
+    sed -i '' 's/AC_PROG_LIBTOOL/LT_INIT/g' configure.ac
     ./bootstrap
     ./configure --prefix="/tmp/libyaml" \
                 --libdir="${prefix}/lib" \
@@ -4313,8 +4379,15 @@ build_mysql() {
     # 3. Prepare environment and apply patches based on version/arch.
     log_message "INFO" "Preparing build environment for MySQL v${version}..."
     unset CPPFLAGS
-    export CFLAGS="-Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET}"
-    export CXXFLAGS="-Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion -Wno-missing-template-arg-list-after-template-kw"
+    # 只前置 ServBay OpenSSL include：MySQL Router 的 harness_tls 自己跑
+    # find_package(OpenSSL)（OPENSSL_ROOT_DIR 只影响顶层那一次），前置 -I 让每次
+    # 编译（含 harness）都优先命中 base 的 OpenSSL 头（v1 16fab29）。
+    # 严禁再带 common/include：base 在 common/include/unicode 带的旧 ICU 会压过
+    # WITH_ICU=bundled 的 ICU 77，gen_keyword_list 按旧头编译、链新库，两架构皆
+    # 报 "Undefined symbols: icu_74::UnicodeString..."（v1 dee252e 教训）。
+    local _servbay_inc="-I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include"
+    export CFLAGS="${_servbay_inc} -Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET}"
+    export CXXFLAGS="${_servbay_inc} -Qunused-arguments -O3 -DNDEBUG -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion -Wno-missing-template-arg-list-after-template-kw"
 
     # Legacy MySQL (< 8.0): suppress implicit-function-declaration and int-conversion
     # errors promoted to errors in modern Clang.
@@ -4476,10 +4549,14 @@ build_mariadb() {
         if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
     fi
 
-    local patch_majors_groonga_netdb=("11.4" "11.8" "12.0" "12.1")
-    if [[ " ${patch_majors_groonga_netdb[@]} " =~ " ${version_major} " ]] && [[ "$architecture" == "x86_64" ]]; then
-        _apply_single_patch "${PATCH_DIR}/mariadb/fix-groonga-netdb-11.4-x86_64.patch" "p0"
-        if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
+    # groonga 的 cmake 在 x86_64 上误检 <netdb.h>（所有 feature 探测失败），留下不完整
+    # 的 struct addrinfo，mroonga 编不过。对全部 x86_64 构建强制 include netdb.h：
+    # 旧的按版本白名单每次 MariaDB 发新版都会过期（如 11.8.8、11.4.12 就漏了）。
+    # 非致命：patch -N 幂等跳过已打过的树，vendored groonga 上下文不同导致失配时
+    # 只告警不阻断构建（v1 474c6f2）。
+    if [[ "$architecture" == "x86_64" ]]; then
+        _apply_single_patch "${PATCH_DIR}/mariadb/fix-groonga-netdb-11.4-x86_64.patch" "p0" \
+            || log_message "WARN" "groonga-netdb x86_64 patch not applied for ${version} (already patched or vendored groonga differs)"
     fi
 
     # Fix libxml2 2.13+ const compatibility: xmlGetLastError() now returns
@@ -4898,6 +4975,23 @@ _php_module_extension_dir() {
     print -r -- "${MODULE_INSTALL_ROOT}${directory}"
 }
 
+_verify_php_module_loads() {
+    # dlopen 冒烟：扩展以 -undefined dynamic_lookup 链接时，链接期不检查缺符号，
+    # .so 照常产出，运行 dlopen 时才炸 "symbol not found in flat namespace"。
+    # 用 -n 跳过宿主 ini，-d extension=<绝对路径> 直接加载刚安装的 .so，
+    # --ri <模块名> 触发真正的 dlopen + MINIT；非零退出（含 "not present"）
+    # 或无任何输出段都视为失败。不解析输出内容。
+    local php_bin=$1 module_so=$2 ext_name=$3
+    local smoke_output
+    smoke_output=$("${php_bin}" -n -d "extension=${module_so}" --ri "${ext_name}" 2>&1)
+    if [[ $? -ne 0 || -z "${smoke_output//[[:space:]]/}" ]]; then
+        log_message "ERROR" "PHP module ${ext_name} failed the dlopen smoke test (php --ri ${ext_name} exited nonzero or printed nothing)."
+        return 1
+    fi
+    log_message "INFO" "PHP module ${ext_name} passed the dlopen smoke test."
+    return 0
+}
+
 _download_pecl_source() {
     local mod_name=$1
     local mod_version=$2
@@ -4978,6 +5072,7 @@ _build_php_mod_phpredis() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/redis.so" ]]; then log_message "ERROR" "redis.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/redis.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/redis.so" "redis" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "phpredis-${mod_version}"
     }
@@ -5001,6 +5096,16 @@ _build_php_mod_memcache() {
             sed -i '' 's/PS_FUNCS(memcache);/PS_OPEN_FUNC(memcache); PS_CLOSE_FUNC(memcache); PS_READ_FUNC(memcache); PS_WRITE_FUNC(memcache); PS_DESTROY_FUNC(memcache); PS_GC_FUNC(memcache); PS_CREATE_SID_FUNC(memcache); PS_VALIDATE_SID_FUNC(memcache);/' src/php_memcache.h
             # PHP 8.6 changed save_path from const char* to zend_string*
             sed -i '' 's|path = save_path;|path = ZSTR_VAL(save_path);|' src/memcache_session.c
+            # PHP 8.6 rewrote PS_MOD(x) to reference the extension-provided
+            # ps_create_sid_##x / ps_validate_sid_##x (which were the core
+            # php_session_create_id / php_session_validate_sid /
+            # php_session_update_timestamp defaults in <=8.5). memcache 8.0 never
+            # implements the per-extension variants, so ps_mod_memcache ends up
+            # referencing undefined symbols; the .so still links under macOS
+            # -undefined dynamic_lookup but dlopen fails at runtime with
+            # "symbol not found in flat namespace '_ps_create_sid_memcache'".
+            # Expand PS_MOD manually with the core defaults to keep 8.5 semantics.
+            sed -i '' 's/PS_MOD(memcache)/"memcache", ps_open_memcache, ps_close_memcache, ps_read_memcache, ps_write_memcache, ps_delete_memcache, ps_gc_memcache, php_session_create_id, php_session_validate_sid, php_session_update_timestamp/' src/memcache_session.c
         fi
 
         "${php_bin_dir}/phpize" || return 1
@@ -5010,6 +5115,7 @@ _build_php_mod_memcache() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/memcache.so" ]]; then log_message "ERROR" "memcache.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/memcache.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/memcache.so" "memcache" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5038,6 +5144,7 @@ _build_php_mod_memcached() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/memcached.so" ]]; then log_message "ERROR" "memcached.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/memcached.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/memcached.so" "memcached" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5085,6 +5192,7 @@ _build_php_mod_xdebug() {
             sed -i '' "s|zend_extension=xdebug.so|zend_extension=${extension_dir}/xdebug.so|" \
                 "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/xdebug.ini"
         fi
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/xdebug.so" "xdebug" || return 1
         mkdir -p "${SERVBAY_LOG_PATH}/xdebug/${php_version_major}"
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
@@ -5109,6 +5217,7 @@ _build_php_mod_apcu() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/apcu.so" ]]; then log_message "ERROR" "apcu.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/apcu.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/apcu.so" "apcu" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5143,6 +5252,7 @@ _build_php_mod_mongodb() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/mongodb.so" ]]; then log_message "ERROR" "mongodb.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/mongodb.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/mongodb.so" "mongodb" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5178,6 +5288,9 @@ _build_php_mod_imap() {
             log_message "INFO" "  -> IMAP is available as built-in module."
         fi
         cp "${PROJECT_ROOT}/conf/php/imap.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        if [[ -f "${extension_dir}/imap.so" ]]; then
+            _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/imap.so" "imap" || return 1
+        fi
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5199,6 +5312,7 @@ _build_php_mod_scws() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/scws.so" ]]; then log_message "ERROR" "scws.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/scws.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/scws.so" "scws" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5224,6 +5338,7 @@ _build_php_mod_imagick() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/imagick.so" ]]; then log_message "ERROR" "imagick.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/imagick.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/imagick.so" "imagick" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5286,6 +5401,7 @@ _build_php_mod_swoole() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/swoole.so" ]]; then log_message "ERROR" "swoole.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/swoole.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/swoole.so" "swoole" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5305,6 +5421,7 @@ _build_php_mod_sqlsrv() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/sqlsrv.so" ]]; then log_message "ERROR" "sqlsrv.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/sqlsrv.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/sqlsrv.so" "sqlsrv" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5333,6 +5450,7 @@ _build_php_mod_pdo_sqlsrv() {
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/pdo_sqlsrv.so" ]]; then log_message "ERROR" "pdo_sqlsrv.so not found."; return 1; fi
         cp "${PROJECT_ROOT}/conf/php/pdo_sqlsrv.ini" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/pdo_sqlsrv.so" "pdo_sqlsrv" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5384,6 +5502,7 @@ _build_php_mod_phalcon() {
             ini_source_path="${PROJECT_ROOT}/conf/php/phalcon-7.x.ini"
         fi
         cp "$ini_source_path" "${SERVBAY_ETC_PATH}/php/${php_version_major}/conf.d/${ini_file_name}" || return 1
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/phalcon.so" "phalcon" || return 1
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
     }
@@ -5402,6 +5521,7 @@ _build_php_mod_psr() {
         local extension_dir
         extension_dir=$(_php_module_extension_dir "$php_config") || return 1
         if [[ ! -f "${extension_dir}/psr.so" ]]; then log_message "ERROR" "psr.so not found."; return 1; fi
+        _verify_php_module_loads "${php_bin_dir}/php" "${extension_dir}/psr.so" "psr" || return 1
         # psr 不单独打包，与 phalcon 一起打包
         cd "$SERVBAY_BUILD_DIR" || return 1
         cleanup_source_directory "${mod_name}-${mod_version}"
@@ -5593,6 +5713,12 @@ _get_php_build_config() {
                 "php5.6/mbstring.patch:p0" "php5.6/opcache.patch:p1"
                 "php-openssl3/openssl.patch:p1" "php7.1/icu.patch:p1" "php5.6/php5.6-macos-compile-fixes.patch:p0"
                 "php5.6/libxml.patch:p1"
+                # GD 构建测试的 char foobar() conftest 在当前工具链下一运行就 SIGILL，
+                # 改为 link-only（各 release hunk 行号不同，不可跨版本复用）。
+                "php5.6/gd-configure-runtime-test.patch:p1"
+                # libtidy 5+ 把 buffio.h 改名为 tidybuffio.h（base 无兼容头），
+                # 5.6 无探测地 include 旧名；用 __has_include 优先新名兜底旧名。
+                "php5.6/tidy-buffio-header.patch:p1"
             )
             # -lresolv 已包含在全局 LDFLAGS 中，无需覆盖
             PHP_POST_BUILD_CMDS=()
@@ -5600,29 +5726,29 @@ _get_php_build_config() {
             ;;
         "7.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_COMMON_PATH}" "--with-onig=${SERVBAY_COMMON_PATH}" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/zend-sprintf.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/zend-sprintf.patch:p1" "php7.0/gd-configure-runtime-test.patch:p1" "php7.0/tidy-buffio-header.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.3.6" [phalcon]="3.4.5" )
             ;;
         "7.1")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_COMMON_PATH}" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.1/icu.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.1/icu.patch:p1" "php7.1/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.5.11" [phalcon]="3.4.5" )
             ;;
         "7.2")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_COMMON_PATH}" "--with-sodium=${SERVBAY_COMMON_PATH}" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.2/icu.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.2/icu.patch:p1" "php7.2/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.3")
             # --without-pcre-jit: PHP 7.3 bundled PCRE2 JIT 在 Xcode 16 clang 下存在 UB，
             # 导致 php 二进制在模块初始化阶段崩溃 (https://github.com/php/php-src/issues/16168)
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_COMMON_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_COMMON_PATH}" "--with-sodium=${SERVBAY_COMMON_PATH}" "--without-pcre-jit" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.3/icu.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/zend-sprintf.patch:p1" "php7.3/icu.patch:p1" "php7.3/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.4")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--enable-gd" "--with-jpeg" "--with-webp" "--with-freetype" "--with-sodium=${SERVBAY_COMMON_PATH}" "--with-external-pcre=${SERVBAY_COMMON_PATH}" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.4/gd-configure-runtime-test.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "8.0")
@@ -5682,6 +5808,11 @@ _get_php_build_config() {
                 PHP_CONFIGURE_ARGS+=( "--disable-opcache-jit" )
             fi
             PHP_PRE_BUILD_CMDS=( "./buildconf --force" )
+            # PHP 8.6 (dev) 从 Zend/zend_portability.h 移除了历史宏 XtOffsetOf，
+            # 而 phpredis/memcached/apcu/imap/imagick 等大量 PECL 扩展仍在使用。
+            # 通过核心补丁一次性恢复（对齐 v1 32c50ef），make install 后随核心分发，
+            # 所有针对该 PHP 编译的扩展都能拿到该宏。
+            PHP_PATCHES=( "php8.6/zend_portability-xtoffsetof.patch:p0" )
             # PHP 8.6-dev: 大部分扩展已通过补丁支持 (patch/php8.6/)
             # swoole 使用与 PHP 8.5 相同的 snapshot 版本 (88fc55029c commit)
             PHP_MODS=( [phpredis]="6.2.0" [memcache]="8.0" [memcached]="3.2.0" [xdebug]="3.4.3" [apcu]="5.1.24" [mongodb]="1.19.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="6.1.7-88fc55029c" [phalcon]="5.9.3" [imap]="1.0.3" [sqlsrv]="5.12.0" [pdo_sqlsrv]="5.12.0" )
@@ -5897,6 +6028,16 @@ build_php() {
         fi
     fi
 
+    # 6.6 PHP 5.3-7.3: 旧 ext/gd/libgd 把 historic `boolean` 类型的回调赋给 jpeglib 的
+    # safeboolean 槽位，现代 clang 将该不匹配提升为 error，gd_jpeg.c 编不过。
+    # 该降级必须写进 configure 生成的 Makefile 的 CFLAGS_CLEAN（libtool 的编译行
+    # 实际展开的是它，PHP configure 会重建 CFLAGS，追加到环境变量无效）。v1 6b03016。
+    if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-3])$ && -f Makefile ]]; then
+        log_message "INFO" "Allowing the legacy libjpeg callback signature mismatch in gd_jpeg.c..."
+        sed -E 's/^CFLAGS_CLEAN = (.*)$/CFLAGS_CLEAN = \1 -Wno-error=incompatible-function-pointer-types -Wno-error=implicit-int/' \
+            Makefile > Makefile.servbay-cflags && mv Makefile.servbay-cflags Makefile
+    fi
+
     # 7. Compile and install PHP.
     log_message "INFO" "Compiling and installing PHP..."
     if [[ ${#PHP_POST_BUILD_CMDS[@]} -gt 0 ]]; then
@@ -5968,17 +6109,19 @@ setup_package_build_environment() {
     export CXXFLAGS="-isysroot ${SDK_PATH} -Qunused-arguments -O3 -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion"
 
     # PHP 版本特定的 C++ 标志（必须在基础 CXXFLAGS 设置之后）
-    # PHP 5.x-7.3 和 7.4、8.0 需要 C++17 来支持 ICU 76+ (std::is_same_v, std::enable_if_t 等)
+    # PHP 5.x-7.2 和 7.4、8.0 需要 C++17 来支持 ICU 76+ (std::is_same_v, std::enable_if_t 等)
     if [[ "$packageName" == "php" ]]; then
         local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
-        if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-3])$ ]]; then
+        if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-2])$ ]]; then
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -Wno-implicit-function-declaration"
             CXXFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -std=c++17 -stdlib=libc++ -Wno-register"
             CPPFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1"
             export CFLAGS CXXFLAGS CPPFLAGS
             export LIBS="-lgssapi_krb5 -llzma -lzstd"
-        elif [[ "$version_major" =~ ^(7\.4|8\.0)$ ]]; then
-            # Match the confirmed v1 Clang workaround for these two source lines.
+        elif [[ "$version_major" =~ ^(7\.[34]|8\.0)$ ]]; then
+            # Match the confirmed v1 Clang workaround for these source lines.
+            # 7.3 与 7.4/8.0 是同一类 -O3 误编译：x86_64 上 cli/php 在 make
+            # 首次运行（生成 phar.php）时 SIGABRT (v1 0918cc7)，arm64 亦统一 -O1。
             CFLAGS="${CFLAGS//-O3/-O1}"
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1"
             CXXFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -std=c++17 -stdlib=libc++"
