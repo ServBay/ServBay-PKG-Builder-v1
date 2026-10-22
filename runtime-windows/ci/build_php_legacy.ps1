@@ -502,9 +502,15 @@ try {
     if ($SmokeText -match 'Unable to (load dynamic library|initialize module)') {
         throw "An extension could not start: $SmokeText"
     }
+    # Split the module list instead of regex-matching it: module names are not
+    # all lower case (OAuth) and Windows line endings put a \r where an end
+    # anchor would look.
+    $ModuleLine = ($Smoke | Out-String) -split "`r?`n" | Where-Object { $_ -match '^Core,' } | Select-Object -Last 1
+    if (-not $ModuleLine) { throw "Smoke test printed no module list: $SmokeText" }
+    $LoadedModules = $ModuleLine -split ',' | ForEach-Object { $_.Trim() }
     foreach ($ext in $Loaded) {
-        if ($SmokeText -notmatch "(^|,)$([regex]::Escape($ext))(,|$)") {
-            throw "Extension $ext is in the package but not loaded: $SmokeText"
+        if ($LoadedModules -notcontains $ext) {
+            throw "Extension $ext is in the package but not loaded: $ModuleLine"
         }
     }
 
