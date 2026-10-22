@@ -1,0 +1,112 @@
+--- ./cmd/cmd.go.bak	2025-02-09 15:20:46
++++ ./cmd/cmd.go	2025-02-09 15:25:42
+@@ -1039,14 +1039,10 @@
+ }
+ 
+ func initializeKeypair() error {
+-	home, err := os.UserHomeDir()
+-	if err != nil {
+-		return err
+-	}
++	privKeyPath := filepath.Join("/Applications/ServBay/etc/ollama", "id_ed25519")
++	pubKeyPath := filepath.Join("/Applications/ServBay/etc/ollama", "id_ed25519.pub")
+ 
+-	privKeyPath := filepath.Join(home, ".ollama", "id_ed25519")
+-	pubKeyPath := filepath.Join(home, ".ollama", "id_ed25519.pub")
+-
++	var err error
+ 	_, err = os.Stat(privKeyPath)
+ 	if os.IsNotExist(err) {
+ 		fmt.Printf("Couldn't find '%s'. Generating new private key.\n", privKeyPath)
+--- ./envconfig/config.go.bak	2025-02-09 15:09:10
++++ ./envconfig/config.go	2025-02-09 15:10:02
+@@ -59,7 +59,7 @@
+ 		origins = strings.Split(s, ",")
+ 	}
+ 
+-	for _, origin := range []string{"localhost", "127.0.0.1", "0.0.0.0"} {
++	for _, origin := range []string{"localhost", "127.0.0.1", "0.0.0.0", "ollama.servbay.host", "llm.servbay.host"} {
+ 		origins = append(origins,
+ 			fmt.Sprintf("http://%s", origin),
+ 			fmt.Sprintf("https://%s", origin),
+@@ -85,12 +85,7 @@
+ 		return s
+ 	}
+ 
+-	home, err := os.UserHomeDir()
+-	if err != nil {
+-		panic(err)
+-	}
+-
+-	return filepath.Join(home, ".ollama", "models")
++	return filepath.Join("/Applications/ServBay/db/ollama", "models")
+ }
+ 
+ // KeepAlive returns the duration that models stay loaded in memory. KeepAlive can be configured via the OLLAMA_KEEP_ALIVE environment variable.
+--- ./readline/history.go.bak	2025-02-09 15:19:40
++++ ./readline/history.go	2025-02-09 15:20:40
+@@ -38,12 +38,7 @@
+ }
+ 
+ func (h *History) Init() error {
+-	home, err := os.UserHomeDir()
+-	if err != nil {
+-		return err
+-	}
+-
+-	path := filepath.Join(home, ".ollama", "history")
++	path := filepath.Join("/Applications/ServBay/logs/ollama", "history")
+ 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+ 		return err
+ 	}
+--- ./server/routes.go.bak	2025-02-09 20:13:30
++++ ./server/routes.go	2025-02-09 20:14:39
+@@ -1064,7 +1064,7 @@
+ func allowedHost(host string) bool {
+ 	host = strings.ToLower(host)
+ 
+-	if host == "" || host == "localhost" {
++	if host == "" || host == "localhost" || host == "llm.servbay.host" || host == "ollama.servbay.host" {
+ 		return true
+ 	}
+ 
+@@ -1076,6 +1076,9 @@
+ 		"localhost",
+ 		"local",
+ 		"internal",
++		"test",
++		"servbay",
++		"demo",
+ 	}
+ 
+ 	// check if the host is a local TLD
+--- ./auth/auth.go.bak	2025-11-03 17:49:57
++++ ./auth/auth.go	2025-11-03 17:52:53
+@@ -19,12 +19,7 @@
+ const defaultPrivateKey = "id_ed25519"
+ 
+ func GetPublicKey() (string, error) {
+-	home, err := os.UserHomeDir()
+-	if err != nil {
+-		return "", err
+-	}
+-
+-	keyPath := filepath.Join(home, ".ollama", defaultPrivateKey)
++	keyPath := filepath.Join("/Applications/ServBay/etc/ollama", defaultPrivateKey)
+ 	privateKeyFile, err := os.ReadFile(keyPath)
+ 	if err != nil {
+ 		slog.Info(fmt.Sprintf("Failed to load private key: %v", err))
+@@ -51,12 +46,7 @@
+ }
+ 
+ func Sign(ctx context.Context, bts []byte) (string, error) {
+-	home, err := os.UserHomeDir()
+-	if err != nil {
+-		return "", err
+-	}
+-
+-	keyPath := filepath.Join(home, ".ollama", defaultPrivateKey)
++	keyPath := filepath.Join("/Applications/ServBay/etc/ollama", defaultPrivateKey)
+ 	privateKeyFile, err := os.ReadFile(keyPath)
+ 	if err != nil {
+ 		slog.Info(fmt.Sprintf("Failed to load private key: %v", err))

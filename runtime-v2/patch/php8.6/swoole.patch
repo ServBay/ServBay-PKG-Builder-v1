@@ -1,0 +1,1207 @@
+--- ./ext-src/swoole_http_server.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http_server.cc	2025-11-06 03:40:33
+@@ -295,7 +295,7 @@
+         zval rv;
+         zval *zconn = zend_read_property_ex(
+             swoole_http_response_ce, SW_Z8_OBJ_P(response.zobject), SW_ZSTR_KNOWN(SW_ZEND_STR_SOCKET), 1, &rv);
+-        if (!zconn || ZVAL_IS_NULL(zconn)) {
++        if (!zconn || Z_ISNULL_P(zconn)) {
+             return false;
+         }
+         if (php_swoole_socket_is_closed(zconn)) {
+--- ./ext-src/swoole_name_resolver.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_name_resolver.cc	2025-11-06 03:40:33
+@@ -139,7 +139,7 @@
+             bool equals = zend_string_equals(hash_2, hash_1);
+             zend_string_release(hash_2);
+             if (iter->type == NameResolver::TYPE_PHP && iter->private_data && equals) {
+-                zval_dtor(zresolver);
++                zval_ptr_dtor_nogc(zresolver);
+                 efree(iter->private_data);
+                 found = true;
+                 return SW_TRAVERSE_REMOVE;
+@@ -182,12 +182,12 @@
+         zval zname;
+         ZVAL_STRINGL(&zname, name.c_str(), name.length());
+         zend_call_method_with_1_params(SW_Z8_OBJ_P(zresolver), NULL, NULL, "lookup", &retval, &zname);
+-        zval_dtor(&zname);
++        zval_ptr_dtor_nogc(&zname);
+         if (Z_TYPE(retval) == IS_OBJECT) {
+             ctx->private_data = zcluster_object = (zval *) ecalloc(1, sizeof(zval));
+             ctx->dtor = [](NameResolver::Context *ctx) {
+                 zval *_zcluster_object = (zval *) ctx->private_data;
+-                zval_dtor(_zcluster_object);
++                zval_ptr_dtor_nogc(_zcluster_object);
+                 efree(_zcluster_object);
+             };
+             *zcluster_object = retval;
+--- ./ext-src/php_swoole_cxx.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/php_swoole_cxx.cc	2025-11-06 03:40:33
+@@ -112,7 +112,7 @@
+     if (call_user_function(EG(function_table), NULL, &function_name, &retval.value, argc, argv) != SUCCESS) {
+         ZVAL_NULL(&retval.value);
+     }
+-    zval_dtor(&function_name);
++    zval_ptr_dtor_nogc(&function_name);
+     /* we have no chance to return to ZendVM to check the exception  */
+     if (UNEXPECTED(EG(exception))) {
+         zend_exception_error(EG(exception), E_ERROR);
+@@ -124,7 +124,7 @@
+ 
+ Callable::Callable(zval *_zfn) {
+     ZVAL_UNDEF(&zfn);
+-    if (!zval_is_true(_zfn)) {
++    if (!zend_is_true(_zfn)) {
+         php_swoole_fatal_error(E_WARNING, "illegal callback function");
+         return;
+     }
+--- ./ext-src/swoole_table.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_table.cc	2025-11-06 03:40:33
+@@ -301,7 +301,7 @@
+     if (out_flags & SW_TABLE_FLAG_NEW_ROW) {
+         for (const auto col : *table->column_list) {
+             zval *zv = zend_hash_str_find(ht, col->name.c_str(), col->name.length());
+-            if (zv == nullptr || ZVAL_IS_NULL(zv)) {
++            if (zv == nullptr || Z_ISNULL_P(zv)) {
+                 col->clear(row);
+             } else {
+                 if (col->type == TableColumn::TYPE_STRING) {
+--- ./ext-src/php_swoole.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/php_swoole.cc	2025-11-06 03:40:33
+@@ -271,17 +271,17 @@
+     zval *ztmp;
+ 
+ #ifdef SW_DEBUG
+-    if (php_swoole_array_get_value(vht, "debug_mode", ztmp) && zval_is_true(ztmp)) {
++    if (php_swoole_array_get_value(vht, "debug_mode", ztmp) && zend_is_true(ztmp)) {
+         swoole_set_log_level(0);
+     }
+ #endif
+     // [EventLoop]
+     // ======================================================================
+     if (php_swoole_array_get_value(vht, "enable_signalfd", ztmp)) {
+-        SwooleG.enable_signalfd = zval_is_true(ztmp);
++        SwooleG.enable_signalfd = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "enable_kqueue", ztmp)) {
+-        SwooleG.enable_kqueue = zval_is_true(ztmp);
++        SwooleG.enable_kqueue = zend_is_true(ztmp);
+     }
+     // [Logger]
+     // ======================================================================
+@@ -298,13 +298,13 @@
+         sw_logger()->set_date_format(zend::String(ztmp).val());
+     }
+     if (php_swoole_array_get_value(vht, "log_date_with_microseconds", ztmp)) {
+-        sw_logger()->set_date_with_microseconds(zval_is_true(ztmp));
++        sw_logger()->set_date_with_microseconds(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "log_rotation", ztmp)) {
+         sw_logger()->set_rotation(zval_get_long(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "display_errors", ztmp)) {
+-        SWOOLE_G(display_errors) = zval_is_true(ztmp);
++        SWOOLE_G(display_errors) = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "print_backtrace_on_error", ztmp)) {
+ #if !defined(HAVE_BOOST_STACKTRACE) && !defined(HAVE_EXECINFO)
+@@ -313,7 +313,7 @@
+             "The `print_backtrace_on_error` option requires `boost stacktrace` or `execinfo.h` to be installed",
+             SW_ERROR_OPERATION_NOT_SUPPORT);
+ #else
+-        SwooleG.print_backtrace_on_error = zval_is_true(ztmp);
++        SwooleG.print_backtrace_on_error = zend_is_true(ztmp);
+ #endif
+     }
+     // [DNS]
+--- ./ext-src/php_swoole_cxx.h.bak	2025-11-06 03:40:33
++++ ./ext-src/php_swoole_cxx.h	2025-11-06 03:40:33
+@@ -799,7 +799,7 @@
+ }
+ 
+ static inline zend::Callable *sw_callable_create_ex(zval *zfn, const char *fname, bool allow_null = true) {
+-    if (zfn == nullptr || ZVAL_IS_NULL(zfn)) {
++    if (zfn == nullptr || Z_ISNULL_P(zfn)) {
+         if (!allow_null) {
+             zend_throw_exception_ex(
+                 swoole_exception_ce, SW_ERROR_INVALID_PARAMS, "%s must be of type callable, null given", fname);
+--- ./ext-src/swoole_async_coro.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_async_coro.cc	2025-11-06 03:40:33
+@@ -97,7 +97,7 @@
+     php_swoole_set_aio_option(vht);
+ 
+     if (php_swoole_array_get_value(vht, "wait_signal", ztmp)) {
+-        SwooleG.wait_signal = zval_is_true(ztmp);
++        SwooleG.wait_signal = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "dns_cache_refresh_time", ztmp)) {
+         SwooleG.dns_cache_refresh_time = zval_get_double(ztmp);
+@@ -114,13 +114,13 @@
+         SwooleG.aio_worker_num = v;
+     }
+     if (php_swoole_array_get_value(vht, "dns_lookup_random", ztmp)) {
+-        SwooleG.dns_lookup_random = zval_is_true(ztmp);
++        SwooleG.dns_lookup_random = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "use_async_resolver", ztmp)) {
+-        SwooleG.use_async_resolver = zval_is_true(ztmp);
++        SwooleG.use_async_resolver = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "enable_coroutine", ztmp)) {
+-        SwooleG.enable_coroutine = zval_is_true(ztmp);
++        SwooleG.enable_coroutine = zend_is_true(ztmp);
+     }
+     RETURN_TRUE;
+ }
+--- ./ext-src/swoole_event.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_event.cc	2025-11-06 03:40:33
+@@ -629,7 +629,7 @@
+     auto reactor = sw_reactor();
+     auto defer_task = before ? &reactor->future_task : &reactor->idle_task;
+ 
+-    if (ZVAL_IS_NULL(zcallback)) {
++    if (Z_ISNULL_P(zcallback)) {
+         if (defer_task->callback == nullptr) {
+             RETURN_FALSE;
+         } else {
+--- ./ext-src/swoole_http2_server.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http2_server.cc	2025-11-06 03:40:33
+@@ -115,7 +115,7 @@
+         zval *zvalue;
+ 
+         ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(ztrailer), key, zvalue) {
+-            if (UNEXPECTED(!key || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(!key || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             zend::String str_value(zvalue);
+@@ -342,7 +342,7 @@
+         auto add_header =
+             [ctx, &content_type](
+                 Http2::HeaderSet &headers, const char *key, size_t l_key, zval *value, uint32_t &header_flags) {
+-                if (ZVAL_IS_NULL(value)) {
++                if (Z_ISNULL_P(value)) {
+                     return;
+                 }
+                 zend::String str_value(value);
+@@ -368,7 +368,7 @@
+             };
+ 
+         SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(zheader), key, keylen, type, zvalue) {
+-            if (UNEXPECTED(!key || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(!key || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             if (ZVAL_IS_ARRAY(zvalue)) {
+--- ./ext-src/swoole_runtime.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_runtime.cc	2025-11-06 03:40:33
+@@ -349,7 +349,7 @@
+          * php library function
+          */
+         if (rf->fci_cache) {
+-            zval_dtor(&rf->name);
++            zval_ptr_dtor_nogc(&rf->name);
+             sw_callable_free(rf->fci_cache);
+         }
+         if (sw_is_main_thread()) {
+@@ -663,7 +663,7 @@
+ 
+     if ((nullptr != PHP_STREAM_CONTEXT(stream)) &&
+         (tmpzval = php_stream_context_get_option(PHP_STREAM_CONTEXT(stream), "socket", "tcp_nodelay")) != nullptr &&
+-        zval_is_true(tmpzval)) {
++        zend_is_true(tmpzval)) {
+         tcp_nodelay = 1;
+     }
+ 
+@@ -828,7 +828,7 @@
+     ZVAL_STRINGL(&argv[0], peer_cert.c_str(), peer_cert.length());
+     auto retval = zend::function::call("openssl_x509_read", 1, argv);
+     php_stream_context_set_option(PHP_STREAM_CONTEXT(stream), "ssl", "peer_certificate", &retval.value);
+-    zval_dtor(&argv[0]);
++    zval_ptr_dtor_nogc(&argv[0]);
+ 
+     if (nullptr !=
+             (val = php_stream_context_get_option(PHP_STREAM_CONTEXT(stream), "ssl", "capture_peer_cert_chain")) &&
+@@ -844,7 +844,7 @@
+                 auto _retval = zend::function::call("openssl_x509_read", 1, _argv);
+                 zval_add_ref(&_retval.value);
+                 add_next_index_zval(&arr, &_retval.value);
+-                zval_dtor(&_argv[0]);
++                zval_ptr_dtor_nogc(&_argv[0]);
+             }
+         } else {
+             ZVAL_NULL(&arr);
+@@ -914,21 +914,21 @@
+ 
+ #ifdef IPV6_V6ONLY
+             if ((tmpzval = php_stream_context_get_option(ctx, "socket", "ipv6_v6only")) != nullptr &&
+-                zval_is_true(tmpzval)) {
++                zend_is_true(tmpzval)) {
+                 sock->get_socket()->set_option(IPPROTO_IPV6, IPV6_V6ONLY, 1);
+             }
+ #endif
+ 
+ #ifdef SO_REUSEPORT
+             if ((tmpzval = php_stream_context_get_option(ctx, "socket", "so_reuseport")) != nullptr &&
+-                zval_is_true(tmpzval)) {
++                zend_is_true(tmpzval)) {
+                 sock->get_socket()->set_reuse_port();
+             }
+ #endif
+ 
+ #ifdef SO_BROADCAST
+             if ((tmpzval = php_stream_context_get_option(ctx, "socket", "so_broadcast")) != nullptr &&
+-                zval_is_true(tmpzval)) {
++                zend_is_true(tmpzval)) {
+                 sock->set_option(SOL_SOCKET, SO_BROADCAST, 1);
+             }
+ #endif
+@@ -1134,7 +1134,7 @@
+             add_alias("disable_compression", "ssl_disable_compression");
+ 
+             bool ret = php_swoole_socket_set_ssl(sock, &zalias);
+-            zval_dtor(&zalias);
++            zval_ptr_dtor_nogc(&zalias);
+             return ret;
+         }
+ #endif
+--- ./ext-src/swoole_process.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_process.cc	2025-11-06 03:40:33
+@@ -934,7 +934,7 @@
+         int fd = 0;
+         zval *elem;
+         ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(zpipes), elem) {
+-            if (!ZVAL_IS_NULL(elem)) {
++            if (!Z_ISNULL_P(elem)) {
+                 int new_fd = php_swoole_convert_to_fd(elem);
+                 if (new_fd >= 0) {
+                     if (dup2(new_fd, fd) < 0) {
+@@ -1094,7 +1094,7 @@
+         swoole_fatal_error(SW_ERROR_WRONG_OPERATION, "must call constructor first");
+     }
+     if (php_swoole_array_get_value(vht, "enable_coroutine", ztmp)) {
+-        po->enable_coroutine = zval_is_true(ztmp);
++        po->enable_coroutine = zend_is_true(ztmp);
+     }
+ }
+ 
+--- ./ext-src/swoole_server.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_server.cc	2025-11-06 03:40:33
+@@ -945,7 +945,7 @@
+         zval *zport_setting =
+             sw_zend_read_property_ex(swoole_server_port_ce, zport, SW_ZSTR_KNOWN(SW_ZEND_STR_SETTING), 0);
+         // use swoole_server->setting
+-        if (zport_setting == nullptr || ZVAL_IS_NULL(zport_setting)) {
++        if (zport_setting == nullptr || Z_ISNULL_P(zport_setting)) {
+             Z_TRY_ADDREF_P(zport);
+             sw_zend_call_method_with_1_params(zport, swoole_server_port_ce, nullptr, "set", nullptr, zsetting);
+         }
+@@ -1323,7 +1323,7 @@
+         zval_ptr_dtor(&argv[1]);
+     }
+ 
+-    if (!ZVAL_IS_NULL(&retval)) {
++    if (!Z_ISNULL_P(&retval)) {
+         php_swoole_server_task_finish(serv, &retval, req);
+         zval_ptr_dtor(&retval);
+     }
+@@ -1844,7 +1844,7 @@
+     HOOK_PHP_CALL_STACK(auto call_result = sw_zend_call_function_ex(nullptr, cb->ptr(), zdata ? 4 : 3, args, &retval););
+     if (UNEXPECTED(call_result != SUCCESS)) {
+         php_swoole_error(E_WARNING, "%s->onDispatch handler error", SW_Z_OBJCE_NAME_VAL_P(zserv));
+-    } else if (!ZVAL_IS_NULL(&retval)) {
++    } else if (!Z_ISNULL_P(&retval)) {
+         worker_id = zval_get_long(&retval);
+         if (worker_id >= (zend_long) serv->worker_num) {
+             php_swoole_fatal_error(E_WARNING, "invalid target worker-id[" ZEND_LONG_FMT "]", worker_id);
+@@ -2052,7 +2052,7 @@
+         serv->group_ = zend::String(ztmp).to_std_string();
+     }
+     if (php_swoole_array_get_value(vht, "daemonize", ztmp)) {
+-        serv->daemonize = zval_is_true(ztmp);
++        serv->daemonize = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "pid_file", ztmp)) {
+         serv->pid_file = zend::String(ztmp).to_std_string();
+@@ -2065,7 +2065,7 @@
+         }
+     }
+     if (php_swoole_array_get_value(vht, "single_thread", ztmp)) {
+-        serv->single_thread = zval_is_true(ztmp);
++        serv->single_thread = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "worker_num", ztmp)) {
+         zend_long v = zval_get_long(ztmp);
+@@ -2094,7 +2094,7 @@
+         serv->set_worker_max_concurrency(SW_MAX(1, SW_MIN(v, UINT32_MAX)));
+     }
+     if (php_swoole_array_get_value(vht, "enable_coroutine", ztmp)) {
+-        serv->enable_coroutine = zval_is_true(ztmp);
++        serv->enable_coroutine = zend_is_true(ztmp);
+     } else {
+         serv->enable_coroutine = SwooleG.enable_coroutine;
+     }
+@@ -2106,7 +2106,7 @@
+         serv->dispatch_mode = SW_MAX(0, SW_MIN(v, UINT8_MAX));
+     }
+     if (php_swoole_array_get_value(vht, "send_yield", ztmp)) {
+-        serv->send_yield = zval_is_true(ztmp);
++        serv->send_yield = zend_is_true(ztmp);
+         if (serv->send_yield &&
+             !(serv->dispatch_mode == Server::DISPATCH_FDMOD || serv->dispatch_mode == Server::DISPATCH_IPMOD)) {
+             php_swoole_error(E_WARNING, "'send_yield' option can only be set when using dispatch_mode=2/4");
+@@ -2130,35 +2130,35 @@
+      * for dispatch_mode = 1/3
+      */
+     if (php_swoole_array_get_value(vht, "discard_timeout_request", ztmp)) {
+-        serv->discard_timeout_request = zval_is_true(ztmp);
++        serv->discard_timeout_request = zend_is_true(ztmp);
+     }
+     // onConnect/onClose event
+     if (php_swoole_array_get_value(vht, "enable_unsafe_event", ztmp)) {
+-        serv->enable_unsafe_event = zval_is_true(ztmp);
++        serv->enable_unsafe_event = zend_is_true(ztmp);
+     }
+     // delay receive
+     if (php_swoole_array_get_value(vht, "enable_delay_receive", ztmp)) {
+-        serv->enable_delay_receive = zval_is_true(ztmp);
++        serv->enable_delay_receive = zend_is_true(ztmp);
+     }
+ #if defined(__linux__) and defined(HAVE_REUSEPORT)
+     if (php_swoole_array_get_value(vht, "enable_reuse_port", ztmp)) {
+-        serv->enable_reuse_port = zval_is_true(ztmp);
++        serv->enable_reuse_port = zend_is_true(ztmp);
+     }
+ #endif
+     // task use object
+     if (php_swoole_array_get_value(vht, "task_use_object", ztmp) ||
+         php_swoole_array_get_value(vht, "task_object", ztmp)) {
+-        serv->task_object = zval_is_true(ztmp);
++        serv->task_object = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "event_object", ztmp)) {
+-        serv->event_object = zval_is_true(ztmp);
++        serv->event_object = zend_is_true(ztmp);
+         if (serv->event_object) {
+             serv->task_object = true;
+         }
+     }
+     // task coroutine
+     if (php_swoole_array_get_value(vht, "task_enable_coroutine", ztmp)) {
+-        serv->task_enable_coroutine = zval_is_true(ztmp);
++        serv->task_enable_coroutine = zend_is_true(ztmp);
+     }
+     // task_worker_num
+     if (php_swoole_array_get_value(vht, "task_worker_num", ztmp)) {
+@@ -2219,11 +2219,11 @@
+     }
+     // reload async
+     if (php_swoole_array_get_value(vht, "reload_async", ztmp)) {
+-        serv->reload_async = zval_is_true(ztmp);
++        serv->reload_async = zend_is_true(ztmp);
+     }
+     // cpu affinity
+     if (php_swoole_array_get_value(vht, "open_cpu_affinity", ztmp)) {
+-        serv->open_cpu_affinity = zval_is_true(ztmp);
++        serv->open_cpu_affinity = zend_is_true(ztmp);
+     }
+     // cpu affinity set
+     if (php_swoole_array_get_value(vht, "cpu_affinity_ignore", ztmp)) {
+@@ -2262,20 +2262,20 @@
+     }
+     // parse cookie header
+     if (php_swoole_array_get_value(vht, "http_parse_cookie", ztmp)) {
+-        serv->http_parse_cookie = zval_is_true(ztmp);
++        serv->http_parse_cookie = zend_is_true(ztmp);
+     }
+     // parse x-www-form-urlencoded form data
+     if (php_swoole_array_get_value(vht, "http_parse_post", ztmp)) {
+-        serv->http_parse_post = zval_is_true(ztmp);
++        serv->http_parse_post = zend_is_true(ztmp);
+     }
+     // parse multipart/form-data file uploads
+     if (php_swoole_array_get_value(vht, "http_parse_files", ztmp)) {
+-        serv->http_parse_files = zval_is_true(ztmp);
++        serv->http_parse_files = zend_is_true(ztmp);
+     }
+ #ifdef SW_HAVE_COMPRESSION
+     // http content compression
+     if (php_swoole_array_get_value(vht, "http_compression", ztmp)) {
+-        serv->http_compression = zval_is_true(ztmp);
++        serv->http_compression = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "http_compression_level", ztmp) ||
+         php_swoole_array_get_value(vht, "compression_level", ztmp) ||
+@@ -2296,7 +2296,7 @@
+ 
+ #ifdef SW_HAVE_ZLIB
+     if (php_swoole_array_get_value(vht, "websocket_compression", ztmp)) {
+-        serv->websocket_compression = zval_is_true(ztmp);
++        serv->websocket_compression = zend_is_true(ztmp);
+     }
+ #endif
+ 
+@@ -2316,7 +2316,7 @@
+      * http static file handler
+      */
+     if (php_swoole_array_get_value(vht, "enable_static_handler", ztmp)) {
+-        serv->enable_static_handler = zval_is_true(ztmp);
++        serv->enable_static_handler = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "document_root", ztmp)) {
+         zend::String str_v(ztmp);
+@@ -2327,7 +2327,7 @@
+         serv->set_document_root(std::string(str_v.val(), str_v.len()));
+     }
+     if (php_swoole_array_get_value(vht, "http_autoindex", ztmp)) {
+-        serv->http_autoindex = zval_is_true(ztmp);
++        serv->http_autoindex = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "http_index_files", ztmp)) {
+         if (ZVAL_IS_ARRAY(ztmp)) {
+@@ -2490,7 +2490,7 @@
+         zval rv,
+             *property = zend_read_property(
+                 Z_OBJCE_P(ZEND_THIS), SW_Z8_OBJ_P(ZEND_THIS), property_name.c_str(), property_name.length(), 1, &rv);
+-        if (!ZVAL_IS_NULL(property)) {
++        if (!Z_ISNULL_P(property)) {
+             RETURN_ZVAL(property, 1, 0);
+         }
+     }
+@@ -2697,7 +2697,7 @@
+         zval *_bootstrap = zend::object_get(ZEND_THIS, ZEND_STRL("bootstrap"));
+         bootstrap = zend_string_dup(Z_STR_P(_bootstrap), 1);
+ 
+-        if (!ZVAL_IS_NULL(&server_object->init_arguments)) {
++        if (!Z_ISNULL_P(&server_object->init_arguments)) {
+             zval _thread_argv;
+             call_user_function(NULL, NULL, &server_object->init_arguments, &_thread_argv, 0, NULL);
+             if (ZVAL_IS_ARRAY(&_thread_argv)) {
+@@ -2764,7 +2764,7 @@
+     Z_PARAM_LONG(server_socket)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+ 
+-    if (UNEXPECTED(ZVAL_IS_NULL(zfd))) {
++    if (UNEXPECTED(Z_ISNULL_P(zfd))) {
+         php_swoole_fatal_error(E_WARNING, "fd can not be null");
+         RETURN_FALSE;
+     }
+@@ -3314,7 +3314,7 @@
+ 
+     if (!serv->is_worker()) {
+         buf.info.ext_flags |= SW_TASK_NOREPLY;
+-    } else if (zfn && zval_is_true(zfn)) {
++    } else if (zfn && zend_is_true(zfn)) {
+         buf.info.ext_flags |= SW_TASK_CALLBACK;
+         auto cb = sw_callable_create(zfn);
+         if (!cb) {
+--- ./ext-src/swoole_http_server_coro.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http_server_coro.cc	2025-11-06 03:40:33
+@@ -189,8 +189,8 @@
+         session.default_ctx = nullptr;
+ 
+         ctx->detached = 1;
+-        zval_dtor(ctx->request.zobject);
+-        zval_dtor(ctx->response.zobject);
++        zval_ptr_dtor_nogc(ctx->request.zobject);
++        zval_ptr_dtor_nogc(ctx->response.zobject);
+     }
+ };
+ };  // namespace coroutine
+@@ -438,20 +438,20 @@
+     zval *ztmp;
+     // parse cookie header
+     if (php_swoole_array_get_value(vht, "http_parse_cookie", ztmp)) {
+-        hs->parse_cookie = zval_is_true(ztmp);
++        hs->parse_cookie = zend_is_true(ztmp);
+     }
+     // parse x-www-form-urlencoded form data
+     if (php_swoole_array_get_value(vht, "http_parse_post", ztmp)) {
+-        hs->parse_post = zval_is_true(ztmp);
++        hs->parse_post = zend_is_true(ztmp);
+     }
+     // parse multipart/form-data file uploads
+     if (php_swoole_array_get_value(vht, "http_parse_files", ztmp)) {
+-        hs->parse_files = zval_is_true(ztmp);
++        hs->parse_files = zend_is_true(ztmp);
+     }
+ #ifdef SW_HAVE_COMPRESSION
+     // http content compression
+     if (php_swoole_array_get_value(vht, "http_compression", ztmp)) {
+-        hs->compression = zval_is_true(ztmp);
++        hs->compression = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "http_compression_level", ztmp) ||
+         php_swoole_array_get_value(vht, "compression_level", ztmp) ||
+@@ -487,7 +487,7 @@
+ #endif
+ #ifdef SW_HAVE_ZLIB
+     if (php_swoole_array_get_value(vht, "websocket_compression", ztmp)) {
+-        hs->websocket_compression = zval_is_true(ztmp);
++        hs->websocket_compression = zend_is_true(ztmp);
+     }
+ #endif
+     // temporary directory for HTTP uploaded file.
+@@ -511,7 +511,7 @@
+             zval zsocket;
+             php_swoole_init_socket_object(&zsocket, conn);
+             long cid = PHPCoroutine::create(&fci_cache, 1, &zsocket, zcallback.ptr());
+-            zval_dtor(&zsocket);
++            zval_ptr_dtor_nogc(&zsocket);
+             if (cid < 0) {
+                 goto _wait_1s;
+             }
+@@ -673,8 +673,8 @@
+             ctx->response.status = SW_HTTP_NOT_FOUND;
+         }
+ 
+-        zval_dtor(&args[0]);
+-        zval_dtor(&args[1]);
++        zval_ptr_dtor_nogc(&args[0]);
++        zval_ptr_dtor_nogc(&args[1]);
+         ctx = nullptr;
+ 
+         if (!hs->running || !keep_alive || php_swoole_socket_is_closed(zconn)) {
+@@ -690,8 +690,8 @@
+     }
+ 
+     if (ctx) {
+-        zval_dtor(ctx->request.zobject);
+-        zval_dtor(ctx->response.zobject);
++        zval_ptr_dtor_nogc(ctx->request.zobject);
++        zval_ptr_dtor_nogc(ctx->response.zobject);
+     }
+     zend_hash_index_del(Z_ARRVAL_P(&hs->zclients), co->get_cid());
+ }
+--- ./ext-src/swoole_http_response.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http_response.cc	2025-11-06 03:40:33
+@@ -266,7 +266,7 @@
+ }
+ 
+ static void add_custom_header(String *http_buffer, const char *key, size_t l_key, zval *value) {
+-    if (ZVAL_IS_NULL(value)) {
++    if (Z_ISNULL_P(value)) {
+         return;
+     }
+ 
+@@ -462,11 +462,11 @@
+         zval *zvalue;
+ 
+         SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(ztrailer), key, keylen, type, zvalue) {
+-            if (UNEXPECTED(!key || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(!key || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+ 
+-            if (!ZVAL_IS_NULL(zvalue)) {
++            if (!Z_ISNULL_P(zvalue)) {
+                 zend::String str_value(zvalue);
+                 n = sw_snprintf(
+                     buf, l_buf, "%.*s: %.*s\r\n", (int) keylen, key, (int) str_value.len(), str_value.val());
+--- ./ext-src/swoole_http2_client_coro.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http2_client_coro.cc	2025-11-06 03:40:33
+@@ -996,7 +996,7 @@
+         zval *zvalue;
+ 
+         ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(zheaders), key, zvalue) {
+-            if (UNEXPECTED(!key || *ZSTR_VAL(key) == ':' || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(!key || *ZSTR_VAL(key) == ':' || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             zend::String str_value(zvalue);
+@@ -1034,7 +1034,7 @@
+         String *buffer = sw_tg_buffer();
+ 
+         ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(zcookies), key, zvalue) {
+-            if (UNEXPECTED(!key || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(!key || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             zend::String str_value(zvalue);
+@@ -1145,7 +1145,7 @@
+         sw_zend_read_property_ex(swoole_http2_request_ce, zrequest, SW_ZSTR_KNOWN(SW_ZEND_STR_PIPELINE), 0);
+     zval ztmp, *zuse_pipeline_read = zend_read_property_ex(
+                    Z_OBJCE_P(zrequest), SW_Z8_OBJ_P(zrequest), SW_ZSTR_KNOWN(SW_ZEND_STR_USE_PIPELINE_READ), 1, &ztmp);
+-    bool is_data_empty = Z_TYPE_P(zdata) == IS_STRING ? Z_STRLEN_P(zdata) == 0 : !zval_is_true(zdata);
++    bool is_data_empty = Z_TYPE_P(zdata) == IS_STRING ? Z_STRLEN_P(zdata) == 0 : !zend_is_true(zdata);
+ 
+     if (ZVAL_IS_ARRAY(zdata)) {
+         add_assoc_stringl_ex(
+@@ -1163,10 +1163,10 @@
+     }
+ 
+     uint8_t flags = 0;
+-    if (zval_is_true(zpipeline)) {
++    if (zend_is_true(zpipeline)) {
+         flags |= SW_HTTP2_STREAM_PIPELINE_REQUEST;
+     }
+-    if (zval_is_true(zuse_pipeline_read)) {
++    if (zend_is_true(zuse_pipeline_read)) {
+         flags |= SW_HTTP2_STREAM_USE_PIPELINE_READ;
+     }
+ 
+--- ./ext-src/swoole_socket_coro.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_socket_coro.cc	2025-11-06 03:40:33
+@@ -880,7 +880,7 @@
+      */
+ #ifdef SW_USE_OPENSSL
+     if (php_swoole_array_get_value(vht, "open_ssl", ztmp)) {
+-        if (zval_is_true(ztmp)) {
++        if (zend_is_true(ztmp)) {
+             sock->enable_ssl_encrypt();
+         }
+     }
+@@ -895,11 +895,11 @@
+      */
+     // buffer: eof check
+     if (php_swoole_array_get_value(vht, "open_eof_check", ztmp)) {
+-        sock->open_eof_check = zval_is_true(ztmp);
++        sock->open_eof_check = zend_is_true(ztmp);
+     }
+     // buffer: split package with eof
+     if (php_swoole_array_get_value(vht, "open_eof_split", ztmp)) {
+-        sock->protocol.split_by_eof = zval_is_true(ztmp);
++        sock->protocol.split_by_eof = zend_is_true(ztmp);
+         if (sock->protocol.split_by_eof) {
+             sock->open_eof_check = true;
+         }
+@@ -921,7 +921,7 @@
+     if (php_swoole_array_get_value(vht, "open_fastcgi_protocol", ztmp)) {
+ #define FCGI_HEADER_LEN 8
+ #define FCGI_MAX_LENGTH 0xffff
+-        sock->open_length_check = zval_is_true(ztmp);
++        sock->open_length_check = zend_is_true(ztmp);
+         sock->protocol.package_length_size = FCGI_HEADER_LEN;
+         sock->protocol.package_length_offset = 0;
+         sock->protocol.package_body_offset = 0;
+@@ -942,14 +942,14 @@
+     }
+     // open mqtt protocol
+     if (php_swoole_array_get_value(vht, "open_mqtt_protocol", ztmp)) {
+-        sock->open_length_check = zval_is_true(ztmp);
+-        if (zval_is_true(ztmp)) {
++        sock->open_length_check = zend_is_true(ztmp);
++        if (zend_is_true(ztmp)) {
+             swoole::mqtt::set_protocol(&sock->protocol);
+         }
+     }
+     // open length check
+     if (php_swoole_array_get_value(vht, "open_length_check", ztmp)) {
+-        sock->open_length_check = zval_is_true(ztmp);
++        sock->open_length_check = zend_is_true(ztmp);
+         sock->protocol.get_package_length = Protocol::default_length_func;
+     }
+     // package length size
+@@ -1051,7 +1051,7 @@
+      */
+     if (php_swoole_array_get_value(vht, "open_tcp_nodelay", ztmp)) {
+         if (cli->get_type() == SW_SOCK_TCP || cli->get_type() != SW_SOCK_TCP6) {
+-            cli->get_socket()->set_tcp_nodelay(zval_is_true(ztmp));
++            cli->get_socket()->set_tcp_nodelay(zend_is_true(ztmp));
+         }
+     }
+     /**
+@@ -1121,9 +1121,9 @@
+         sock->set_ssl_protocols(v);
+     }
+     if (php_swoole_array_get_value(vht, "ssl_compress", ztmp)) {
+-        sock->set_ssl_disable_compress(!zval_is_true(ztmp));
++        sock->set_ssl_disable_compress(!zend_is_true(ztmp));
+     } else if (php_swoole_array_get_value(vht, "ssl_disable_compression", ztmp)) {
+-        sock->set_ssl_disable_compress(!zval_is_true(ztmp));
++        sock->set_ssl_disable_compress(!zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_cert_file", ztmp)) {
+         zend::String str_v(ztmp);
+@@ -1154,10 +1154,10 @@
+     }
+ #endif
+     if (php_swoole_array_get_value(vht, "ssl_verify_peer", ztmp)) {
+-        sock->set_ssl_verify_peer(zval_is_true(ztmp));
++        sock->set_ssl_verify_peer(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_allow_self_signed", ztmp)) {
+-        sock->set_ssl_allow_self_signed(zval_is_true(ztmp));
++        sock->set_ssl_allow_self_signed(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_cafile", ztmp)) {
+         sock->set_ssl_cafile(zend::String(ztmp).to_std_string());
+@@ -1749,7 +1749,7 @@
+         zend_string_free(buf);
+         RETURN_EMPTY_STRING();
+     } else {
+-        zval_dtor(peername);
++        zval_ptr_dtor_nogc(peername);
+         array_init(peername);
+         add_assoc_string(peername, "address", (char *) sock->socket->get_addr());
+         add_assoc_long(peername, "port", sock->socket->get_port());
+--- ./ext-src/swoole_server_port.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_server_port.cc	2025-11-06 03:40:33
+@@ -308,7 +308,7 @@
+     }
+     // server: tcp_nodelay
+     if (php_swoole_array_get_value(vht, "open_tcp_nodelay", ztmp)) {
+-        port->open_tcp_nodelay = zval_is_true(ztmp);
++        port->open_tcp_nodelay = zend_is_true(ztmp);
+     } else {
+         port->open_tcp_nodelay = 1;
+     }
+@@ -319,15 +319,15 @@
+     }
+     // tcp_keepalive
+     if (php_swoole_array_get_value(vht, "open_tcp_keepalive", ztmp)) {
+-        port->open_tcp_keepalive = zval_is_true(ztmp);
++        port->open_tcp_keepalive = zend_is_true(ztmp);
+     }
+     // buffer: eof check
+     if (php_swoole_array_get_value(vht, "open_eof_check", ztmp)) {
+-        port->open_eof_check = zval_is_true(ztmp);
++        port->open_eof_check = zend_is_true(ztmp);
+     }
+     // buffer: split package with eof
+     if (php_swoole_array_get_value(vht, "open_eof_split", ztmp)) {
+-        port->protocol.split_by_eof = zval_is_true(ztmp);
++        port->protocol.split_by_eof = zend_is_true(ztmp);
+         if (port->protocol.split_by_eof) {
+             port->open_eof_check = 1;
+         }
+@@ -347,11 +347,11 @@
+     }
+     // http_protocol
+     if (php_swoole_array_get_value(vht, "open_http_protocol", ztmp)) {
+-        port->open_http_protocol = zval_is_true(ztmp);
++        port->open_http_protocol = zend_is_true(ztmp);
+     }
+     // websocket protocol
+     if (php_swoole_array_get_value(vht, "open_websocket_protocol", ztmp)) {
+-        port->open_websocket_protocol = zval_is_true(ztmp);
++        port->open_websocket_protocol = zend_is_true(ztmp);
+         if (port->open_websocket_protocol) {
+             port->open_http_protocol = 1;
+         }
+@@ -360,24 +360,24 @@
+         port->websocket_subprotocol = zend::String(ztmp).to_std_string();
+     }
+     if (php_swoole_array_get_value(vht, "open_websocket_close_frame", ztmp)) {
+-        port->open_websocket_close_frame = zval_is_true(ztmp);
++        port->open_websocket_close_frame = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "open_websocket_ping_frame", ztmp)) {
+-        port->open_websocket_ping_frame = zval_is_true(ztmp);
++        port->open_websocket_ping_frame = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "open_websocket_pong_frame", ztmp)) {
+-        port->open_websocket_pong_frame = zval_is_true(ztmp);
++        port->open_websocket_pong_frame = zend_is_true(ztmp);
+     }
+     // http2 protocol
+     if (php_swoole_array_get_value(vht, "open_http2_protocol", ztmp)) {
+-        port->open_http2_protocol = zval_is_true(ztmp);
++        port->open_http2_protocol = zend_is_true(ztmp);
+         if (port->open_http2_protocol) {
+             port->open_http_protocol = 1;
+         }
+     }
+     // buffer: mqtt protocol
+     if (php_swoole_array_get_value(vht, "open_mqtt_protocol", ztmp)) {
+-        port->open_mqtt_protocol = zval_is_true(ztmp);
++        port->open_mqtt_protocol = zend_is_true(ztmp);
+     }
+     // redis protocol
+     if (php_swoole_array_get_value(vht, "open_redis_protocol", ztmp)) {
+@@ -409,11 +409,11 @@
+     }
+     // tcp_fastopen
+     if (php_swoole_array_get_value(vht, "tcp_fastopen", ztmp)) {
+-        port->tcp_fastopen = zval_is_true(ztmp);
++        port->tcp_fastopen = zend_is_true(ztmp);
+     }
+     // open length check
+     if (php_swoole_array_get_value(vht, "open_length_check", ztmp)) {
+-        port->open_length_check = zval_is_true(ztmp);
++        port->open_length_check = zend_is_true(ztmp);
+     }
+     // package length size
+     if (php_swoole_array_get_value(vht, "package_length_type", ztmp)) {
+@@ -471,16 +471,16 @@
+             RETURN_FALSE;
+         }
+         if (php_swoole_array_get_value(vht, "ssl_compress", ztmp)) {
+-            port->set_ssl_disable_compress(!zval_is_true(ztmp));
++            port->set_ssl_disable_compress(!zend_is_true(ztmp));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_protocols", ztmp)) {
+             port->set_ssl_protocols(zval_get_long(ztmp));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_verify_peer", ztmp)) {
+-            port->set_ssl_verify_peer(zval_is_true(ztmp));
++            port->set_ssl_verify_peer(zend_is_true(ztmp));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_allow_self_signed", ztmp)) {
+-            port->set_ssl_allow_self_signed(zval_is_true(ztmp));
++            port->set_ssl_allow_self_signed(zend_is_true(ztmp));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_client_cert_file", ztmp)) {
+             zend::String str_v(ztmp);
+@@ -502,7 +502,7 @@
+             port->set_ssl_verify_depth(SW_MAX(0, SW_MIN(v, UINT8_MAX)));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_prefer_server_ciphers", ztmp)) {
+-            port->set_ssl_prefer_server_ciphers(zval_is_true(ztmp));
++            port->set_ssl_prefer_server_ciphers(zend_is_true(ztmp));
+         }
+         if (php_swoole_array_get_value(vht, "ssl_ciphers", ztmp)) {
+             port->set_ssl_ciphers(zend::String(ztmp).to_std_string());
+@@ -641,7 +641,7 @@
+         zval rv,
+             *property = zend_read_property(
+                 swoole_server_port_ce, SW_Z8_OBJ_P(ZEND_THIS), property_name.c_str(), property_name.length(), 1, &rv);
+-        if (!ZVAL_IS_NULL(property)) {
++        if (!Z_ISNULL_P(property)) {
+             RETURN_ZVAL(property, 1, 0);
+         }
+     }
+--- ./ext-src/swoole_process_pool.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_process_pool.cc	2025-11-06 03:40:33
+@@ -422,10 +422,10 @@
+     php_swoole_set_aio_option(vht);
+ 
+     if (php_swoole_array_get_value(vht, "enable_coroutine", ztmp)) {
+-        pool->async = pp->enable_coroutine = zval_is_true(ztmp);
++        pool->async = pp->enable_coroutine = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "enable_message_bus", ztmp)) {
+-        pp->enable_message_bus = zval_is_true(ztmp);
++        pp->enable_message_bus = zend_is_true(ztmp);
+     }
+     if (php_swoole_array_get_value(vht, "max_package_size", ztmp)) {
+         pool->set_max_packet_size(php_swoole_parse_to_size(ztmp));
+@@ -679,7 +679,7 @@
+     zval *zprocess = zend_hash_index_find(Z_ARRVAL_P(zworkers), worker_id);
+     zval zobject;
+ 
+-    if (zprocess == nullptr || ZVAL_IS_NULL(zprocess)) {
++    if (zprocess == nullptr || Z_ISNULL_P(zprocess)) {
+         zprocess = &zobject;
+         /**
+          * Separation from shared memory
+--- ./ext-src/swoole_coroutine.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_coroutine.cc	2025-11-06 03:40:33
+@@ -393,7 +393,7 @@
+     }
+ 
+     zval *enable_library = zend_get_constant_str(ZEND_STRL("SWOOLE_LIBRARY"));
+-    if (enable_library == NULL || !zval_is_true(enable_library)) {
++    if (enable_library == NULL || !zend_is_true(enable_library)) {
+         php_swoole_load_library();
+     }
+ 
+--- ./ext-src/php_swoole_private.h.bak	2025-11-06 03:40:34
++++ ./ext-src/php_swoole_private.h	2025-11-06 03:40:34
+@@ -128,7 +128,7 @@
+ #error "require PHP version 8.1 or later"
+ #endif
+ 
+-#if PHP_VERSION_ID > 80500
++#if PHP_VERSION_ID > 80600
+ #error "require PHP version 8.4 or earlier"
+ #endif
+ 
+--- ./ext-src/swoole_coroutine_scheduler.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_coroutine_scheduler.cc	2025-11-06 03:40:33
+@@ -127,7 +127,7 @@
+ void php_swoole_coroutine_scheduler_rshutdown() {
+     swoole_name_resolver_each([](const std::list<NameResolver>::iterator &iter) -> swTraverseOperation {
+         if (iter->type == NameResolver::TYPE_PHP) {
+-            zval_dtor((zval *) iter->private_data);
++            zval_ptr_dtor_nogc((zval *) iter->private_data);
+             efree(iter->private_data);
+             return SW_TRAVERSE_REMOVE;
+         } else {
+@@ -149,13 +149,13 @@
+         PHPCoroutine::set_max_num(max_num <= 0 ? SW_DEFAULT_MAX_CORO_NUM : max_num);
+     }
+     if (php_swoole_array_get_value(vht, "enable_deadlock_check", ztmp)) {
+-        PHPCoroutine::set_deadlock_check(zval_is_true(ztmp));
++        PHPCoroutine::set_deadlock_check(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "hook_flags", ztmp)) {
+         PHPCoroutine::set_hook_flags(zval_get_long(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "enable_preemptive_scheduler", ztmp)) {
+-        PHPCoroutine::enable_preemptive_scheduler(zval_is_true(ztmp));
++        PHPCoroutine::enable_preemptive_scheduler(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "c_stack_size", ztmp) || php_swoole_array_get_value(vht, "stack_size", ztmp)) {
+         Coroutine::set_stack_size(php_swoole_parse_to_size(ztmp));
+--- ./ext-src/swoole_thread.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_thread.cc	2025-11-06 03:40:33
+@@ -352,7 +352,7 @@
+ }
+ 
+ void php_swoole_thread_rshutdown() {
+-    zval_dtor(&thread_argv);
++    zval_ptr_dtor_nogc(&thread_argv);
+     if (!tsrm_is_main_thread()) {
+         return;
+     }
+@@ -1039,7 +1039,7 @@
+ }
+ 
+ bool ZendArray::index_incr(zval *zkey, zval *zvalue, zval *return_value) {
+-    zend_long index = ZVAL_IS_NULL(zkey) ? -1 : zval_get_long(zkey);
++    zend_long index = Z_ISNULL_P(zkey) ? -1 : zval_get_long(zkey);
+ 
+     bool success = true;
+     lock_.lock();
+--- ./ext-src/swoole_client_async.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_client_async.cc	2025-11-06 03:40:33
+@@ -250,7 +250,7 @@
+ 
+ static Client *php_swoole_client_async_new(zval *zobject, char *host, int host_len, int port) {
+     zval *ztype = sw_zend_read_property_ex(Z_OBJCE_P(zobject), zobject, SW_ZSTR_KNOWN(SW_ZEND_STR_TYPE), 0);
+-    if (ztype == nullptr || ZVAL_IS_NULL(ztype)) {
++    if (ztype == nullptr || Z_ISNULL_P(ztype)) {
+         php_swoole_fatal_error(E_ERROR, "failed to get swoole_client->type");
+         return nullptr;
+     }
+--- ./ext-src/swoole_http_client_coro.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http_client_coro.cc	2025-11-06 03:40:33
+@@ -772,26 +772,26 @@
+             max_retries = (uint8_t) SW_MIN(zval_get_long(ztmp), UINT8_MAX);
+         }
+         if (php_swoole_array_get_value(vht, "defer", ztmp)) {
+-            defer = zval_is_true(ztmp);
++            defer = zend_is_true(ztmp);
+         }
+         if (php_swoole_array_get_value(vht, "lowercase_header", ztmp)) {
+-            lowercase_header = zval_is_true(ztmp);
++            lowercase_header = zend_is_true(ztmp);
+         }
+         if (php_swoole_array_get_value(vht, "keep_alive", ztmp)) {
+-            keep_alive = zval_is_true(ztmp);
++            keep_alive = zend_is_true(ztmp);
+         }
+         if (php_swoole_array_get_value(vht, "websocket_mask", ztmp)) {
+-            websocket_mask = zval_is_true(ztmp);
++            websocket_mask = zend_is_true(ztmp);
+         }
+         if (php_swoole_array_get_value(vht, "http_compression", ztmp)) {
+-            http_compression = zval_is_true(ztmp);
++            http_compression = zend_is_true(ztmp);
+         }
+         if (php_swoole_array_get_value(vht, "body_decompression", ztmp)) {
+-            body_decompression = zval_is_true(ztmp);
++            body_decompression = zend_is_true(ztmp);
+         }
+ #ifdef SW_HAVE_ZLIB
+         if (php_swoole_array_get_value(vht, "websocket_compression", ztmp)) {
+-            websocket_compression = zval_is_true(ztmp);
++            websocket_compression = zend_is_true(ztmp);
+         }
+ #endif
+         if (php_swoole_array_get_value(vht, "write_func", ztmp)) {
+@@ -1057,7 +1057,7 @@
+ 
+     if (ZVAL_IS_ARRAY(zheaders)) {
+         SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(zheaders), key, keylen, keytype, zvalue) {
+-            if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             if (SW_STRCASEEQ(key, keylen, "Host")) {
+@@ -1185,7 +1185,7 @@
+         // calculate length before encode array
+         if (zbody && ZVAL_IS_ARRAY(zbody)) {
+             SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(zbody), key, keylen, keytype, zvalue)
+-            if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || ZVAL_IS_NULL(zvalue))) {
++            if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || Z_ISNULL_P(zvalue))) {
+                 continue;
+             }
+             zend::String str_value(zvalue);
+@@ -1235,7 +1235,7 @@
+         // ============ form-data body ============
+         if (zbody && ZVAL_IS_ARRAY(zbody)) {
+             SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(zbody), key, keylen, keytype, zvalue) {
+-                if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || ZVAL_IS_NULL(zvalue))) {
++                if (UNEXPECTED(HASH_KEY_IS_STRING != keytype || Z_ISNULL_P(zvalue))) {
+                     continue;
+                 }
+                 zend::String str_value(zvalue);
+--- ./ext-src/swoole_thread_arraylist.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_thread_arraylist.cc	2025-11-06 03:40:33
+@@ -175,7 +175,7 @@
+     ZEND_PARSE_PARAMETERS_END();
+ 
+     auto ao = arraylist_fetch_object_check(ZEND_THIS);
+-    zend_long index = ZVAL_IS_NULL(zkey) ? -1 : zval_get_long(zkey);
++    zend_long index = Z_ISNULL_P(zkey) ? -1 : zval_get_long(zkey);
+     if (!ao->list->index_offsetSet(index, zvalue)) {
+         zend_throw_exception(swoole_exception_ce, "out of range", -1);
+     }
+--- ./ext-src/swoole_websocket_server.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_websocket_server.cc	2025-11-06 03:40:33
+@@ -170,7 +170,7 @@
+     }
+ 
+     zend::String str_zdata;
+-    if (zdata && !ZVAL_IS_NULL(zdata)) {
++    if (zdata && !Z_ISNULL_P(zdata)) {
+         str_zdata = zdata;
+         data = str_zdata.val();
+         length = str_zdata.len();
+@@ -241,7 +241,7 @@
+     }
+     if ((ztmp = sw_zend_read_property_not_null_ex(
+              swoole_websocket_frame_ce, zframe, SW_ZSTR_KNOWN(SW_ZEND_STR_FINISH), 1))) {
+-        if (zval_is_true(ztmp)) {
++        if (zend_is_true(ztmp)) {
+             flags |= WebSocket::FLAG_FIN;
+         } else {
+             flags &= ~WebSocket::FLAG_FIN;
+--- ./ext-src/swoole_client.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_client.cc	2025-11-06 03:40:33
+@@ -193,7 +193,7 @@
+         cli->set_ssl_protocols(zval_get_long(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_compress", ztmp)) {
+-        cli->set_ssl_disable_compress(!zval_is_true(ztmp));
++        cli->set_ssl_disable_compress(!zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_cert_file", ztmp)) {
+         zend::String str_v(ztmp);
+@@ -220,10 +220,10 @@
+     }
+ #endif
+     if (php_swoole_array_get_value(vht, "ssl_verify_peer", ztmp)) {
+-        cli->set_ssl_verify_peer(zval_is_true(ztmp));
++        cli->set_ssl_verify_peer(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_allow_self_signed", ztmp)) {
+-        cli->set_ssl_allow_self_signed(zval_is_true(ztmp));
++        cli->set_ssl_allow_self_signed(zend_is_true(ztmp));
+     }
+     if (php_swoole_array_get_value(vht, "ssl_cafile", ztmp)) {
+         zend::String str_v(ztmp);
+@@ -259,11 +259,11 @@
+ 
+     // buffer: eof check
+     if (php_swoole_array_get_value(vht, "open_eof_check", ztmp)) {
+-        cli->open_eof_check = zval_is_true(ztmp);
++        cli->open_eof_check = zend_is_true(ztmp);
+     }
+     // buffer: split package with eof
+     if (php_swoole_array_get_value(vht, "open_eof_split", ztmp)) {
+-        cli->protocol.split_by_eof = zval_is_true(ztmp);
++        cli->protocol.split_by_eof = zend_is_true(ztmp);
+         if (cli->protocol.split_by_eof) {
+             cli->open_eof_check = true;
+         }
+@@ -283,14 +283,14 @@
+     }
+     // open mqtt protocol
+     if (php_swoole_array_get_value(vht, "open_mqtt_protocol", ztmp)) {
+-        cli->open_length_check = zval_is_true(ztmp);
+-        if (zval_is_true(ztmp)) {
++        cli->open_length_check = zend_is_true(ztmp);
++        if (zend_is_true(ztmp)) {
+             swoole::mqtt::set_protocol(&cli->protocol);
+         }
+     }
+     // open length check
+     if (php_swoole_array_get_value(vht, "open_length_check", ztmp)) {
+-        cli->open_length_check = zval_is_true(ztmp);
++        cli->open_length_check = zend_is_true(ztmp);
+         cli->protocol.get_package_length = Protocol::default_length_func;
+     }
+     // package length size
+@@ -381,7 +381,7 @@
+      * client: tcp_nodelay
+      */
+     if (php_swoole_array_get_value(vht, "open_tcp_nodelay", ztmp)) {
+-        if (zval_is_true(ztmp)) {
++        if (zend_is_true(ztmp)) {
+             goto _open_tcp_nodelay;
+         }
+     } else {
+@@ -503,7 +503,7 @@
+ 
+ static Client *php_swoole_client_new(zval *zobject, char *host, int host_len, int port) {
+     zval *ztype = sw_zend_read_property_ex(Z_OBJCE_P(zobject), zobject, SW_ZSTR_KNOWN(SW_ZEND_STR_TYPE), 0);
+-    if (ztype == nullptr || ZVAL_IS_NULL(ztype)) {
++    if (ztype == nullptr || Z_ISNULL_P(ztype)) {
+         php_swoole_fatal_error(E_ERROR, "failed to get swoole_client->type");
+         return nullptr;
+     }
+--- ./ext-src/swoole_http_request.cc.bak	2025-11-06 03:40:33
++++ ./ext-src/swoole_http_request.cc	2025-11-06 03:40:33
+@@ -960,22 +960,22 @@
+ 
+         SW_HASHTABLE_FOREACH_START2(Z_ARRVAL_P(zoptions), key, keylen, keytype, zvalue) {
+             if (SW_STRCASEEQ(key, keylen, "parse_cookie")) {
+-                ctx->parse_cookie = zval_is_true(zvalue);
++                ctx->parse_cookie = zend_is_true(zvalue);
+             } else if (SW_STRCASEEQ(key, keylen, "parse_body")) {
+-                ctx->parse_body = zval_is_true(zvalue);
++                ctx->parse_body = zend_is_true(zvalue);
+             } else if (SW_STRCASEEQ(key, keylen, "parse_files")) {
+-                ctx->parse_files = zval_is_true(zvalue);
++                ctx->parse_files = zend_is_true(zvalue);
+             }
+ #ifdef SW_HAVE_COMPRESSION
+             else if (SW_STRCASEEQ(key, keylen, "enable_compression")) {
+-                ctx->enable_compression = zval_is_true(zvalue);
++                ctx->enable_compression = zend_is_true(zvalue);
+             } else if (SW_STRCASEEQ(key, keylen, "compression_level")) {
+                 ctx->compression_level = zval_get_long(zvalue);
+             }
+ #endif
+ #ifdef SW_HAVE_ZLIB
+             else if (SW_STRCASEEQ(key, keylen, "websocket_compression")) {
+-                ctx->websocket_compression = zval_is_true(zvalue);
++                ctx->websocket_compression = zend_is_true(zvalue);
+             }
+ #endif
+             else if (SW_STRCASEEQ(key, keylen, "upload_tmp_dir")) {
+@@ -1017,7 +1017,7 @@
+         memcpy(new_str->val + Z_STRLEN(ctx->request.zdata), str, l_str);
+         new_str->val[len] = 0;
+         new_str->len = len;
+-        zval_dtor(&ctx->request.zdata);
++        zval_ptr_dtor_nogc(&ctx->request.zdata);
+         ZVAL_STR(&ctx->request.zdata, new_str);
+     }
+ 
+--- ./thirdparty/php/curl/multi.cc.bak	2025-11-06 03:40:33
++++ ./thirdparty/php/curl/multi.cc	2025-11-06 03:40:33
+@@ -42,7 +42,7 @@
+ bool swoole_curl_multi_is_in_coroutine(php_curlm *mh) {
+     zval rv;
+     zval *zv = zend_read_property_ex(nullptr, &mh->std, SW_ZSTR_KNOWN(SW_ZEND_STR_IN_COROUTINE), 1, &rv);
+-    return zval_is_true(zv);
++    return zend_is_true(zv);
+ }
+ 
+ /* CurlMultiHandle class */
+--- ./thirdparty/php85/curl/multi.cc.bak	2025-11-06 03:40:33
++++ ./thirdparty/php85/curl/multi.cc	2025-11-06 03:40:33
+@@ -44,7 +44,7 @@
+ bool swoole_curl_multi_is_in_coroutine(php_curlm *mh) {
+     zval rv;
+     zval *zv = zend_read_property_ex(nullptr, &mh->std, SW_ZSTR_KNOWN(SW_ZEND_STR_IN_COROUTINE), 1, &rv);
+-    return zval_is_true(zv);
++    return zend_is_true(zv);
+ }
+ 
+ /* CurlMultiHandle class */
+--- ./thirdparty/php84/curl/multi.cc.bak	2025-11-06 03:40:33
++++ ./thirdparty/php84/curl/multi.cc	2025-11-06 03:40:33
+@@ -44,7 +44,7 @@
+ bool swoole_curl_multi_is_in_coroutine(php_curlm *mh) {
+     zval rv;
+     zval *zv = zend_read_property_ex(nullptr, &mh->std, SW_ZSTR_KNOWN(SW_ZEND_STR_IN_COROUTINE), 1, &rv);
+-    return zval_is_true(zv);
++    return zend_is_true(zv);
+ }
+ 
+ /* CurlMultiHandle class */

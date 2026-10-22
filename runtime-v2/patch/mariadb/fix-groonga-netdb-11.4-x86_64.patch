@@ -1,0 +1,22 @@
+--- storage/mroonga/vendor/groonga/lib/com.c.orig	2025-09-23 17:31:57
++++ storage/mroonga/vendor/groonga/lib/com.c	2025-09-23 17:48:39
+@@ -29,6 +29,7 @@
+ # endif /* HAVE_SYS_SOCKET_H */
+ # include <netinet/in.h>
+ # include <netinet/tcp.h>
++# include <netdb.h>
+ # ifdef HAVE_SIGNAL_H
+ #  include <signal.h>
+ # endif /* HAVE_SIGNAL_H */
+--- storage/mroonga/vendor/groonga/lib/grn_com.h.orig	2025-09-23 17:40:28
++++ storage/mroonga/vendor/groonga/lib/grn_com.h	2025-09-23 17:48:44
+@@ -22,9 +22,7 @@
+ #include "grn_str.h"
+ #include "grn_hash.h"
+ 
+-#ifdef HAVE_NETDB_H
+ #include <netdb.h>
+-#endif /* HAVE_NETDB_H */
+ 
+ #ifdef __cplusplus
+ extern "C" {
