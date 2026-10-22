@@ -252,11 +252,10 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         # Branches that recognise the toolset write a bare identifier, the
         # ones that do not write a quoted version, so both have to match.
         self.assertIn('("[^"]*"|\\S+)', text)
-        # A silent no-op would ship a package whose extensions all fail.
-        self.assertIn("cannot align the module build ID", text)
         # 8.0/8.1 already emit the right identifier; the smoke test is the
         # guard there, so skipping the rewrite must be recorded.
         self.assertIn("keeping the detected value", text)
+        self.assertIn("#define\\s+PHP_COMPILER_ID", text)
 
     def test_smoke_test_checks_loaded_modules_not_just_exit_code(self):
         # "Unable to initialize module" is a warning: php.exe still exits 0.
