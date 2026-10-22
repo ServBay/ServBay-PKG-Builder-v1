@@ -597,12 +597,20 @@ try {
     # Loading imagick only proves the DLL resolves. Its coder modules are
     # looked up at runtime, so a package that puts them somewhere ImageMagick
     # does not search looks fine until someone converts an image. Encode and
-    # decode for real. The 7.0 archive is built without separate coders, so
-    # this runs whenever the module is present rather than keying off them.
+    # decode for real.
+    #
+    # 7.0 is the exception: the newest imagick PECL archive that supports it
+    # (3.4.3) ships no coders at all - they arrived in 3.4.4, which is 7.1
+    # only - so its conversion needs an ImageMagick installed on the machine.
+    # The package has always been like that, so say so instead of failing.
     if (Test-Path (Join-Path $StageExt 'php_imagick.dll')) {
-        Write-Step 'Smoke-testing an imagick encode/decode round trip'
-        $ImagickArgs = @('-n', '-d', "extension_dir=$StageExt", '-d', 'extension=php_imagick.dll')
-        $ImagickCode = @'
+        $ImagickCoders = @(Get-ChildItem $Stage -Filter 'IM_MOD_RL_*.dll' -File)
+        if (-not $ImagickCoders) {
+            Write-Warning "imagick for $MajorMinor carries no IM_MOD_RL_* coders; image conversion needs an external ImageMagick"
+        } else {
+            Write-Step 'Smoke-testing an imagick encode/decode round trip'
+            $ImagickArgs = @('-n', '-d', "extension_dir=$StageExt", '-d', 'extension=php_imagick.dll')
+            $ImagickCode = @'
 $im = new Imagick();
 $im->newImage(8, 8, 'red');
 $im->setImageFormat('png');
@@ -611,12 +619,13 @@ $back = new Imagick();
 $back->readImageBlob($blob);
 echo $back->getImageWidth() . 'x' . $back->getImageHeight();
 '@
-        $ImagickOut = & (Join-Path $Stage 'php.exe') @ImagickArgs -r $ImagickCode 2>&1
-        $ImagickText = ($ImagickOut | Out-String)
-        Write-Host "  $($ImagickText.Trim())"
-        if ($LASTEXITCODE -ne 0) { throw "imagick round trip failed with $LASTEXITCODE" }
-        if ($ImagickText -notmatch '8x8') {
-            throw "imagick could not encode/decode PNG; its coders are not where it looks: $ImagickText"
+            $ImagickOut = & (Join-Path $Stage 'php.exe') @ImagickArgs -r $ImagickCode 2>&1
+            $ImagickText = ($ImagickOut | Out-String)
+            Write-Host "  $($ImagickText.Trim())"
+            if ($LASTEXITCODE -ne 0) { throw "imagick round trip failed with $LASTEXITCODE" }
+            if ($ImagickText -notmatch '8x8') {
+                throw "imagick could not encode/decode PNG; its coders are not where it looks: $ImagickText"
+            }
         }
     }
 
