@@ -5095,7 +5095,7 @@ _get_php_build_config() {
         "7.0")
             PHP_CONFIGURE_ARGS=( "${common_args[@]}" "--with-gd" "--with-jpeg-dir=${SERVBAY_COMMON_PATH}" "--with-png-dir=${SERVBAY_COMMON_PATH}" "--with-freetype-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-webp-dir=${SERVBAY_COMMON_PATH}" "--with-icu-dir=${SERVBAY_PACKAGE_FULL_PATH}" "--with-libedit=$(_php_sdk_path)/usr" "--with-onig=${SERVBAY_COMMON_PATH}" )
             PHP_PRE_BUILD_CMDS=( "_ensure_freetype_config" )
-            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" "php7.0/gd-configure-runtime-test.patch:p1" "php7.0/zend-sprintf-cxx-linkage.patch:p1" "php7.0/tidy-buffio-header.patch:p1" )
+            PHP_PATCHES=( "php-openssl3/openssl.patch:p1" "php7.0/icu.patch:p0" "php7.0/icu-2.patch:p1" "php7.0/onig.patch:p0" "php7.0/cve-2026-109618-109619.patch:p1" "php7.0/gd-configure-runtime-test.patch:p1" "php7.0/zend-sprintf-cxx-linkage.patch:p1" "php7.0/tidy-buffio-header.patch:p1" "php7.0/readdir-r-posix-form.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.7.5" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.3.6" [phalcon]="3.4.5" )
             ;;
         "7.1")
@@ -5106,7 +5106,7 @@ _get_php_build_config() {
             PHP_PATCHES=( "php7.1/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.1/gd-configure-runtime-test.patch:p1" "php7.1/zend-sprintf-cxx-linkage.patch:p1" )
             # The ICU guard is selected on U_ICU_VERSION_MAJOR_NUM, not on the
             # architecture, so arm64 needs it too.
-            PHP_PATCHES+=( "php7.1/icu.patch:p1" )
+            PHP_PATCHES+=( "php7.1/icu.patch:p1" "php7.1/readdir-r-posix-form.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="2.5.5" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.5.11" [phalcon]="3.4.5" )
             ;;
         "7.2")
@@ -5117,7 +5117,7 @@ _get_php_build_config() {
             PHP_PATCHES=( "php7.2/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.2/gd-configure-runtime-test.patch:p1" "php7.2/zend-sprintf-cxx-linkage.patch:p1" )
             # The ICU guard is selected on U_ICU_VERSION_MAJOR_NUM, not on the
             # architecture, so arm64 needs it too.
-            PHP_PATCHES+=( "php7.2/icu.patch:p1" )
+            PHP_PATCHES+=( "php7.2/icu.patch:p1" "php7.2/readdir-r-posix-form.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.3")
@@ -5128,7 +5128,7 @@ _get_php_build_config() {
             PHP_PATCHES=( "php7.3/cve-2026-109618-109619.patch:p1" "php-openssl3/openssl.patch:p1" "php7.3/gd-configure-runtime-test.patch:p1" "php7.3/zend-sprintf-cxx-linkage.patch:p1" )
             # The ICU guard is selected on U_ICU_VERSION_MAJOR_NUM, not on the
             # architecture, so arm64 needs it too.
-            PHP_PATCHES+=( "php7.3/icu.patch:p1" )
+            PHP_PATCHES+=( "php7.3/icu.patch:p1" "php7.3/readdir-r-posix-form.patch:p1" )
             PHP_MODS=( [phpredis]="5.3.7" [memcache]="4.0.5.2" [memcached]="3.1.5" [xdebug]="3.1.6" [apcu]="5.1.22" [mongodb]="1.11.1" [scws]="1.2.4-pre" [imagick]="3.7.0" [swoole]="4.8.13" [psr]="1.1.0" [phalcon]="4.1.2" )
             ;;
         "7.4")

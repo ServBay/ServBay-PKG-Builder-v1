@@ -1,0 +1,25 @@
+--- a/main/reentrancy.c
++++ b/main/reentrancy.c
+@@ -131,18 +131,11 @@
+ #if defined(HAVE_OLD_READDIR_R)
+ 	int ret = 0;
+ 
+-	/* We cannot rely on the return value of readdir_r
+-	   as it differs between various platforms
+-	   (HPUX returns 0 on success whereas Solaris returns non-zero)
+-	 */
+-	entry->d_name[0] = '\0';
+-	readdir_r(dirp, entry);
+-
+-	if (entry->d_name[0] == '\0') {
++	/* Newer SDKs declare readdir_r with the POSIX three-argument form; the
++	 * old two-argument form no longer compiles. */
++	ret = readdir_r(dirp, entry, result);
++	if (ret != 0) {
+ 		*result = NULL;
+-		ret = errno;
+-	} else {
+-		*result = entry;
+ 	}
+ 	return ret;
+ #else
