@@ -9,6 +9,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def test_macos_php7_branches_use_the_posix_readdir_r_form(self):
+        # configure still reports "checking for readdir_r... yes" on the current
+        # SDK, but the declaration is the POSIX three-argument one; the legacy
+        # two-argument call fails with "too few arguments to function call,
+        # expected 3, have 2". 5.6 already fixes this in its macos-compile-fixes
+        # patch; 7.0-7.3 need their own.
+        script = (ROOT / "runtime" / "build_package").read_text(encoding="utf-8")
+        config = self._extract_shell_function(script, "_get_php_build_config")
+        for major in ("7.0", "7.1", "7.2", "7.3"):
+            branch = config.split(f'"{major}")', 1)[1].split(';;', 1)[0]
+            self.assertIn(f'"php{major}/readdir-r-posix-form.patch:p1"', branch)
+            patch_file = ROOT / "runtime" / "patch" / f"php{major}" / "readdir-r-posix-form.patch"
+            self.assertTrue(patch_file.is_file(), f"php {major} readdir patch must ship")
+            self.assertIn("readdir_r(dirp, entry, result)", patch_file.read_text())
+
     def test_macos_php7_branches_apply_icu_guard_on_both_arches(self):
         # The ICU patch chooses its override on U_ICU_VERSION_MAJOR_NUM, so both
         # architectures need it; restricting it to x86_64 left arm64 failing in
