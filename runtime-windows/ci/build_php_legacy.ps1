@@ -344,7 +344,9 @@ try {
     # "vc14" -> "VC14", "vs16" -> "VS16", matching the PECL archive names.
     $CompatId = $Crt.ToUpper()
     $headerText = Get-Content $ConfigHeader -Raw
-    $updated = [regex]::Replace($headerText, '#define\s+PHP_COMPILER_ID\s+"[^"]*"', "#define PHP_COMPILER_ID `"$CompatId`"")
+    # Branches that recognise the toolset emit a bare identifier, the ones
+    # that do not emit a quoted version string; accept either.
+    $updated = [regex]::Replace($headerText, '#define\s+PHP_COMPILER_ID\s+("[^"]*"|\S+)', "#define PHP_COMPILER_ID `"$CompatId`"")
     if ($updated -eq $headerText) {
         throw "PHP_COMPILER_ID is not defined in $ConfigHeader; cannot align the module build ID"
     }
@@ -457,13 +459,23 @@ try {
             if (Test-Path $unpack) { Remove-Item -Recurse -Force $unpack }
             Expand-Archive -Path $zip -DestinationPath $unpack -Force
 
-            $dlls = @(Get-ChildItem $unpack -Recurse -Filter 'php_*.dll' -File)
-            if (-not $dlls) { throw "Extension package for $name carries no php_*.dll" }
-            foreach ($dll in $dlls) {
-                Copy-Item $dll.FullName -Destination $StageExt -Force
-                $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
+            # The archive also carries the third-party runtime the extension
+            # links against (ImageMagick's CORE_RL_*.dll, libyaml's yaml.dll).
+            # Those belong beside php.exe like in an official build; only the
+            # php_*.dll modules go under ext\.
+            $dlls = @(Get-ChildItem $unpack -Recurse -Filter '*.dll' -File)
+            if (-not @($dlls | Where-Object { $_.Name -match '^php_' })) {
+                throw "Extension package for $name carries no php_*.dll"
             }
-            Write-Host "    $name -> $($dlls.BaseName -join ', ')"
+            foreach ($dll in $dlls) {
+                if ($dll.Name -match '^php_') {
+                    Copy-Item $dll.FullName -Destination $StageExt -Force
+                    $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
+                } else {
+                    Copy-Item $dll.FullName -Destination $Stage -Force
+                }
+            }
+            Write-Host "    $name -> $(($dlls | Where-Object { $_.Name -match '^php_' }).BaseName -join ', ')"
         }
         Write-Step "Staged $($PeclExts.Count) PECL extensions"
     }
