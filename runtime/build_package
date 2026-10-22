@@ -5277,7 +5277,7 @@ build_php() {
     # "ignoring duplicate libraries: '-liconv'"), so name the dylib outright and
     # hand it to configure, which folds LIBS into the generated link line.
     if [[ "$version_major" =~ ^(5.6|7.0|7.1|7.2|7.3)$ ]]; then
-        export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib ${SERVBAY_COMMON_LIB_PATH}/libtidy.dylib -lresolv"
+        export LIBS="${LIBS} ${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib ${SERVBAY_COMMON_LIB_PATH}/libtidy.dylib ${SERVBAY_COMMON_LIB_PATH}/libldap.dylib -lresolv"
     fi
 
     # 6. Configure PHP.
