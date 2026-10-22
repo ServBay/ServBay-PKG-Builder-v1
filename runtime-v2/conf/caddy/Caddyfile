@@ -1,0 +1,104 @@
+# Default Caddy Settings
+{
+	storage file_system {
+		root @@SERVBAY_BASE_PREFIX@@/ssl/caddy
+	}
+	log global_log {
+		output file @@SERVBAY_BASE_PREFIX@@/logs/caddy/global-access.log {
+			roll_size 1gb
+			roll_keep 5
+			roll_keep_for 720h
+		}
+	}
+
+	skip_install_trust
+
+	pki {
+	    ca {
+	        name "ServBay Local CA"
+	    }
+	}
+
+}
+
+(set-log) {
+	log {
+		output file @@SERVBAY_BASE_PREFIX@@/logs/caddy/{args.0}.log {
+			roll_size 1gb
+			roll_keep 5
+			roll_keep_for 4320h
+		}
+	}
+}
+
+(enable-php-default) {
+	try_files {path} {path}/ /index.php?{query}
+	php_fastcgi unix/@@SERVBAY_BASE_PREFIX@@/tmp/php-cgi.sock
+}
+
+(enable-php-select) {
+	try_files {path} {path}/ /index.php?{query}
+	php_fastcgi unix/@@SERVBAY_BASE_PREFIX@@/tmp/php-cgi-{args.0}.sock
+}
+
+# Demo host
+servbay.host {
+	encode zstd gzip
+	import set-log servbay.host
+
+	tls internal
+
+	@canonicalPath {
+		file {
+			try_files {path}/index.php
+		}
+		not path */
+	}
+	redir @canonicalPath {path}/ 308
+
+	root * @@SERVBAY_BASE_PREFIX@@/www/servbay
+
+	handle_path /php-5.6* {
+		import enable-php-select 5.6
+	}
+
+	handle_path /php-7.1* {
+		import enable-php-select 7.1
+	}
+
+	handle_path /php-7.2* {
+		import enable-php-select 7.2
+	}
+
+	handle_path /php-7.3* {
+		import enable-php-select 7.3
+	}
+
+	handle_path /php-7.4* {
+		import enable-php-select 7.4
+	}
+
+	handle_path /php-8.0* {
+		import enable-php-select 8.0
+	}
+
+	handle_path /php-8.1* {
+		import enable-php-select 8.1
+	}
+
+	handle_path /php-8.2* {
+		import enable-php-select 8.2
+	}
+
+	handle_path /php-8.3* {
+		import enable-php-select 8.3
+	}
+
+	route {
+		import enable-php-default
+	}
+
+	file_server
+}
+
+import vhosts/*

@@ -1,0 +1,478 @@
+{
+  "schema_version": 1,
+  "recipes": {
+    "apcu": {
+      "name": "apcu",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "apcu"
+      }
+    },
+    "imagick": {
+      "name": "imagick",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "imagick"
+      }
+    },
+    "imap": {
+      "name": "imap",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "imap"
+      }
+    },
+    "memcache": {
+      "name": "memcache",
+      "kind": "php-extension",
+      "default": true,
+      "discovery": {
+        "type": "pecl",
+        "package": "memcache"
+      }
+    },
+    "memcached": {
+      "name": "memcached",
+      "kind": "php-extension",
+      "default": true,
+      "discovery": {
+        "type": "pecl",
+        "package": "memcached"
+      }
+    },
+    "mongodb": {
+      "name": "mongodb",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "mongodb"
+      }
+    },
+    "pdo_sqlsrv": {
+      "name": "pdo_sqlsrv",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "pdo_sqlsrv"
+      }
+    },
+    "pg_jieba": {
+      "name": "pg_jieba",
+      "kind": "postgresql-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "jaiminpan/pg_jieba"
+      },
+      "source_pins": {
+        "2.0.1": {
+          "url": "https://github.com/jaiminpan/pg_jieba/archive/refs/tags/v2.0.1.tar.gz",
+          "sha256": "4affea9a73f0bd93b9d403a64fcc8cfa29faf3fb7e149a14a44371199ba36325",
+          "component": {
+            "url": "https://github.com/yanyiwu/cppjieba/archive/45809955f5a345886ec3d49cbed3ec68ced70b1c.tar.gz",
+            "sha256": "5a2245a7c02243134f309738d58ad1d6cd0b5fb222b3cb2f6659b9d21c465083"
+          }
+        }
+      }
+    },
+    "pgrouting": {
+      "name": "pgrouting",
+      "kind": "postgresql-extension",
+      "default": false,
+      "requires": ["postgis"],
+      "discovery": {
+        "type": "github",
+        "repository": "pgRouting/pgrouting"
+      }
+    },
+    "pgvector": {
+      "name": "vector",
+      "kind": "postgresql-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "pgvector/pgvector"
+      }
+    },
+    "phalcon": {
+      "name": "phalcon",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "phalcon/cphalcon"
+      }
+    },
+    "phpredis": {
+      "name": "redis",
+      "kind": "php-extension",
+      "default": true,
+      "discovery": {
+        "type": "pecl",
+        "package": "redis"
+      }
+    },
+    "postgis": {
+      "name": "postgis",
+      "kind": "postgresql-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "postgis/postgis"
+      }
+    },
+    "psr": {
+      "name": "psr",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "psr"
+      }
+    },
+    "scws": {
+      "name": "scws",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "naizhao/scws"
+      }
+    },
+    "sqlsrv": {
+      "name": "sqlsrv",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "sqlsrv"
+      }
+    },
+    "swoole": {
+      "name": "swoole",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "swoole"
+      }
+    },
+    "xdebug": {
+      "name": "xdebug",
+      "kind": "php-extension",
+      "default": false,
+      "discovery": {
+        "type": "pecl",
+        "package": "xdebug"
+      }
+    },
+    "zhparser": {
+      "name": "zhparser",
+      "kind": "postgresql-extension",
+      "default": false,
+      "discovery": {
+        "type": "github",
+        "repository": "amutu/zhparser"
+      }
+    }
+  },
+  "hosts": {
+    "php": {
+      "5.3": {
+        "imagick": "3.7.0",
+        "memcache": "2.2.7",
+        "memcached": "2.2.0",
+        "xdebug": "2.2.7",
+        "scws": "1.2.4-pre",
+        "apcu": "4.0.11",
+        "phpredis": "4.3.0"
+      },
+      "5.4": {
+        "imagick": "3.7.0",
+        "memcache": "2.2.7",
+        "memcached": "2.2.0",
+        "swoole": "1.10.5",
+        "xdebug": "2.4.1",
+        "scws": "1.2.4-pre",
+        "apcu": "4.0.11",
+        "phpredis": "4.3.0"
+      },
+      "5.5": {
+        "imagick": "3.7.0",
+        "memcache": "2.2.7",
+        "memcached": "2.2.0",
+        "swoole": "1.10.5",
+        "mongodb": "1.5.5",
+        "xdebug": "2.5.5",
+        "scws": "1.2.4-pre",
+        "apcu": "4.0.11",
+        "phpredis": "4.3.0"
+      },
+      "5.6": {
+        "imagick": "3.8.1",
+        "memcache": "2.2.7",
+        "memcached": "2.2.0",
+        "phalcon": "3.4.5",
+        "swoole": "1.10.5",
+        "mongodb": "1.7.5",
+        "xdebug": "2.5.5",
+        "scws": "1.2.4-pre",
+        "apcu": "4.0.11",
+        "phpredis": "4.3.0"
+      },
+      "7.0": {
+        "imagick": "3.8.1",
+        "memcache": "4.0.5.2",
+        "memcached": "3.4.0",
+        "phalcon": "3.4.5",
+        "swoole": "4.3.6",
+        "mongodb": "1.7.5",
+        "xdebug": "2.5.5",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "7.1": {
+        "imagick": "3.8.1",
+        "memcache": "4.0.5.2",
+        "memcached": "3.4.0",
+        "phalcon": "3.4.5",
+        "swoole": "4.5.11",
+        "mongodb": "1.11.1",
+        "xdebug": "2.5.5",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "7.2": {
+        "imagick": "3.8.1",
+        "memcache": "4.0.5.2",
+        "psr": "1.1.0",
+        "memcached": "3.4.0",
+        "phalcon": "4.1.2",
+        "swoole": "4.8.13",
+        "mongodb": "1.11.1",
+        "xdebug": "3.1.6",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "7.3": {
+        "imagick": "3.8.1",
+        "memcache": "4.0.5.2",
+        "psr": "1.1.0",
+        "memcached": "3.4.0",
+        "phalcon": "4.1.2",
+        "swoole": "4.8.13",
+        "mongodb": "1.11.1",
+        "xdebug": "3.1.6",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "7.4": {
+        "imagick": "3.8.1",
+        "memcache": "4.0.5.2",
+        "psr": "1.1.0",
+        "memcached": "3.4.0",
+        "phalcon": "4.1.2",
+        "swoole": "4.8.13",
+        "mongodb": "1.11.1",
+        "xdebug": "3.1.6",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "8.0": {
+        "imagick": "3.8.1",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "phalcon": "5.7.0",
+        "swoole": "5.1.6",
+        "mongodb": "1.15.0",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "5.3.7"
+      },
+      "8.1": {
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.6",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "6.3.0"
+      },
+      "8.2": {
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.6",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "6.3.0"
+      },
+      "8.3": {
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.6",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.22",
+        "phpredis": "6.3.0"
+      },
+      "8.4": {
+        "imap": "1.0.3",
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.6",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.24",
+        "phpredis": "6.3.0"
+      },
+      "8.5": {
+        "imap": "1.0.3",
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.7-88fc55029c",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.24",
+        "phpredis": "6.3.0"
+      },
+      "8.6": {
+        "imap": "1.0.3",
+        "imagick": "3.8.1",
+        "sqlsrv": "5.12.0",
+        "memcache": "8.2",
+        "memcached": "3.4.0",
+        "pdo_sqlsrv": "5.12.0",
+        "phalcon": "5.9.3",
+        "swoole": "6.1.7-88fc55029c",
+        "mongodb": "1.19.1",
+        "xdebug": "3.4.3",
+        "scws": "1.2.4-pre",
+        "apcu": "5.1.24",
+        "phpredis": "6.3.0"
+      }
+    },
+    "postgresql": {
+      "10": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3"
+      },
+      "11": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3"
+      },
+      "12": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4"
+      },
+      "13": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "14": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "15": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "16": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "17": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.4.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "18": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.5.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      },
+      "19": {
+        "pg_jieba": "2.0.1",
+        "zhparser": "2.3",
+        "postgis": "3.5.4",
+        "pgrouting": "3.8.0",
+        "pgvector": "0.8.7"
+      }
+    }
+  },
+  "bundles": {
+    "php": {
+      "7.2": {
+        "phalcon": {
+          "psr": "1.1.0"
+        }
+      },
+      "7.3": {
+        "phalcon": {
+          "psr": "1.1.0"
+        }
+      },
+      "7.4": {
+        "phalcon": {
+          "psr": "1.1.0"
+        }
+      }
+    }
+  }
+}

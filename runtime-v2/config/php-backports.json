@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "releases": {
+    "5.3.29.1": {
+      "source_version": "5.3.29",
+      "patch": "php5.3/cve-2026-109618-109619.patch",
+      "patch_sha256": "7d3f083370ad9bf0229216167601665fdb6ee8b3c18b0894123f13be68898280"
+    },
+    "5.4.45.1": {
+      "source_version": "5.4.45",
+      "patch": "php5.4/cve-2026-109618-109619.patch",
+      "patch_sha256": "65192ec98b506d875138d448369dd983997c5f34b90e47e8c3788fae978fcf92"
+    },
+    "5.5.38.1": {
+      "source_version": "5.5.38",
+      "patch": "php5.5/cve-2026-109618-109619.patch",
+      "patch_sha256": "8a74c53997186546373d4b860ef940b0594aac0942bbb5d18681a32b866fa88f"
+    },
+    "5.6.40.1": {
+      "source_version": "5.6.40",
+      "patch": "php5.6/cve-2026-109618-109619.patch",
+      "patch_sha256": "689e7d971225fcb778114130243ae3284ad0cc6fc54fa38835b84e7ca4bc749f"
+    },
+    "7.0.33.1": {
+      "source_version": "7.0.33",
+      "patch": "php7.0/cve-2026-109618-109619.patch",
+      "patch_sha256": "937f87e979f23ca9de9684594d5e0e5bb365155e9555c73a1c0a1eadea63cecd"
+    },
+    "7.1.33.1": {
+      "source_version": "7.1.33",
+      "patch": "php7.1/cve-2026-109618-109619.patch",
+      "patch_sha256": "42cb4e60daff488f0d5ada59815ed5eb9e061a218a8e329efe15235b74315f84"
+    },
+    "7.2.34.1": {
+      "source_version": "7.2.34",
+      "patch": "php7.2/cve-2026-109618-109619.patch",
+      "patch_sha256": "6d161030483b17c2afa657528b7672a18cb0a033436fafa58c686113b181b8e1"
+    },
+    "7.3.33.1": {
+      "source_version": "7.3.33",
+      "patch": "php7.3/cve-2026-109618-109619.patch",
+      "patch_sha256": "f9d3535f82c51b9bb1cd3c2527c20abd7a931f36e733c1d59a857b5387169e16"
+    },
+    "7.4.33.1": {
+      "source_version": "7.4.33",
+      "patch": "php7.4/cve-2026-109618-109619.patch",
+      "patch_sha256": "d059c1b4ea0f9023a1e1c17f6eddee82e3c2e029c60dd0a08fc5466764b5eaa4"
+    },
+    "8.0.30.1": {
+      "source_version": "8.0.30",
+      "patch": "php8.0/cve-2026-109618-109619.patch",
+      "patch_sha256": "4cda6e04266d0799c546cd0d79e1161eec82810da62252c164fc19ee00571b54"
+    },
+    "8.1.34.1": {
+      "source_version": "8.1.34",
+      "patch": "php8.1/cve-2026-109618-109619.patch",
+      "patch_sha256": "5bd88c386523dde98fefaa7bac97ec80f754b84cc58d6511c01dfde39ce1fbe2"
+    }
+  }
+}

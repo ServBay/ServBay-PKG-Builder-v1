@@ -1,0 +1,13 @@
+--- a/main/php_config.h.in
++++ b/main/php_config.h.in
+@@ -2521,7 +2521,10 @@
+ #endif
+ 
+ #if ZEND_BROKEN_SPRINTF
++#ifdef __cplusplus
++extern "C"
++#endif
+ int zend_sprintf(char *buffer, const char *format, ...);
+ #else
+ # define zend_sprintf sprintf
+ #endif

@@ -1,0 +1,31 @@
+--- include/my_global.h.bak     2024-07-15 22:45:14
++++ include/my_global.h 2024-07-15 22:46:05
+@@ -175,7 +175,7 @@
+ #  if defined(__i386__) || defined(__ppc__)
+ #    define SIZEOF_CHARP 4
+ #    define SIZEOF_LONG 4
+-#  elif defined(__x86_64__) || defined(__ppc64__)
++#  elif defined(__x86_64__) || defined(__ppc64__) || defined(__arm64__) || defined(__aarch64__)
+ #    define SIZEOF_CHARP 8
+ #    define SIZEOF_LONG 8
+ #  else
+--- cmake/mysql_version.cmake.bak       2024-07-15 22:52:41
++++ cmake/mysql_version.cmake   2024-07-15 22:52:43
+@@ -31,7 +31,7 @@
+
+ # Generate "something" to trigger cmake rerun when VERSION changes
+ CONFIGURE_FILE(
+-  ${CMAKE_SOURCE_DIR}/VERSION
++  ${CMAKE_SOURCE_DIR}/MYSQL_VERSION
+   ${CMAKE_BINARY_DIR}/VERSION.dep
+ )
+
+@@ -39,7 +39,7 @@
+
+ MACRO(MYSQL_GET_CONFIG_VALUE keyword var)
+  IF(NOT ${var})
+-   FILE (STRINGS ${CMAKE_SOURCE_DIR}/VERSION str REGEX "^[ ]*${keyword}=")
++   FILE (STRINGS ${CMAKE_SOURCE_DIR}/MYSQL_VERSION str REGEX "^[ ]*${keyword}=")
+    IF(str)
+      STRING(REPLACE "${keyword}=" "" str ${str})
+      STRING(REGEX REPLACE  "[ ].*" ""  str "${str}")

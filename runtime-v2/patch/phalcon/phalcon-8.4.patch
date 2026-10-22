@@ -1,0 +1,53 @@
+--- phalcon.zep.c.bak	2024-10-13 03:04:37
++++ phalcon.zep.c	2024-10-13 03:15:44
+@@ -62,8 +62,7 @@
+ #include <ext/standard/info.h>
+ #include <ext/standard/file.h>
+ #include <ext/standard/php_filestat.h>
+-#include <ext/standard/php_rand.h>
+-#include <ext/standard/php_lcg.h>
++#include <ext/random/php_random.h>
+ #include <ext/standard/php_math.h>
+ #include <ext/standard/php_array.h>
+ #include <ext/standard/php_var.h>
+@@ -6985,7 +6984,7 @@
+ 
+ 	length = Z_STRLEN_P(str);
+ 	lower_str = estrndup(Z_STRVAL_P(str), length);
+-	php_strtolower(lower_str, length);
++	zend_str_tolower(lower_str, length);
+ 
+ 	if (use_copy) {
+ 		zval_dtor(str);
+@@ -7011,7 +7010,7 @@
+ 
+ 	length = Z_STRLEN_P(str);
+ 	lower_str = estrndup(Z_STRVAL_P(str), length);
+-	php_strtoupper(lower_str, length);
++	zend_str_toupper(lower_str, length);
+ 
+ 	if (use_copy) {
+ 		zval_dtor(str);
+@@ -7869,9 +7868,9 @@
+ 	ZVAL_UNDEF(&tmp_matches);
+ 
+ 	if (flags != 0 || offset != 0) {
+-		php_pcre_match_impl(pce, Z_STR_P(subject), return_value, &tmp_matches, global, 1, flags, offset);
++		php_pcre_match_impl(pce, Z_STR_P(subject), return_value, &tmp_matches, global, flags, offset);
+ 	} else {
+-		php_pcre_match_impl(pce, Z_STR_P(subject), return_value, &tmp_matches, global, 0, 0, 0);
++		php_pcre_match_impl(pce, Z_STR_P(subject), return_value, &tmp_matches, global, 0, 0);
+ 	}
+ 
+ 	if (matches) {
+@@ -8029,8 +8028,8 @@
+ 	int use_copy = 0;
+ 	size_t nr;
+ 	char *p;
+-	php_uint32 crc;
+-	php_uint32 crcinit = 0;
++	uint32_t crc;
++	uint32_t crcinit = 0;
+ 
+ 	if (Z_TYPE_P(str) != IS_STRING) {
+ 		use_copy = zend_make_printable_zval(str, &copy);
