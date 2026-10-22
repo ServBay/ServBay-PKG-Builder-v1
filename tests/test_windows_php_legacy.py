@@ -120,6 +120,14 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("'_debug\\.dll$'", text)
         self.assertIn("php.ini-production", text)
 
+    def test_staged_layout_is_smoke_tested(self):
+        # The extensions that need OpenSSL, ICU, libpq and libsasl are what
+        # break when the dependency DLLs are absent or misplaced, so the
+        # staged copy is exercised before it is packed.
+        text = PS1.read_text()
+        self.assertIn("extension_dir=$StageExt", text)
+        self.assertIn("Unable to load dynamic library", text)
+
     def test_version_check_flattens_captured_output(self):
         # `php -v` is multi-line, and -notmatch against an array filters it,
         # so every line but the first makes the condition true. The first

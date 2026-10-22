@@ -304,6 +304,23 @@ try {
         throw "Staged package has no extensions in $StageExt"
     }
 
+    # Load the extensions that depend on the bundled DLLs. php -v only proves
+    # the CLI starts; this proves the layout actually resolves OpenSSL, ICU,
+    # libpq and libsasl the way an installed copy will.
+    Write-Step 'Smoke-testing extension loading from the staged layout'
+    $SmokeArgs = @('-n', '-d', "extension_dir=$StageExt")
+    foreach ($ext in @('openssl', 'curl', 'intl', 'pgsql', 'ldap', 'gd2')) {
+        $SmokeArgs += @('-d', "extension=php_$ext.dll")
+    }
+    $Smoke = & (Join-Path $Stage 'php.exe') @SmokeArgs -r "echo 'extensions ok';" 2>&1
+    $SmokeText = ($Smoke | Out-String)
+    Write-Host "  $($SmokeText.Trim())"
+    if ($LASTEXITCODE -ne 0) { throw "Extension smoke test failed with $LASTEXITCODE" }
+    if ($SmokeText -notmatch 'extensions ok') { throw 'Extension smoke test produced no output' }
+    if ($SmokeText -match 'Unable to load dynamic library') {
+        throw 'An extension could not load from the staged layout'
+    }
+
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $Archive = Join-Path $OutputDir "php-$Version-windows-$Arch.7z"
     if (Test-Path $Archive) { Remove-Item -Force $Archive }
