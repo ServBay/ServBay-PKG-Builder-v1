@@ -101,6 +101,28 @@ function Write-Step($msg) {
     Write-Host "==> $msg" -ForegroundColor Cyan
 }
 
+# Run a native program and capture its combined output. Windows PowerShell 5.1
+# turns a native program's stderr into a terminating error while
+# $ErrorActionPreference is 'Stop', which would abort the build on the very
+# failures these checks are meant to inspect. PowerShell 7 does not, so the
+# behaviour has to be pinned explicitly to keep both hosts identical.
+function Invoke-Captured {
+    param(
+        [Parameter(Mandatory = $true)][string] $Exe,
+        [Parameter(Mandatory = $true)][string[]] $Arguments
+    )
+    $previousEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = & $Exe @Arguments 2>&1
+        $exit = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousEap
+    }
+    [pscustomobject]@{ Output = $output; ExitCode = $exit; Text = ($output | Out-String) }
+}
+
 $Root = 'C:\phplegacy'
 $SdkDir = Join-Path $Root 'sdk'
 $PhpDevRoot = Join-Path $Root 'phpdev'
@@ -128,14 +150,30 @@ $ToolsetPattern = switch ($Crt) {
 }
 $InstallerDir = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
 $VsWhere = Join-Path $InstallerDir 'vswhere.exe'
-if (-not (Test-Path $VsWhere)) { throw "vswhere not found at $VsWhere" }
-
-$VsInstances = & $VsWhere -products '*' -format json | ConvertFrom-Json
-$VsInstance = $VsInstances |
-    Where-Object { Test-Path (Join-Path $_.installationPath 'VC\Tools\MSVC') } |
-    Select-Object -First 1
-if (-not $VsInstance) { throw "No Visual Studio instance with a C++ toolset found" }
-$VsPath = $VsInstance.installationPath
+$VsPath = $null
+if (Test-Path $VsWhere) {
+    $VsInstances = & $VsWhere -products '*' -format json | ConvertFrom-Json
+    $VsInstance = $VsInstances |
+        Where-Object { Test-Path (Join-Path $_.installationPath 'VC\Tools\MSVC') } |
+        Select-Object -First 1
+    if ($VsInstance) { $VsPath = $VsInstance.installationPath }
+}
+# A standalone Build Tools install has no Visual Studio Installer entry, so
+# vswhere is absent or unaware of it. Fall back to the usual roots.
+if (-not $VsPath) {
+    $candidates = @(
+        (Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio'),
+        'C:\BuildTools'
+    )
+    foreach ($root in $candidates) {
+        if (Test-Path (Join-Path $root 'VC\Auxiliary\Build\vcvarsall.bat')) {
+            $VsPath = $root
+            break
+        }
+    }
+}
+if (-not $VsPath) { throw 'No Visual Studio or Build Tools installation with a C++ toolset found' }
 $MsvcRoot = Join-Path $VsPath 'VC\Tools\MSVC'
 
 $Toolset = Get-ChildItem $MsvcRoot -Directory |
@@ -335,6 +373,25 @@ try {
         $patched | Set-Content -Path $ZendConfig -Encoding ASCII
         Write-Step 'Scoped the snprintf macro to pre-UCRT compilers'
 
+        # ext/xmlrpc carries its own copy of the same compatibility macro.
+        $XmlrpcWin32 = Join-Path $SourceDir 'ext\xmlrpc\libxmlrpc\xmlrpc_win32.h'
+        $lines = Get-Content $XmlrpcWin32
+        if (-not ($lines -match '^# define snprintf _snprintf$')) {
+            throw "ext\xmlrpc\libxmlrpc\xmlrpc_win32.h does not define snprintf as expected"
+        }
+        $patched = foreach ($l in $lines) {
+            if ($l -eq '#ifndef snprintf') {
+                '#if _MSC_VER < 1900'
+                $l
+            } elseif ($l -eq '# define snprintf _snprintf') {
+                $l
+                '#endif'
+            } else {
+                $l
+            }
+        }
+        $patched | Set-Content -Path $XmlrpcWin32 -Encoding ASCII
+
         # The rest of the 5.x source assumes the pre-UCRT CRT: it declares
         # struct timespec itself, ships its own stdint.h, and reaches for the
         # standard <signal.h> through a relative path that only existed in the
@@ -374,18 +431,12 @@ typedef unsigned __int8 u_char;
 #ifndef u_int32_t
 typedef uint32_t u_int32_t;
 #endif
-/* The VC11 dependency archives (libxml2, libbz2, libmcrypt, ...) import the
+/* The VC11 dependency archives (libxml2, libbz2, libpng, ...) import the
  * pre-UCRT stdio symbols. legacy_stdio_definitions.lib covers the printf
- * family, but not the stdio-array import slot the dllimport objects use, so
- * define that here. This header is included by every PHP translation unit,
- * which is what lets each extension DLL resolve the symbol on its own. */
+ * family; the stdio-array slot comes from php5.dll, which exports
+ * __iob_func and therefore puts __imp___iob_func in php5.lib. */
 #pragma comment(lib, "legacy_stdio_definitions.lib")
 #include <stdio.h>
-#ifndef PHP_PRE_UCRT_STDIO_BRIDGE
-#define PHP_PRE_UCRT_STDIO_BRIDGE
-static FILE * __cdecl php_pre_ucrt_iob(void) { return __acrt_iob_func(0); }
-__declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void) = php_pre_ucrt_iob;
-#endif
 #else
 "@
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
@@ -402,10 +453,85 @@ __declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void) = php_pre_ucrt_i
 /* The pre-UCRT stdio array the VC11 dependency archives expect. */
 #include <stdio.h>
 __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
+
+/* cclient (imap) and the OLDNAMES shim read the timezone globals through
+ * __imp_daylight / __imp_tzname. UCRT removed those variables entirely -
+ * it exposes _get_daylight() and _get_tzname() instead - so export stand-ins
+ * and fill them from the UCRT accessors at load time. The names are exported
+ * by the linker: in UCRT's headers daylight and tzname are macros, so they
+ * cannot be spelled as C identifiers here. */
+#include <time.h>
+#include <stdlib.h>
+/* Not static: the linker can only export symbols that are visible. */
+int   php_daylight_slot = 0;
+char *php_tzname_slot[2] = { NULL, NULL };
+#pragma comment(linker, "/export:daylight=php_daylight_slot,DATA")
+#pragma comment(linker, "/export:_daylight=php_daylight_slot,DATA")
+#pragma comment(linker, "/export:tzname=php_tzname_slot,DATA")
+#pragma comment(linker, "/export:_tzname=php_tzname_slot,DATA")
+
+static void php_pre_ucrt_timezone_init(void)
+{
+    static char std_name[64];
+    static char dst_name[64];
+    size_t len = 0;
+
+    _get_daylight(&php_daylight_slot);
+    if (_get_tzname(&len, std_name, sizeof(std_name), 0) == 0) {
+        php_tzname_slot[0] = std_name;
+    }
+    if (_get_tzname(&len, dst_name, sizeof(dst_name), 1) == 0) {
+        php_tzname_slot[1] = dst_name;
+    }
+}
+
+#pragma section(".CRT$XCU", read)
+__declspec(allocate(".CRT$XCU")) static void (*const php_pre_ucrt_timezone_ctor)(void) = php_pre_ucrt_timezone_init;
 #endif
 '@
         Add-Content -Path $MainC -Value $iobExport -Encoding ASCII
         Write-Step 'Exported __iob_func for the VC11 archives'
+
+        # ext/openssl and ext/soap read the pre-UCRT "timezone" global, which
+        # UCRT replaced with _get_timezone(). A macro is not an option: PHP
+        # has struct members called timezone. Patch the two call sites.
+        $OpenSslC = Join-Path $SourceDir 'ext\openssl\openssl.c'
+        $oldLine = 'gmadjust = -(thetime.tm_isdst ? (long)timezone - 3600 : (long)timezone + 3600);'
+        $text = [IO.File]::ReadAllText($OpenSslC)
+        if (-not $text.Contains($oldLine)) {
+            throw "ext\openssl\openssl.c no longer reads the timezone global the expected way"
+        }
+        $newBlock = @'
+long tz_seconds = 0;
+	_get_timezone(&tz_seconds);
+	gmadjust = -(thetime.tm_isdst ? tz_seconds - 3600 : tz_seconds + 3600);
+'@
+        [IO.File]::WriteAllText($OpenSslC, $text.Replace($oldLine, $newBlock), [Text.Encoding]::ASCII)
+
+        $SoapC = Join-Path $SourceDir 'ext\soap\php_encoding.c'
+        $text = [IO.File]::ReadAllText($SoapC)
+        $soapOld1 = '((ta->tm_isdst ? timezone - 3600:timezone)>0)'
+        $soapOld2 = 'abs((ta->tm_isdst ? timezone - 3600 : timezone) / 3600), abs(((ta->tm_isdst ? timezone - 3600 : timezone) % 3600) / 60));'
+        if (-not $text.Contains($soapOld1) -or -not $text.Contains($soapOld2)) {
+            throw 'ext\soap\php_encoding.c no longer reads the timezone global the expected way'
+        }
+        $text = $text.Replace($soapOld1, '((ta->tm_isdst ? php_soap_timezone() - 3600:php_soap_timezone())>0)')
+        $text = $text.Replace($soapOld2, 'abs((ta->tm_isdst ? php_soap_timezone() - 3600 : php_soap_timezone()) / 3600), abs(((ta->tm_isdst ? php_soap_timezone() - 3600 : php_soap_timezone()) % 3600) / 60));')
+        $soapHelper = @'
+
+#if defined(_MSC_VER) && _MSC_VER >= 1900
+/* UCRT replaced the timezone global with _get_timezone(). */
+#include <time.h>
+static long php_soap_timezone(void)
+{
+	long tz = 0;
+	_get_timezone(&tz);
+	return tz;
+}
+#endif
+'@
+        [IO.File]::WriteAllText($SoapC, $text + $soapHelper, [Text.Encoding]::ASCII)
+        Write-Step 'Replaced the pre-UCRT timezone global in ext/openssl and ext/soap'
 
     }
 
@@ -515,10 +641,10 @@ __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0
     if (-not (Test-Path (Join-Path $ReleaseDir 'php.exe'))) {
         throw "Build produced no php.exe in $ReleaseDir"
     }
-    $Verify = & (Join-Path $ReleaseDir 'php.exe') -v 2>&1
+    $VerifyRun = Invoke-Captured -Exe (Join-Path $ReleaseDir 'php.exe') -Arguments @('-v')
     # -notmatch on an array filters it, so it is true whenever any single line
     # fails to match. Flatten it first.
-    $VerifyText = ($Verify | Out-String)
+    $VerifyText = $VerifyRun.Text
     Write-Host $VerifyText
     if ($VerifyText -notmatch [regex]::Escape($BaseVersion)) {
         throw "php.exe does not report $BaseVersion"
@@ -530,9 +656,11 @@ __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0
     # longjmp'ing through half-initialised state. A 255 here means the patch
     # never made it into the binary, so the package must not ship.
     Write-Step 'Verifying CVE-2026-109618/109619 mitigation'
-    $OomOutput = & (Join-Path $ReleaseDir 'php.exe') -n -d memory_limit=2M `
-                    -r "str_repeat('x', 8388608);" 2>&1
-    $OomExit = $LASTEXITCODE
+    $OomRun = Invoke-Captured -Exe (Join-Path $ReleaseDir 'php.exe') -Arguments @(
+        '-n', '-d', 'memory_limit=2M', '-r', "str_repeat('x', 8388608);"
+    )
+    $OomOutput = $OomRun.Output
+    $OomExit = $OomRun.ExitCode
     Write-Host "  exit code: $OomExit"
     Write-Host "  output: $($OomOutput -join ' ')"
     if ($OomExit -ne 1) {
@@ -557,6 +685,69 @@ __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0
     if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
     $StageExt = Join-Path $Stage 'ext'
     New-Item -ItemType Directory -Force -Path $StageExt | Out-Null
+
+    # 5.5/5.6 link against dependency libraries built with the VC11 CRT
+    # (ssleay32, libeay32, icu*57, libpq, libsasl, libxml2, ...). No hosted
+    # runner image carries the VC++ 2012 redistributable any more, so without
+    # these two files php_curl/php_intl/php_pgsql/php_ldap fail to start with
+    # "The specified module could not be found". The official 5.x packages
+    # never bundled them either, which made them unusable on a clean machine.
+    if ($MajorMinor -in @('5.5', '5.6')) {
+        $VcArch = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
+        $VcRedist = Join-Path $ToolsDir "vcredist2012_$VcArch.exe"
+        if (-not (Test-Path $VcRedist)) {
+            Write-Step "Downloading the VC++ 2012 redistributable ($VcArch)"
+            $vcUrl = if ($VcArch -eq 'x64') {
+                'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe'
+            } else {
+                'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe'
+            }
+            Invoke-WebRequest -Uri $vcUrl -OutFile $VcRedist
+        }
+        # The package is a Burn bundle: its streams hold cabs, and one of those
+        # cabs holds the DLLs under F_CENTRAL_* names.
+        $VcStreams = Join-Path $ToolsDir "vcredist2012-$VcArch-streams"
+        if (-not (Test-Path (Join-Path $VcStreams 'msvcr110.dll'))) {
+            if (Test-Path $VcStreams) { Remove-Item -Recurse -Force $VcStreams }
+            New-Item -ItemType Directory -Force -Path $VcStreams | Out-Null
+            & $SevenZip x -t# $VcRedist "-o$VcStreams" -y | Out-Null
+
+            $pending = @(Get-ChildItem $VcStreams -Filter '*.cab' -File)
+            for ($depth = 0; $depth -lt 3 -and $pending.Count -gt 0; $depth++) {
+                $next = @()
+                foreach ($candidate in $pending) {
+                    $outDir = Join-Path $VcStreams ($candidate.BaseName + "-d$depth")
+                    & $SevenZip x $candidate.FullName "-o$outDir" -y | Out-Null
+                    if ($LASTEXITCODE -ne 0) { continue }
+                    foreach ($produced in Get-ChildItem $outDir -File) {
+                        # Nested cabs carry no extension; identify them by magic.
+                        $stream = [IO.File]::OpenRead($produced.FullName)
+                        $magic = New-Object byte[] 4
+                        $null = $stream.Read($magic, 0, 4)
+                        $stream.Close()
+                        if ($magic[0] -eq 0x4D -and $magic[1] -eq 0x53 -and $magic[2] -eq 0x43 -and $magic[3] -eq 0x46) {
+                            $next += $produced
+                        }
+                        if ($produced.Name -eq "F_CENTRAL_msvcr110_$VcArch") {
+                            Copy-Item $produced.FullName (Join-Path $VcStreams 'msvcr110.dll') -Force
+                        }
+                        if ($produced.Name -eq "F_CENTRAL_msvcp110_$VcArch") {
+                            Copy-Item $produced.FullName (Join-Path $VcStreams 'msvcp110.dll') -Force
+                        }
+                    }
+                }
+                $pending = $next
+            }
+        }
+        foreach ($runtimeDll in @('msvcr110.dll', 'msvcp110.dll')) {
+            $src = Join-Path $VcStreams $runtimeDll
+            if (-not (Test-Path $src)) {
+                throw "Could not extract $runtimeDll from the VC++ 2012 redistributable"
+            }
+            Copy-Item $src -Destination $Stage -Force
+        }
+        Write-Step 'Bundled the VC++ 2012 runtime the dependency libraries need'
+    }
 
     $ArchZip = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
     # windows.php.net spells the 7.4 CRT tag in lower case and puts the EOL
@@ -723,10 +914,12 @@ __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0
     # warning, not a non-zero exit, so the exit code alone proves nothing:
     # an earlier build printed "igbinary: Unable to initialize module" and
     # still exited 0.
-    $Smoke = & (Join-Path $Stage 'php.exe') @SmokeArgs -r "echo implode(',', get_loaded_extensions());" 2>&1
+    $SmokeRun = Invoke-Captured -Exe (Join-Path $Stage 'php.exe') -Arguments ($SmokeArgs + @('-r', "echo implode(',', get_loaded_extensions());"))
+    $Smoke = $SmokeRun.Output
+    $SmokeExit = $SmokeRun.ExitCode
     $SmokeText = ($Smoke | Out-String)
     Write-Host "  $($SmokeText.Trim())"
-    if ($LASTEXITCODE -ne 0) { throw "Extension smoke test failed with $LASTEXITCODE" }
+    if ($SmokeExit -ne 0) { throw "Extension smoke test failed with $SmokeExit" }
     if ($SmokeText -match 'Unable to (load dynamic library|initialize module)') {
         throw "An extension could not start: $SmokeText"
     }
@@ -767,10 +960,11 @@ $back = new Imagick();
 $back->readImageBlob($blob);
 echo $back->getImageWidth() . 'x' . $back->getImageHeight();
 '@
-            $ImagickOut = & (Join-Path $Stage 'php.exe') @ImagickArgs -r $ImagickCode 2>&1
+            $ImagickRun = Invoke-Captured -Exe (Join-Path $Stage 'php.exe') -Arguments ($ImagickArgs + @('-r', $ImagickCode))
+            $ImagickOut = $ImagickRun.Output
             $ImagickText = ($ImagickOut | Out-String)
             Write-Host "  $($ImagickText.Trim())"
-            if ($LASTEXITCODE -ne 0) { throw "imagick round trip failed with $LASTEXITCODE" }
+            if ($ImagickRun.ExitCode -ne 0) { throw "imagick round trip failed with $($ImagickRun.ExitCode)" }
             if ($ImagickText -notmatch '8x8') {
                 throw "imagick could not encode/decode PNG; its coders are not where it looks: $ImagickText"
             }

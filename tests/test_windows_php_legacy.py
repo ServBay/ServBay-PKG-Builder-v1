@@ -171,7 +171,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # through _exit(1), not longjmp. Vanilla PHP exits 255, so asserting on
         # 1 is what actually proves the patch reached the binary.
         text = PS1.read_text()
-        self.assertIn("-d memory_limit=2M", text)
+        self.assertIn("memory_limit=2M", text)
         self.assertRegex(text, r"\$OomExit\s+-ne\s+1")
 
     def test_intrinsics_shim_is_scoped_to_old_compilers(self):
@@ -320,6 +320,8 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("#define snprintf _snprintf", text)
         self.assertIn("'#if _MSC_VER < 1900'", text)
         self.assertIn("does not define the snprintf macro as expected", text)
+        # ext/xmlrpc carries its own copy of the same macro.
+        self.assertIn("xmlrpc_win32.h does not define snprintf as expected", text)
 
     def test_php5_scopes_the_pre_ucrt_crt_shims(self):
         # The 5.x source assumes the pre-UCRT CRT: it declares struct timespec
@@ -343,17 +345,51 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # which UCRT removed; without the bridge the DLL fails to link with
         # three unresolved externals.
         text = PS1.read_text()
+        text = PS1.read_text()
+        # The archives need both the printf family and the stdio-array slot.
         self.assertIn("#pragma comment(lib, \"legacy_stdio_definitions.lib\")", text)
-        self.assertIn("__declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void)", text)
-        self.assertIn("__acrt_iob_func(0)", text)
-        # It must live in a header every translation unit sees, otherwise each
-        # extension DLL fails to link on its own (php_bz2.dll did).
-        self.assertIn("php_pre_ucrt_iob", text)
-        # This header has no guard of its own above the bundled part, so the
-        # bridge needs one or the second inclusion redefines it.
-        self.assertIn("#ifndef PHP_PRE_UCRT_STDIO_BRIDGE", text)
-        # libpng references the function itself, not the import slot.
         self.assertIn("__declspec(dllexport) FILE * __cdecl __iob_func(void)", text)
+        self.assertIn("__acrt_iob_func(0)", text)
+        # Defining the slot in the header as well collides with the export
+        # (php5.lib supplies __imp___iob_func), so it must live in main.c only.
+        # Only the stdio slot must stay out of the header: defining it there
+        # collides with the export. The timezone slots are a different symbol.
+        self.assertNotIn("__declspec(selectany) FILE", text)
+        # UCRT dropped the timezone globals; export stand-ins so the import
+        # library supplies __imp_daylight / __imp_tzname for cclient.
+        # daylight/tzname are macros in UCRT's headers, so the names have to
+        # be exported by the linker rather than declared in C.
+        self.assertIn("/export:daylight=php_daylight_slot,DATA", text)
+        self.assertIn("/export:tzname=php_tzname_slot,DATA", text)
+        self.assertIn("_get_daylight(&php_daylight_slot)", text)
+        # ext/openssl and ext/soap read the same removed global. It must be a
+        # per-site patch: PHP has struct members named timezone, so a macro
+        # would rewrite those too.
+        self.assertIn("_get_timezone(&tz_seconds)", text)
+        self.assertIn("_get_timezone(&tz)", text)
+        self.assertNotIn("#define timezone", text)
+
+    def test_native_output_is_captured_the_same_way_on_both_hosts(self):
+        # Windows PowerShell 5.1 raises a terminating error when a native
+        # program writes to stderr, so an expected PHP fatal error aborted the
+        # build before the exit code was read. PowerShell 7 (the CI runner)
+        # does not behave that way, which made the divergence invisible there.
+        text = PS1.read_text()
+        self.assertIn("function Invoke-Captured", text)
+        self.assertIn("$ErrorActionPreference = 'Continue'", text)
+        self.assertNotIn("php.exe') -v 2>&1", text)
+        self.assertNotIn("get_loaded_extensions());\" 2>&1", text)
+
+    def test_php5_bundles_the_vc11_runtime(self):
+        # ssleay32/libeay32/icu*57/libpq/libsasl are VC11-built. No hosted
+        # runner image has the VC++ 2012 redistributable, so without it
+        # php_curl, php_intl, php_pgsql and php_ldap fail to start with
+        # "The specified module could not be found". The official 5.x packages
+        # never bundled it, which made them unusable on a clean machine.
+        text = PS1.read_text()
+        self.assertIn("vcredist_x64.exe", text)
+        self.assertIn("F_CENTRAL_msvcr110_$VcArch", text)
+        self.assertIn("Could not extract $runtimeDll", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
