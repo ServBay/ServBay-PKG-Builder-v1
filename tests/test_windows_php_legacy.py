@@ -346,6 +346,7 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("#pragma comment(lib, \"legacy_stdio_definitions.lib\")", text)
         self.assertIn("__imp___iob_func", text)
         self.assertIn("__imp_vfprintf", text)
+        self.assertIn("__cdecl * __imp___iob_func)(void) = __iob_func;", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
