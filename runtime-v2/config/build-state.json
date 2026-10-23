@@ -103,7 +103,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.2\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962827584"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -114,16 +119,7 @@
         "runtime_version": "v2",
         "version": "8.4.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T13:38:12+00:00",
-        "expires_at": "2026-10-23T21:38:12+00:00",
-        "producer": {
-          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
-          "run_attempt": 1,
-          "run_id": "39962827584"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:22:58Z",
@@ -256,7 +252,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.2\"}": {
+      "artifact_expires_at": "2026-10-30T13:41:33Z",
+      "artifact_id": "12504534570",
+      "artifact_name": "pkg2-macos-x86_64-package-redis-8.4.2",
+      "artifact_zip_sha256": "8ac272bb30711f8d0a3a4cde8e04df5bf10b977068115c068f40c72bd82f13cc",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962827584"
+      },
+      "package_sha256": "18320acc26f77e3997734da5b09b8d88e37ce48fdaff6dda45fb6acc05d5ea13",
+      "producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962827584"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -267,16 +278,7 @@
         "runtime_version": "v2",
         "version": "8.4.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T13:38:12+00:00",
-        "expires_at": "2026-10-23T21:38:12+00:00",
-        "producer": {
-          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
-          "run_attempt": 1,
-          "run_id": "39962827584"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:27:13Z",
