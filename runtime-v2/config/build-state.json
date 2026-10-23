@@ -107,6 +107,15 @@
         "runtime_version": "v2",
         "version": "2026.10.3"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:57+00:00",
+        "expires_at": "2026-10-24T01:00:57+00:00",
+        "producer": {
+          "commit": "1014ea9422e53702ab074a713a4e2ad30c4a2ff6",
+          "run_attempt": 1,
+          "run_id": "39991539898"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.10.3\"}": {
@@ -3057,6 +3066,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "2026.10.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:57+00:00",
+        "expires_at": "2026-10-24T01:00:57+00:00",
+        "producer": {
+          "commit": "1014ea9422e53702ab074a713a4e2ad30c4a2ff6",
+          "run_attempt": 1,
+          "run_id": "39991539898"
+        }
       },
       "status": "discovered"
     },
