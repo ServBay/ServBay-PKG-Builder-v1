@@ -13,6 +13,15 @@
         "runtime_version": "v2",
         "version": "6.1.2"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:54+00:00",
+        "expires_at": "2026-10-24T01:00:54+00:00",
+        "producer": {
+          "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+          "run_attempt": 1,
+          "run_id": "39991525630"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
@@ -2954,6 +2963,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "6.1.2"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:54+00:00",
+        "expires_at": "2026-10-24T01:00:54+00:00",
+        "producer": {
+          "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+          "run_attempt": 1,
+          "run_id": "39991525630"
+        }
       },
       "status": "discovered"
     },
