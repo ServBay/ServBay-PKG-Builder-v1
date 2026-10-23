@@ -360,6 +360,15 @@
         "runtime_version": "v2",
         "version": "0.71.1"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:50+00:00",
+        "expires_at": "2026-10-24T01:00:50+00:00",
+        "producer": {
+          "commit": "57d2acab6ca6ddb9186e3c877e81a71a05374fc2",
+          "run_attempt": 1,
+          "run_id": "39991515887"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"git\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.56.0\"}": {
@@ -3292,6 +3301,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "0.71.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:50+00:00",
+        "expires_at": "2026-10-24T01:00:50+00:00",
+        "producer": {
+          "commit": "57d2acab6ca6ddb9186e3c877e81a71a05374fc2",
+          "run_attempt": 1,
+          "run_id": "39991515887"
+        }
       },
       "status": "discovered"
     },
