@@ -364,8 +364,13 @@ try {
         }
         $modern = @"
 #if _MSC_VER >= 1900
-/* The UCRT provides <stdint.h>; this file would only redefine it. */
+/* The UCRT provides <stdint.h>; this file would only redefine it. Keep the
+ * BSD aliases the bundled header added on top - crypt_freesec.c relies on
+ * u_char, and other code on u_int32_t. */
 #include <stdint.h>
+#ifndef u_char
+typedef unsigned __int8 u_char;
+#endif
 #ifndef u_int32_t
 typedef uint32_t u_int32_t;
 #endif

@@ -331,6 +331,8 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("'#if _MSC_VER < 1900'", text)
         self.assertIn("#include <../include/signal.h>", text)
         self.assertIn("typedef int16_t   int_fast16_t;", text)
+        # The bundled header also carried BSD aliases the UCRT lacks.
+        self.assertIn("typedef unsigned __int8 u_char;", text)
         # Each edit must fail loudly rather than silently skipping.
         self.assertIn("no longer guards struct timespec", text)
         self.assertIn("no longer includes the relative signal header", text)
