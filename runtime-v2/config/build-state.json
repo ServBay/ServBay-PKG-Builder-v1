@@ -1861,6 +1861,15 @@
         "runtime_version": "v2",
         "version": "26.12.1"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:53+00:00",
+        "expires_at": "2026-10-24T01:43:53+00:00",
+        "producer": {
+          "commit": "384ac65b2ac86b0305fecc5a1b8f6ff819c6cba8",
+          "run_attempt": 1,
+          "run_id": "39997410213"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.9\"}": {
@@ -5102,6 +5111,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "26.12.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:53+00:00",
+        "expires_at": "2026-10-24T01:43:53+00:00",
+        "producer": {
+          "commit": "384ac65b2ac86b0305fecc5a1b8f6ff819c6cba8",
+          "run_attempt": 1,
+          "run_id": "39997410213"
+        }
       },
       "status": "discovered"
     },
