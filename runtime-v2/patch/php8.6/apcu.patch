@@ -1,0 +1,11 @@
+--- ./apc_cache.c.bak	2025-11-06 12:51:48
++++ ./apc_cache.c	2025-11-06 12:51:48
+@@ -613,7 +613,7 @@
+ 				apc_cache_store(
+ 					cache, name, &data, 0, 1);
+ 				zend_string_release(name);
+-				zval_dtor(&data);
++				zval_ptr_dtor_nogc(&data);
+ 			}
+ 			return 1;
+ 		}

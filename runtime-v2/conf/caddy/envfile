@@ -1,0 +1,3 @@
+export HOME="/Applications/ServBay/Apps"
+export XDG_CONFIG_HOME="/Applications/ServBay/etc"
+export XDG_DATA_HOME="/Applications/ServBay/ssl"

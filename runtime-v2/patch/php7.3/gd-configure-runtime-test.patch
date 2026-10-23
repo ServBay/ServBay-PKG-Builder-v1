@@ -1,0 +1,10 @@
+--- a/configure
++++ b/configure
+@@ -38402,6 +38402,6 @@
+     }
+ 
+ _ACEOF
+-if ac_fn_c_try_run "$LINENO"; then :
++if ac_fn_c_try_link "$LINENO"; then :
+ 
+     LIBS=$old_LIBS

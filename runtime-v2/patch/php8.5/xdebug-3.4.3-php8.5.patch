@@ -1,0 +1,33 @@
+--- src/lib/var.c.bak	2025-09-22 03:42:35
++++ src/lib/var.c	2025-09-22 03:42:50
+@@ -20,7 +20,7 @@
+ #include "zend.h"
+ #include "zend_exceptions.h"
+ #include "zend_extensions.h"
+-#include "ext/standard/php_smart_string.h"
++#include "Zend/zend_smart_string.h"
+ #include "zend_smart_str.h"
+ #include "zend_closures.h"
+ 
+--- src/develop/stack.c.bak	2025-09-22 03:43:16
++++ src/develop/stack.c	2025-09-22 03:43:23
+@@ -18,7 +18,7 @@
+ #include "main/php_ini.h"
+ 
+ #include "ext/standard/html.h"
+-#include "ext/standard/php_smart_string.h"
++#include "Zend/zend_smart_string.h"
+ #include "zend_exceptions.h"
+ #include "zend_generators.h"
+ 
+--- src/lib/compat.c.bak	2025-09-22 04:04:23
++++ src/lib/compat.c	2025-09-22 04:04:56
+@@ -365,7 +365,7 @@
+ 	zend_string *domain_s = domain ? zend_string_init(domain, domain_len, 0) : NULL;
+ 	zend_string *samesite_s = zend_string_init("Lax", sizeof("Lax") - 1, 0);
+ 
+-	php_setcookie(name_s, value_s, expires, path_s, domain_s, secure, httponly, samesite_s, url_encode);
++	php_setcookie(name_s, value_s, expires, path_s, domain_s, secure, httponly, samesite_s, false, url_encode);
+ 
+ 	zend_string_release(samesite_s);
+ 	name ? zend_string_release(name_s) : 0;
