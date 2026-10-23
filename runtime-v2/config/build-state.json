@@ -19,6 +19,15 @@
         "runtime_version": "v2",
         "version": "2.4.69"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T14:14:41+00:00",
+        "expires_at": "2026-10-23T22:14:41+00:00",
+        "producer": {
+          "commit": "afb29c30856eb5e64c31e574bed6173d920f6be6",
+          "run_attempt": 1,
+          "run_id": "39967927621"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.10.3\"}": {
@@ -173,6 +182,15 @@
         "recipe_name": "httpd",
         "runtime_version": "v2",
         "version": "2.4.69"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T14:14:41+00:00",
+        "expires_at": "2026-10-23T22:14:41+00:00",
+        "producer": {
+          "commit": "afb29c30856eb5e64c31e574bed6173d920f6be6",
+          "run_attempt": 1,
+          "run_id": "39967927621"
+        }
       },
       "status": "build-failed"
     },
