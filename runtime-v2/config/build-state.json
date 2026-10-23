@@ -3045,7 +3045,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"typesense\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"30.2\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:51Z",
+      "artifact_id": "12519136995",
+      "artifact_name": "pkg2-macos-arm64-package-typesense-30.2",
+      "artifact_zip_sha256": "9f097b0e96fd5648994a233cfbc85ba274e9b88e56a2c83e465f13f188f54900",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+        "run_attempt": 1,
+        "run_id": "39993623281"
+      },
+      "package_sha256": "1480eda6e9b95997ffc99bcdf195c95091ce528d6a091650fba073416e9bf408",
+      "producer": {
+        "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+        "run_attempt": 1,
+        "run_id": "39993623281"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3056,16 +3071,7 @@
         "runtime_version": "v2",
         "version": "30.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:16:02+00:00",
-        "expires_at": "2026-10-24T01:16:02+00:00",
-        "producer": {
-          "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
-          "run_attempt": 1,
-          "run_id": "39993623281"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "artifact_expires_at": "2026-10-30T14:36:59Z",
@@ -6170,7 +6176,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"typesense\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"30.2\"}": {
+      "artifact_expires_at": "2026-10-30T17:18:06Z",
+      "artifact_id": "12518443082",
+      "artifact_name": "pkg2-macos-x86_64-package-typesense-30.2",
+      "artifact_zip_sha256": "839b6a230b6e4df8f1151f2d3ea3b59b53eb30e8fcd649fefd3ad54b7c177415",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+        "run_attempt": 1,
+        "run_id": "39993623281"
+      },
+      "package_sha256": "ed7e06f09de5524990659b7f517ff135015b49c264e0ba070ad063bc6c8ade2a",
+      "producer": {
+        "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+        "run_attempt": 1,
+        "run_id": "39993623281"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -6181,16 +6202,7 @@
         "runtime_version": "v2",
         "version": "30.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:16:02+00:00",
-        "expires_at": "2026-10-24T01:16:02+00:00",
-        "producer": {
-          "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
-          "run_attempt": 1,
-          "run_id": "39993623281"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "consecutive_failures": 1,
