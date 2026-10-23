@@ -6179,6 +6179,22 @@ setup_package_build_environment() {
     fi
     export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
+    # base 烘焙的 *-config（apr-1-config/apu-1-config/MagickCore-config 等）把
+    # Utility runtime 构建机的编译器 wrapper 绝对路径写死为 --cc 输出（段工作流
+    # 的 RUNTIME_TOOL_DIR=$RUNNER_TEMP/runtime-v2-tools）。包编译 runner 上该路径
+    # 不存在，任何咨询 --cc 的 configure（如 httpd 的 APR-util 探测）都会报
+    # "C compiler cannot create executables"（两架构首测 39962819981 的真实失败）。
+    # 在 runner 上按同一契约重建 wrapper，指向本机真实编译器；环境 CFLAGS 已带
+    # isysroot/-arch，wrapper 无需重复注入。非 runner 环境（无 /Users/runner/work）
+    # 不创建，避免污染开发机。
+    local _runtime_tools_root="${RUNNER_TEMP:-/Users/runner/work/_temp}"
+    if [[ -d "$_runtime_tools_root" && ! -x "$_runtime_tools_root/runtime-v2-tools/cc" ]]; then
+        mkdir -p "$_runtime_tools_root/runtime-v2-tools" || return 1
+        ln -sf "$(xcrun --find clang)" "$_runtime_tools_root/runtime-v2-tools/cc" || return 1
+        ln -sf "$(xcrun --find clang++)" "$_runtime_tools_root/runtime-v2-tools/cxx" || return 1
+        log_message "INFO" "Recreated the base-baked compiler wrapper at ${_runtime_tools_root}/runtime-v2-tools/cc (base *-config scripts reference it)."
+    fi
+
     # 确保静态库目录存在
     mkdir -p "${SERVBAY_STATIC_LIBS_PATH}" "${SERVBAY_STATIC_INCLUDE_PATH}" "${SERVBAY_STATIC_LIB_PATH}"
 
