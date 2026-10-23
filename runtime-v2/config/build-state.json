@@ -54,6 +54,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.2\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.2"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T13:38:12+00:00",
+        "expires_at": "2026-10-23T21:38:12+00:00",
+        "producer": {
+          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+          "run_attempt": 1,
+          "run_id": "39962827584"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:22:58Z",
       "artifact_id": "12488367344",
@@ -135,6 +158,29 @@
         "version": "1.31.8"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.2\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.2"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T13:38:12+00:00",
+        "expires_at": "2026-10-23T21:38:12+00:00",
+        "producer": {
+          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+          "run_attempt": 1,
+          "run_id": "39962827584"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:27:13Z",
