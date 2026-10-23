@@ -190,7 +190,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
+      "artifact_expires_at": "2026-10-30T17:02:17Z",
+      "artifact_id": "12518455398",
+      "artifact_name": "pkg2-macos-arm64-package-dnsmasq-2.92",
+      "artifact_zip_sha256": "7c8fdb327a4ef706643f056ab18b1a85239b845e7da22f9e175756fb0f523a73",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+        "run_attempt": 1,
+        "run_id": "39991480279"
+      },
+      "package_sha256": "330ac2a976d4d4d01512a8b3d0da7eea66a7774367432a15562fae60312a5194",
+      "producer": {
+        "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+        "run_attempt": 1,
+        "run_id": "39991480279"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -201,16 +216,7 @@
         "runtime_version": "v2",
         "version": "2.92"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:00:35+00:00",
-        "expires_at": "2026-10-24T01:00:35+00:00",
-        "producer": {
-          "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
-          "run_attempt": 1,
-          "run_id": "39991480279"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.0.402\"}": {
       "consecutive_failures": 0,
@@ -3159,7 +3165,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
+      "artifact_expires_at": "2026-10-30T17:02:31Z",
+      "artifact_id": "12517693272",
+      "artifact_name": "pkg2-macos-x86_64-package-dnsmasq-2.92",
+      "artifact_zip_sha256": "bdf738b53a4b21e85cf2433903619155457365438dc0e10390f9289601673278",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+        "run_attempt": 1,
+        "run_id": "39991480279"
+      },
+      "package_sha256": "36a1490a7e7f97c9941c3dc5e90320fe88e460ac2c9f434d275352584efb3b22",
+      "producer": {
+        "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+        "run_attempt": 1,
+        "run_id": "39991480279"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -3170,16 +3191,7 @@
         "runtime_version": "v2",
         "version": "2.92"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:00:35+00:00",
-        "expires_at": "2026-10-24T01:00:35+00:00",
-        "producer": {
-          "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
-          "run_attempt": 1,
-          "run_id": "39991480279"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.0.402\"}": {
       "consecutive_failures": 0,
