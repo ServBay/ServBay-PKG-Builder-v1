@@ -1076,6 +1076,15 @@
         "runtime_version": "v2",
         "version": "3.10.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:42+00:00",
+        "expires_at": "2026-10-24T01:15:42+00:00",
+        "producer": {
+          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+          "run_attempt": 1,
+          "run_id": "39993582121"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"meilisearch\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.55.0\"}": {
@@ -4119,6 +4128,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "3.10.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:42+00:00",
+        "expires_at": "2026-10-24T01:15:42+00:00",
+        "producer": {
+          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+          "run_attempt": 1,
+          "run_id": "39993582121"
+        }
       },
       "status": "discovered"
     },
