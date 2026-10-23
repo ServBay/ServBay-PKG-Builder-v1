@@ -6648,7 +6648,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.15.1\"}": {
+      "artifact_expires_at": "2026-10-30T20:53:57Z",
+      "artifact_id": "12531850512",
+      "artifact_name": "pkg2-macos-x86_64-package-python-3.15.1-r2",
+      "artifact_zip_sha256": "f64640ccf6fca19370a5cdd4f57f9332088c3731b1df7a0b7c490e3469233628",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "12bf996b84958929ac82740fb02aa4551f989b01",
+        "run_attempt": 1,
+        "run_id": "40020479247"
+      },
+      "package_sha256": "e20f7a0d99755c20984df4015b7b8648eccc4360ca1972fa7fdce661f5bd1fcc",
+      "producer": {
+        "commit": "12bf996b84958929ac82740fb02aa4551f989b01",
+        "run_attempt": 1,
+        "run_id": "40020479247"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -6659,16 +6674,7 @@
         "runtime_version": "v2",
         "version": "3.15.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T20:36:18+00:00",
-        "expires_at": "2026-10-24T04:36:18+00:00",
-        "producer": {
-          "commit": "12bf996b84958929ac82740fb02aa4551f989b01",
-          "run_attempt": 1,
-          "run_id": "40020479247"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     }
   }
 }
