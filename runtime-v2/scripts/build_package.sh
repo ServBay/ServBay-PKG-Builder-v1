@@ -6162,6 +6162,21 @@ setup_package_build_environment() {
     # 路径；不存在的 -I 会被静默忽略，单侧安装不受影响（x86_64 run
     # 40008026750 实测 configure 能找到、make 带上 CPPFLAGS 后找不到）。
     export CPPFLAGS="${CPPFLAGS} -I/opt/homebrew/opt/gdbm/include -I/usr/local/opt/gdbm/include"
+    # CPython 的 make 用 PY_CPPFLAGS（configure 烘焙的基础 -I），不继承运行时
+    # 追加的 CPPFLAGS，上面的 -I 到不了模块编译行（x86_64 run 40018066972 实测
+    # 仍报 gdbm-ndbm.h not found）。把 brew gdbm 的头复制进已在检索路径上的
+    # ServBay include 目录，让 configure 与 make 两侧都能直接命中。
+    local _gdbm_include
+    for _gdbm_include in /opt/homebrew/opt/gdbm/include /usr/local/opt/gdbm/include; do
+        if [[ -f "$_gdbm_include/gdbm-ndbm.h" ]]; then
+            cp "$_gdbm_include/gdbm.h" "$_gdbm_include/gdbm-ndbm.h" "${SERVBAY_COMMON_INCLUDE_PATH}/" || return 1
+            if [[ -d "$_gdbm_include/gdbm" ]]; then
+                cp -R "$_gdbm_include/gdbm" "${SERVBAY_COMMON_INCLUDE_PATH}/" || return 1
+            fi
+            log_message "INFO" "Copied brew gdbm headers into ${SERVBAY_COMMON_INCLUDE_PATH} for the dbm module."
+            break
+        fi
+    done
     export CXXFLAGS="-isysroot ${SDK_PATH} -Qunused-arguments -O3 -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion"
 
     # PHP 版本特定的 C++ 标志（必须在基础 CXXFLAGS 设置之后）
