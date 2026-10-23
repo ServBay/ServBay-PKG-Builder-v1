@@ -364,6 +364,18 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("/export:daylight=php_daylight_slot,DATA", text)
         self.assertIn("/export:tzname=php_tzname_slot,DATA", text)
         self.assertIn("_get_daylight(&php_daylight_slot)", text)
+        # libcurl_a.lib in 5.5 wants the dllimport slots, not the functions.
+        # sscanf goes through an export from php5.dll, like __iob_func.
+        # Export the import slots, not the functions: exporting "sscanf"
+        # collides with the LTCG-merged copy in gd's xbm.obj.
+        # php_stdint.h is not included by every extension (ext/curl's objects
+        # carry no trace of it), so the directives live in main\php.h.
+        self.assertIn("main\\php.h", text)
+        self.assertIn('#pragma comment(linker, "/include:__imp_sscanf")', text)
+        self.assertIn("php_compat_vsnprintf", text)
+        self.assertIn("/alternatename:vsnprintf=php_compat_vsnprintf", text)
+        # Without a guard the shim is redefined on the second inclusion.
+        self.assertIn("#ifndef PHP_PRE_UCRT_SHIM", text)
         # ext/openssl and ext/soap read the same removed global. It must be a
         # per-site patch: PHP has struct members named timezone, so a macro
         # would rewrite those too.
