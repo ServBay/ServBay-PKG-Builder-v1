@@ -28,6 +28,7 @@ PATCH_ROOT = ROOT / "runtime/patch"
 # Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
 # VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
 EOL_VERSIONS = [
+    "5.6.40.1",
     "7.0.33.1",
     "7.1.33.1",
     "7.2.34.1",
@@ -42,6 +43,7 @@ VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
 # manifest is keyed by it, so getting this wrong downloads the wrong CRT's
 # libraries and links instead of failing outright.
 CRT_BY_BRANCH = {
+    "5.6": "vc11",
     "7.0": "vc14",
     "7.1": "vc14",
     "7.2": "vc15",
@@ -88,7 +90,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
     def test_dependency_archive_follows_requested_arch(self):
         # A hardcoded -x64 archive silently produces a broken x86 build.
         text = PS1.read_text()
-        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
         self.assertNotIn("deps-7.0-vc14-x64.7z", text)
 
     def test_rejects_branches_outside_the_supported_series(self):
@@ -207,11 +209,12 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("php-sdk-2.8.4", text)
         self.assertIn("phpsdk_buildtree.bat", text)
 
-    def test_vc14_bundle_stays_single_archive(self):
-        # 7.0/7.1 are the only branches php.net shipped an aggregate bundle
-        # for. Keep that path, it is the one already proven on the runner.
+    def test_aggregate_bundle_stays_single_archive(self):
+        # vc11 (5.5/5.6) and vc14 (7.0/7.1) are the branches php.net shipped
+        # one aggregate bundle for; keep that path, it is the one already
+        # proven on the runner.
         text = PS1.read_text()
-        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
 
     def test_intrinsics_shim_is_vc14_only(self):
         # _mm_loadu_si64 exists from VS2017 on. Injecting the shim into a
@@ -254,7 +257,7 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("main\\config.w32.h", text)
         # Branches that recognise the toolset write a bare identifier, the
         # ones that do not write a quoted version, so both have to match.
-        self.assertIn('("[^"]*"|\\S+)', text)
+        self.assertIn("(?m)^#define\\s+PHP_COMPILER_ID", text)
         # 8.0/8.1 already emit the right identifier; the smoke test is the
         # guard there, so skipping the rewrite must be recorded.
         self.assertIn("keeping the detected value", text)
@@ -268,6 +271,42 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("get_loaded_extensions", text)
         self.assertIn("Unable to (load dynamic library|initialize module)", text)
         self.assertNotIn("echo 'extensions ok'", text)
+
+
+class WindowsPhp5BuildTests(unittest.TestCase):
+    """PHP 5.6 lost its VS2012 toolset; option B rebuilds it on VS2019."""
+
+    def test_php5_uses_the_aggregate_vc11_bundle(self):
+        # 5.6 predates the per-library series manifests, so its dependencies
+        # come from one archive keyed by the branch's own CRT.
+        text = PS1.read_text()
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
+        self.assertIn("$Crt -in @('vc11', 'vc14')", text)
+
+    def test_php5_prefers_the_vs2019_toolset(self):
+        # v110 is gone. VS2019's 14.2x rejects less of the 2019-era source
+        # than v143 does, so it is tried first.
+        text = PS1.read_text()
+        self.assertIn("'vc11' { '^14\.2\d*\.' }", text)
+        self.assertIn("falls back to the newest one when absent", text)
+
+    def test_php5_omits_the_flags_only_7_has(self):
+        # PHP 5 always builds the CLI and CGI SAPIs; those configure flags
+        # only exist from 7.0.
+        text = PS1.read_text()
+        self.assertIn("if ($MajorMinor -notin @('5.5', '5.6'))", text)
+        self.assertIn("--enable-cli", text)
+
+    def test_compiler_id_rewrite_covers_an_empty_value(self):
+        # PHP 5's table stops at VS2013, so configure.js leaves the value
+        # empty; a value-only regex would then skip the line entirely.
+        text = PS1.read_text()
+        self.assertIn(r"(?m)^#define\s+PHP_COMPILER_ID[^\r\n]*", text)
+
+    def test_php5_official_archive_is_under_archives(self):
+        text = PS1.read_text()
+        self.assertIn("'vc11' { 'VC11' }", text)
+        self.assertIn("@('5.5', '5.6', '7.0', '7.1', '7.2', '7.3')", text)
 
 
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
