@@ -11,6 +11,7 @@ import time
 import argparse
 import os
 import json
+from pathlib import Path
 
 class PackageUpdater:
     # GitHub tags 可能包含从未正式发布的内部开发标签（幽灵标签）。
@@ -44,7 +45,11 @@ class PackageUpdater:
         ],
     }
 
-    def __init__(self, conf_file: str = "packages.conf", dry_run: bool = False, debug: bool = False):
+    def __init__(self, conf_file: str = "packages.conf", dry_run: bool = False, debug: bool = False,
+                 runtime_version: str = "v1"):
+        if runtime_version not in ("v1", "v2"):
+            raise ValueError("runtime_version must be v1 or v2")
+        self.runtime_version = runtime_version
         self.conf_file = conf_file
         self.packages = {}
         self.api_delay = 0.3  # Delay between API calls
@@ -53,15 +58,19 @@ class PackageUpdater:
         self.updated_pkgs = set() # Track updated packages for build command output
         self.updated_records = []  # Structured records for workflow matrix output.
 
-    def record_update(self, name: str, version: str):
+    def record_update(self, name: str, version: str, profile_record=None):
         """Record a package update once, preserving insertion order."""
-        record = {"name": name, "version": version}
+        record = profile_record if self.runtime_version == "v2" else {"name": name, "version": version}
+        if record is None:
+            raise ValueError("A v2 update needs its complete package profile")
         if record not in self.updated_records:
             self.updated_records.append(record)
         self.updated_pkgs.add(f"{name}-{version}")
 
     def active_package_records(self):
         """Return active package records from packages.conf for full rebuilds."""
+        if self.runtime_version == "v2":
+            return [self._v2_record(row) for row in self._v2_rows() if not row["is_commented"]]
         records = []
         seen = set()
         if not os.path.exists(self.conf_file):
@@ -88,6 +97,28 @@ class PackageUpdater:
 
     def build_matrix(self, records):
         """Build GitHub Actions matrix JSON for macOS package builds."""
+        if self.runtime_version == "v2":
+            include, seen = [], set()
+            for record in records:
+                if record.get("runtime_version", "v2") != "v2":
+                    raise ValueError("A v2 matrix cannot reinterpret another runtime profile")
+                if record.get("build_type") not in ("source", "prebuilt", "mixed"):
+                    raise ValueError("Invalid v2 build_type")
+                for arch, field in (("x86_64", "x86_file"), ("arm64", "arm_file")):
+                    if not record.get(field):
+                        raise ValueError(f"Missing v2 {field}")
+                    if record[field] == "-":
+                        continue
+                    row = {"runtime_version": "v2", "os": "macos", "kind": "package",
+                           "name": record["name"], "version": record["version"], "arch": arch,
+                           "build_type": record["build_type"], "build_revision": record.get("build_revision", 0)}
+                    if row["name"] == "httpd":
+                        row.update(name="apache", recipe_name="httpd")
+                    key = (arch, row["name"], row["version"], row["build_revision"])
+                    if key not in seen:
+                        include.append(row)
+                        seen.add(key)
+            return {"include": include}
         include = []
         seen = set()
         for record in records:
@@ -167,6 +198,11 @@ class PackageUpdater:
 
     def load_packages(self):
         """Load current packages from conf file (including commented ones)"""
+        if self.runtime_version == "v2":
+            self.packages = {}
+            for row in self._v2_rows():
+                self.packages.setdefault(row["name"], []).append(row)
+            return
         if not os.path.exists(self.conf_file):
             print(f"Error: Config file not found at {self.conf_file}")
             return
@@ -203,6 +239,93 @@ class PackageUpdater:
                         'line': original_line,
                         'is_commented': original_line.startswith('#')
                     })
+
+    def _v2_rows(self):
+        """Parse the five-column profile, including historical data comments."""
+        rows = []
+        for number, line in enumerate(Path(self.conf_file).read_text().splitlines()):
+            content = line.strip()
+            commented = content.startswith("#")
+            clean = content[1:].strip() if commented else content
+            fields = clean.split()
+            if not fields or (commented and (len(fields) < 2 or not fields[1][0].isdigit())):
+                continue
+            if len(fields) != 5:
+                raise ValueError(f"Invalid v2 package row at line {number + 1}: expected five columns")
+            name, version, x86_file, arm_file, build_type = fields
+            if build_type not in ("source", "prebuilt", "mixed"):
+                raise ValueError(f"Invalid v2 build_type at line {number + 1}: {build_type}")
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", name) or not re.fullmatch(r"[0-9][A-Za-z0-9_.+-]*", version):
+                raise ValueError(f"Invalid v2 package identity at line {number + 1}")
+            rows.append(dict(name=name, version=version, x86_file=x86_file, arm_file=arm_file,
+                             build_type=build_type, is_commented=commented, line=line, line_number=number))
+        return rows
+
+    @staticmethod
+    def _v2_record(row):
+        return {key: row[key] for key in ("name", "version", "x86_file", "arm_file", "build_type")}
+
+    def _update_v2_conf_file(self, latest_versions):
+        """Keep desired versions separate from build success, preserving v1 semantics."""
+        rows = self._v2_rows()
+        lines = Path(self.conf_file).read_text().splitlines(keepends=True)
+        replacements, additions = {}, {}
+        self.updated_records, self.updated_pkgs = [], set()
+        for name, versions in latest_versions.items():
+            existing = [row for row in rows if row["name"] == name]
+            active = [row for row in existing if not row["is_commented"]]
+            if not active:
+                continue
+            floor = min((row["version"] for row in active), key=self.version_to_tuple)
+            major_floors = {}
+            for row in active:
+                major = int(re.match(r"\d+", row["version"]).group())
+                previous = major_floors.get(major)
+                if previous is None or self.compare_versions(row["version"], previous) < 0:
+                    major_floors[major] = row["version"]
+            updates = versions if isinstance(versions, dict) else {"SINGLE": versions}
+            series_keys = sorted(updates, key=len, reverse=True)
+
+            def series_for(version):
+                return next((series for series in series_keys if series == "SINGLE" or
+                             version == series or version.startswith((series + ".", series + "-"))), None)
+
+            for series, version in updates.items():
+                if self.compare_versions(version, floor) < 0:
+                    continue
+                major = int(re.match(r"\d+", version).group())
+                if major in major_floors and self.compare_versions(version, major_floors[major]) < 0:
+                    continue
+                if major not in major_floors and major < max(major_floors):
+                    continue
+                matching = [row for row in existing if series_for(row["version"]) == series]
+                if any(not row["is_commented"] and self.compare_versions(row["version"], version) > 0
+                       for row in matching):
+                    continue
+                template = max(matching or active, key=lambda row: self.version_to_tuple(row["version"]))
+                exact = next((row for row in matching if row["version"] == version), None)
+                for row in matching:
+                    data = "\t".join(str(row[key]) for key in ("name", "version", "x86_file", "arm_file", "build_type"))
+                    replacements[row["line_number"]] = ("" if row["version"] == version else "# ") + data + "\n"
+                if exact:
+                    continue
+                record = dict(name=name, version=version, build_type=template["build_type"])
+                for arch, field in (("x86", "x86_file"), ("arm", "arm_file")):
+                    record[field] = ("-" if template[field] == "-" else
+                                     self.generate_filename(name, version, arch, template[field]))
+                    if not record[field] or re.search(r"\s|#", record[field]):
+                        raise ValueError(f"Unverified upstream filename for {name} {version} ({arch})")
+                additions.setdefault(max(row["line_number"] for row in existing), []).append(record)
+                self.record_update(name, version, record)
+        output = []
+        for number, line in enumerate(lines):
+            output.append(replacements.get(number, line))
+            for record in additions.get(number, []):
+                if output and not output[-1].endswith("\n"):
+                    output[-1] += "\n"
+                output.append("\t".join(record[key] for key in ("name", "version", "x86_file", "arm_file", "build_type")) + "\n")
+        if not self.dry_run:
+            Path(self.conf_file).write_text("".join(output))
 
     def get_github_api(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:
         """Make GitHub API request with token support"""
@@ -567,6 +690,13 @@ class PackageUpdater:
 
         return versions
 
+    def get_subversion_version(self):
+        """Apache's release index is authoritative; its Git tags sort lexically."""
+        response = requests.get("https://dlcdn.apache.org/subversion/", timeout=15)
+        response.raise_for_status()
+        versions = set(re.findall(r"subversion-(\d+\.\d+\.\d+)\.tar\.bz2", response.text))
+        return max(versions, key=lambda value: tuple(map(int, value.split(".")))) if versions else None
+
     def get_redis_versions(self) -> Dict[str, str]:
         """Get latest Redis versions"""
         versions = {}
@@ -582,6 +712,16 @@ class PackageUpdater:
                 break
 
         if all_tags:
+            if self.runtime_version == "v2" and "redis" in self.packages:
+                tracked = [".".join(row["version"].split(".")[:2]) for row in self.packages["redis"]
+                           if not row["is_commented"]]
+                if tracked:
+                    floor = min(tuple(map(int, value.split("."))) for value in tracked)
+                    series = sorted(set(tracked) | {
+                        ".".join(tag["name"].split(".")[:2]) for tag in all_tags
+                        if re.fullmatch(r"\d+\.\d+\.\d+", tag.get("name", ""))
+                        and tuple(map(int, tag["name"].split(".")[:2])) >= floor
+                    }, key=lambda value: tuple(map(int, value.split("."))))
             series_versions = {s: [] for s in series}
 
             for tag in all_tags:
@@ -707,6 +847,9 @@ class PackageUpdater:
                     latest_sdk = release.get('latest-sdk', '')
 
                     if channel and latest_sdk:
+                        if self.runtime_version == "v2" and re.fullmatch(r"\d+\.\d+", channel):
+                            versions[f"dotnetsdk_{channel}"] = latest_sdk
+                            continue
                         # Map channel to version series
                         if channel.startswith('2.1'):
                             versions['dotnetsdk_2.1'] = latest_sdk
@@ -773,7 +916,7 @@ class PackageUpdater:
                                 if 'crac' not in name and 'fx' not in name:
                                     pkg = p
                                     # Replace .zip with .tar.gz but add a comment
-                                    if not name.endswith('.tar.gz'):
+                                    if not name.endswith('.tar.gz') and self.runtime_version != "v2":
                                         pkg['name'] = pkg.get('name', '').replace('.zip', '.tar.gz') + '  # WARN: FALLBACK FROM ZIP'
                                     break
 
@@ -1002,6 +1145,7 @@ class PackageUpdater:
             'dnsmasq': ('imp', 'dnsmasq'),
             'adminer': ('vrana', 'adminer'),
             'phpMyAdmin': ('phpmyadmin', 'phpmyadmin'),
+            'phpmyadmin': ('phpmyadmin', 'phpmyadmin'),
             'mongosh': ('mongodb-js', 'mongosh'),
             'pinggy': ('Pinggy-io', 'cli-js'),
         }
@@ -1082,6 +1226,11 @@ class PackageUpdater:
         if 'httpd_2.4' in httpd_versions:
             latest_versions['httpd'] = httpd_versions['httpd_2.4']
         print(f"✓ Latest: {httpd_versions.get('httpd_2.4', 'None')}")
+
+        if self.runtime_version == "v2" and "subversion" in self.packages:
+            subversion = self.get_subversion_version()
+            if subversion:
+                latest_versions["subversion"] = subversion
 
         # Fetch multi-version packages
         print("\n  Fetching multi-version packages...")
@@ -1264,6 +1413,9 @@ class PackageUpdater:
             if hasattr(self, 'openjdk_details'):
                 for key, details in self.openjdk_details.items():
                     if details.get('version') == version:
+                        if self.runtime_version == "v2":
+                            field = "x64_filename" if arch == "x86" else "aarch64_filename"
+                            return details.get(field) or "-"
                         if arch == 'x86' and 'x64_filename' in details:
                             return details['x64_filename']
                         elif arch == 'arm' and 'aarch64_filename' in details:
@@ -1373,7 +1525,7 @@ class PackageUpdater:
         if package == 'adminer':
             return f"adminer-{version}.php"
 
-        if package == 'phpMyAdmin':
+        if package in ('phpMyAdmin', 'phpmyadmin'):
             return f"phpMyAdmin-{version}-all-languages.tar.gz"
 
         if package == 'mongosh':
@@ -1433,6 +1585,8 @@ class PackageUpdater:
 
     def update_conf_file(self, latest_versions: Dict[str, any]):
         """Update conf file with new versions."""
+        if self.runtime_version == "v2":
+            return self._update_v2_conf_file(latest_versions)
         if self.dry_run:
             print("\n📋 DRY RUN - No changes will be made")
 
@@ -1707,8 +1861,10 @@ class PackageUpdater:
             print(f"./build_package -a x86_64 -p {pkg_list}")
             print(f"./build_package -a arm64 -p {pkg_list}")
 
-    def run(self, emit_json=False, emit_json_file=None, all_packages=False):
+    def run(self, emit_json=False, emit_json_file=None, all_packages=False, pending_only=False):
         """Main execution"""
+        if pending_only and self.runtime_version != "v2":
+            raise ValueError("pending-only is available only for the Runtime v2 profile")
         print(f"📂 Loading packages from {self.conf_file}...")
         self.load_packages()
         print(f"📊 Found {len(self.packages)} unique package(s)\n")
@@ -1717,11 +1873,10 @@ class PackageUpdater:
             print("❌ No packages found in conf file")
             return
 
-        latest_versions = self.fetch_latest_versions()
-
-        print(f"\n🔍 Processed package updates")
-
-        self.update_conf_file(latest_versions)
+        if not pending_only:
+            latest_versions = self.fetch_latest_versions()
+            print(f"\n🔍 Processed package updates")
+            self.update_conf_file(latest_versions)
 
         records = self.active_package_records() if all_packages else self.updated_records
         if emit_json or emit_json_file:
@@ -1734,6 +1889,8 @@ def main():
                        help='Path to packages.conf file')
     parser.add_argument('--dry-run', action='store_true',
                        help='Check for updates without modifying files')
+    parser.add_argument('--runtime-version', choices=('v1', 'v2'), default='v1',
+                        help='Package profile; omitted values retain the v1 contract')
     parser.add_argument('--github-token', help='GitHub API token for higher rate limits')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug output')
@@ -1741,6 +1898,7 @@ def main():
                        help='Print build matrix JSON after checking updates')
     parser.add_argument('--emit-json-file',
                        help='Write build matrix JSON to the given file')
+    parser.add_argument('--pending-only', action='store_true', help='Use existing v2 desired versions without refreshing or writing config')
     parser.add_argument('--all', action='store_true',
                        help='Emit a full rebuild matrix from active config entries')
 
@@ -1749,8 +1907,10 @@ def main():
     if args.github_token:
         os.environ['GITHUB_TOKEN'] = args.github_token
 
-    updater = PackageUpdater(conf_file=args.conf, dry_run=args.dry_run, debug=args.debug)
-    updater.run(emit_json=args.emit_json, emit_json_file=args.emit_json_file, all_packages=args.all)
+    updater = PackageUpdater(conf_file=args.conf, dry_run=args.dry_run, debug=args.debug,
+                             runtime_version=args.runtime_version)
+    updater.run(emit_json=args.emit_json, emit_json_file=args.emit_json_file, all_packages=args.all,
+                pending_only=args.pending_only)
 
 
 if __name__ == "__main__":

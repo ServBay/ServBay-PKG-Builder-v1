@@ -6,6 +6,15 @@ name: build-macos
 on:
   workflow_dispatch:
     inputs:
+      runtime_version:
+        description: 'ServBay runtime generation'
+        type: choice
+        options: [v1, v2]
+        default: v1
+      build_revision:
+        description: 'Explicit rebuild revision (v2 only)'
+        type: number
+        default: 0
       pkg:
         description: 'Package name (e.g. php, nginx)'
         required: true
@@ -20,12 +29,22 @@ on:
         type: choice
         options: [all, x86_64, arm64]
         default: all
+      host_request:
+        description: 'Internal v2 independent-module host request (public catalog identity)'
+        type: string
+        default: ''
       checkout_ref:
         description: 'Optional git ref to checkout'
         required: false
         default: ''
   workflow_call:
     inputs:
+      runtime_version:
+        type: string
+        default: v1
+      build_revision:
+        type: number
+        default: 0
       pkg:
         type: string
         required: false
@@ -38,13 +57,17 @@ on:
         type: string
         required: false
         default: all
+      host_request:
+        type: string
+        default: ''
       checkout_ref:
         type: string
         required: false
         default: ''
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 # Public-repo safe: the base lives in a public bucket; only its URL + per-arch
 # version come from repository Variables. NO credentials / hosts / buckets here.
@@ -57,13 +80,64 @@ env:
   BASE_DOWNLOAD_URL: ${{ vars.BASE_DOWNLOAD_URL }}
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      commit: ${{ steps.plan.outputs.commit }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python3 -m pip install requests
+      - name: Resolve the selected package profile
+        id: plan
+        env:
+          RUNTIME_VERSION: ${{ inputs.runtime_version }}
+          PKG: ${{ inputs.pkg }}
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ inputs.arch }}
+          REVISION: ${{ inputs.build_revision }}
+          GH_TOKEN: ${{ github.token }}
+          HOST_REQUEST: ${{ inputs.host_request }}
+        run: |
+          set -euo pipefail
+          if [ -n "${HOST_REQUEST:-}" ]; then
+            [ "$RUNTIME_VERSION" = v2 ] || exit 1
+            export CHECKOUT_SHA="$(git rev-parse HEAD)"
+            python3 - <<'PYCODE'
+          import os, sys
+          sys.path.insert(0, 'runtime/ci')
+          import build_control
+          build_control.run_decision('v2', False, False, True, os.environ['GITHUB_SHA'], os.environ['CHECKOUT_SHA'])
+          PYCODE
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+            echo 'count=0' >> "$GITHUB_OUTPUT"
+            echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 runtime/ci/build_profile.py matrix --runtime-version "$RUNTIME_VERSION" \
+            --pkg "$PKG" --version "$VERSION" --arch "$ARCH" \
+            --build-revision "$REVISION" --output matrix.json
+          /bin/bash runtime/ci/reserve_builds.sh
+
   build:
+    name: ${{ matrix.unit_job || 'Build macOS package' }}
+    if: ${{ needs.plan.outputs.count != '0' }}
+    needs: plan
     runs-on: ${{ matrix.runner }}
     # Single job per arch; 6h is the hard GitHub-hosted ceiling, 300 min stays under it.
     timeout-minutes: 300
     # arm64 and x86_64 ship on independent base versions -> pick per-arch.
     env:
       BASE_VERSION: ${{ matrix.arch == 'arm64' && vars.BASE_VERSION_ARM64 || vars.BASE_VERSION_X86_64 }}
+      BASE_SHA256_RUNTIME: ${{ vars[format('BASE_V2_SHA256_RUNTIME_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+      BASE_SHA256_DEVLIB: ${{ vars[format('BASE_V2_SHA256_DEVLIB_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+      SERVBAY_BASE_FULL_PATH: /Applications/ServBay
     strategy:
       fail-fast: false
       # The package comes from the workflow inputs (pkg + version); this matrix
@@ -71,19 +145,33 @@ jobs:
       # x86_64 -> macos-26-intel, arm64 -> macos-26. macOS 26 (Tahoe) ships
       # Xcode 26.x, matching upstream Ollama's release runner; macos-15
       # (Sequoia + Xcode 16.x) took ~2h on the arm64 MLX metal build.
-      matrix:
-        include: ${{ fromJSON(inputs.arch == 'x86_64' && '[{"arch":"x86_64","runner":"macos-26-intel"}]' || inputs.arch == 'arm64' && '[{"arch":"arm64","runner":"macos-26"}]' || '[{"arch":"x86_64","runner":"macos-26-intel"},{"arch":"arm64","runner":"macos-26"}]') }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     steps:
-      - name: Checkout
-        if: ${{ inputs.checkout_ref == '' }}
-        uses: actions/checkout@v4
-
-      - name: Checkout requested ref
-        if: ${{ inputs.checkout_ref != '' }}
+      - name: Checkout exact source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.checkout_ref }}
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python3 -m pip install requests
+
+      - name: Resolve pinned Runtime v2 base
+        if: ${{ inputs.runtime_version == 'v2' }}
+        env:
+          V2_URL: ${{ vars.BASE_V2_DOWNLOAD_URL }}
+          V2_VERSION: ${{ vars[format('BASE_V2_VERSION_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+        run: |
+          set -euo pipefail
+          : "${V2_URL:?BASE_V2_DOWNLOAD_URL is required}"
+          : "${V2_VERSION:?The selected architecture needs BASE_V2_VERSION}"
+          : "${BASE_SHA256_RUNTIME:?The selected architecture needs the Runtime SHA256}"
+          : "${BASE_SHA256_DEVLIB:?The selected architecture needs the Devlib SHA256}"
+          echo "BASE_DOWNLOAD_URL=$V2_URL" >> "$GITHUB_ENV"
+          echo "BASE_VERSION=$V2_VERSION" >> "$GITHUB_ENV"
+          echo "GOPATH=$RUNNER_TEMP/servbay-go" >> "$GITHUB_ENV"
+          echo "GOMODCACHE=$RUNNER_TEMP/servbay-go-mod" >> "$GITHUB_ENV"
 
       # Take ownership of the base dir BEFORE cache restore: actions/cache unpacks
       # as the runner user, and a root-owned /Applications/ServBay would block it.
@@ -98,20 +186,37 @@ jobs:
       # Key uses the workflow-known BASE_VERSION (NOT a bootstrap output): the key
       # must be decided before bootstrap runs, and a version bump invalidates it.
       - name: Cache ServBay build base
+        if: ${{ inputs.runtime_version != 'v2' }}
         uses: actions/cache@v4
         with:
           path: /Applications/ServBay
-          key: servbay-base-${{ matrix.arch }}-${{ env.BASE_VERSION }}
+          key: ${{ format('servbay-base-{0}-{1}', matrix.arch, env.BASE_VERSION) }}
+
+      - name: Cache immutable Runtime v2 common base
+        if: ${{ inputs.runtime_version == 'v2' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            /Applications/ServBay/packages/common
+            /Applications/ServBay/.bootstrap-v2.json
+          key: ${{ format('servbay-base-v2-{0}-{1}-{2}-{3}', matrix.arch, env.BASE_VERSION, env.BASE_SHA256_RUNTIME, env.BASE_SHA256_DEVLIB) }}
 
       # Cache miss -> download + extract the base; cache hit -> seconds-fast no-op
       # (bootstrap re-checks its version-scoped marker + non-empty common/ tree).
       # ARCH goes through env (not inline ${{ }}) to avoid script-text injection.
       - name: Bootstrap build base
+        if: ${{ inputs.runtime_version != 'v2' }}
         env:
           ARCH: ${{ matrix.arch }}
         run: |
           chmod +x ./runtime/ci/bootstrap_base.sh
           ./runtime/ci/bootstrap_base.sh "$ARCH"
+
+      - name: Bootstrap Runtime v2 build base
+        if: ${{ inputs.runtime_version == 'v2' }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: /bin/bash ./runtime-v2/ci/bootstrap_base.sh "$ARCH"
 
       # build_package needs gtar (it shells out to $GTAR_BIN explicitly) plus the
       # usual autotools/cmake toolchain. coreutils is a safety net for GNU tools.
@@ -157,7 +262,7 @@ jobs:
       # php runtime finds it via the common rpath). BASE_DOWNLOAD_URL is reused as the
       # public bucket base. ARCH/versions go through env, never inline ${{ }}.
       - name: Prepare libpq for PHP (php only)
-        if: ${{ inputs.pkg == 'php' }}
+        if: ${{ inputs.runtime_version != 'v2' && inputs.pkg == 'php' }}
         env:
           ARCH: ${{ matrix.arch }}
           PG_MAJOR: "16"
@@ -190,6 +295,7 @@ jobs:
       # Input values go through env (not inline ${{ }}) so they reach the script as
       # shell variables instead of being interpolated into the run text.
       - name: Build macOS package
+        if: ${{ inputs.runtime_version != 'v2' }}
         working-directory: runtime
         env:
           PKG: ${{ inputs.pkg }}
@@ -203,12 +309,38 @@ jobs:
           chmod +x ./build_package
           ./build_package -a "$ARCH" -p "${PKG}-${VERSION}"
 
+      - name: Select Runtime v2 package profile
+        if: ${{ inputs.runtime_version == 'v2' }}
+        working-directory: runtime-v2
+        env:
+          PKG: ${{ matrix.recipe_name || matrix.name }}
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+          GH_TOKEN: ${{ secrets.DISPATCH_PAT }}
+          SERVBAY_PACKAGES_CONF: ${{ runner.temp }}/v2-package.conf
+        run: |
+          set -euo pipefail
+          python3 ../runtime/ci/build_profile.py profile --runtime-version v2 \
+            --pkg "$PKG" --version "$VERSION" --arch "$ARCH" \
+            --conf config/packages.conf --output "$SERVBAY_PACKAGES_CONF"
+
+      - name: Compile Runtime v2 package
+        if: ${{ inputs.runtime_version == 'v2' }}
+        working-directory: runtime-v2
+        env:
+          PKG: ${{ matrix.recipe_name || matrix.name }}
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+          GH_TOKEN: ${{ secrets.DISPATCH_PAT }}
+          SERVBAY_PACKAGES_CONF: ${{ runner.temp }}/v2-package.conf
+        run: /bin/zsh ./scripts/build_package.sh -a "$ARCH" -p "${PKG}-${VERSION}"
+
       # build_package's EXIT trap (teardown_build_env) renames /Applications/ServBay
       # -> /Applications/ServBay-1.0 when it finishes. Move it back so the post-job
       # actions/cache save step finds the base at /Applications/ServBay again.
       # Idempotent: no-op if the base is already in place.
       - name: Restore base mount point for cache save
-        if: always()
+        if: ${{ always() && inputs.runtime_version != 'v2' }}
         run: |
           if [[ ! -e /Applications/ServBay && -d /Applications/ServBay-1.0 ]]; then
             echo "Moving /Applications/ServBay-1.0 back to /Applications/ServBay for caching."
@@ -222,6 +354,7 @@ jobs:
       # suffix), so meta.filename matches that real file verbatim. The artifact name
       # still carries os+arch, so x86_64/arm64 outputs never collide.
       - name: Generate meta.json
+        if: ${{ inputs.runtime_version != 'v2' }}
         id: meta
         working-directory: runtime
         env:
@@ -270,13 +403,53 @@ jobs:
           echo "--- meta.json ---"
           cat "dist/packages/${out_pkg}/meta.json"
 
+      - name: Generate Runtime v2 schema2 handoff
+        id: meta_v2
+        if: ${{ inputs.runtime_version == 'v2' }}
+        env:
+          RECORD_JSON: ${{ toJSON(matrix) }}
+          PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'runtime/ci')
+          import build_profile, package_meta
+          record = json.loads(os.environ['RECORD_JSON'])
+          root = Path('runtime-v2')
+          package = root / 'dist/packages' / record['name'] / f"{record['name']}-{record['version']}.tar.gz"
+          source = build_profile.find_source(root, record.get('recipe_name', record['name']), record['version'],
+                                             record['arch'], root / 'config/packages.conf', os.environ.get('GOMODCACHE'))
+          producer = {'commit': os.environ['PRODUCER_COMMIT'], 'run_id': os.environ['GITHUB_RUN_ID'],
+                      'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])}
+          base = {'version': os.environ['BASE_VERSION'], 'runtime_sha256': os.environ['BASE_SHA256_RUNTIME'],
+                  'devlib_sha256': os.environ['BASE_SHA256_DEVLIB']}
+          if record['name'] in ('php', 'postgresql'):
+              sys.path.insert(0, 'runtime-v2/ci')
+              import module_pipeline
+              prefix = Path('/Applications/ServBay/packages') / record['name'] / package_meta.package_metadata(record['name'], record['version'])['major']
+              candidate = module_pipeline.prepare_candidate(package, record, producer, base, source, prefix)
+              (package.parent / 'candidate.json').write_text(json.dumps(candidate, indent=2) + '\n')
+              artifact_name = candidate['artifact_name']
+              metadata_file = 'candidate.json'
+          else:
+              meta = package_meta.create_meta(package, record, producer, base,
+                                              package_meta.minimum_os_from_archive(package), source)
+              (package.parent / 'meta.json').write_text(json.dumps(meta, indent=2) + '\n')
+              artifact_name = package_meta.artifact_name(meta)
+              metadata_file = 'meta.json'
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write(f"pkg_dir={package.parent}\nfilename={package.name}\nartifact_name={artifact_name}\nmetadata_file={metadata_file}\n")
+          PY
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pkg-macos-${{ matrix.arch }}-${{ inputs.pkg }}-${{ inputs.version }}
+          name: ${{ steps.meta_v2.outputs.artifact_name || format('pkg-macos-{0}-{1}-{2}', matrix.arch, inputs.pkg, inputs.version) }}
           path: |
-            ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
-            ${{ steps.meta.outputs.pkg_dir }}/meta.json
+            ${{ steps.meta_v2.outputs.pkg_dir || steps.meta.outputs.pkg_dir }}/${{ steps.meta_v2.outputs.filename || steps.meta.outputs.filename }}
+            ${{ steps.meta_v2.outputs.pkg_dir || steps.meta.outputs.pkg_dir }}/${{ steps.meta_v2.outputs.metadata_file || 'meta.json' }}
           if-no-files-found: error
           retention-days: 7
 
@@ -291,5 +464,266 @@ jobs:
           path: |
             runtime/logs/*.log
             runtime/logs/*.txt
+            runtime-v2/logs/*.log
+            runtime-v2/logs/*.txt
           if-no-files-found: warn
           retention-days: 7
+
+  module-plan:
+    needs: [plan, build]
+    if: ${{ always() && inputs.runtime_version == 'v2' && needs.plan.result == 'success' && (inputs.host_request != '' || (needs.plan.outputs.count != '0' && (inputs.pkg == 'php' || inputs.pkg == 'postgresql'))) }}
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.modules.outputs.matrix }}
+      count: ${{ steps.modules.outputs.count }}
+      cores: ${{ steps.modules.outputs.cores }}
+      core_count: ${{ steps.modules.outputs.core_count }}
+      dependency_matrix: ${{ steps.modules.outputs.dependency_matrix }}
+      dependency_count: ${{ steps.modules.outputs.dependency_count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python3 -m pip install requests
+      - name: Download immutable core candidates
+        if: ${{ inputs.host_request == '' && (inputs.pkg == 'php' || inputs.pkg == 'postgresql') }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: candidate-core-macos-*-${{ inputs.pkg }}-${{ inputs.version }}${{ inputs.build_revision > 0 && format('-r{0}', inputs.build_revision) || '' }}
+          path: candidates
+      - name: Reserve exact independent module identities
+        id: modules
+        env:
+          HOST_REQUEST: ${{ inputs.host_request }}
+          MODULE_CATALOG_URL: ${{ vars.MODULE_CATALOG_URL }}
+          PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 runtime-v2/ci/module_pipeline.py plan --candidates candidates --host-request "$HOST_REQUEST" \
+            --catalog "$MODULE_CATALOG_URL" --output module-plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: module-plan-${{ inputs.pkg }}-${{ inputs.version }}-${{ inputs.arch }}-r${{ inputs.build_revision }}
+          path: module-plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  module-build:
+    name: ${{ matrix.unit_job }}
+    needs: [plan, module-plan]
+    if: ${{ needs.module-plan.outputs.count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.module-plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 300
+    env:
+      BASE_DOWNLOAD_URL: ${{ vars.BASE_V2_DOWNLOAD_URL }}
+      BASE_VERSION: ${{ vars[format('BASE_V2_VERSION_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+      BASE_SHA256_RUNTIME: ${{ vars[format('BASE_V2_SHA256_RUNTIME_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+      BASE_SHA256_DEVLIB: ${{ vars[format('BASE_V2_SHA256_DEVLIB_{0}', matrix.arch == 'arm64' && 'ARM64' || 'X86_64')] }}
+      SERVBAY_BASE_FULL_PATH: /Applications/ServBay
+      PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Ensure base dir is writable
+        run: |
+          sudo mkdir -p /Applications/ServBay
+          sudo chown -R "$(whoami)" /Applications/ServBay
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /Applications/ServBay/packages/common
+            /Applications/ServBay/.bootstrap-v2.json
+          key: servbay-base-v2-${{ matrix.arch }}-${{ env.BASE_VERSION }}-${{ env.BASE_SHA256_RUNTIME }}-${{ env.BASE_SHA256_DEVLIB }}
+      - name: Bootstrap exact Runtime v2 base
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: /bin/bash runtime-v2/ci/bootstrap_base.sh "$ARCH"
+      - name: Install module toolchain
+        run: brew install autoconf automake cmake pkg-config gnu-tar coreutils libtool re2c boost
+      - name: Download exact candidate core
+        if: ${{ matrix.request.candidate_artifact != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.request.candidate_artifact }}
+          path: candidate
+      - name: Validate exact host before compilation
+        env:
+          UNIT_JSON: ${{ toJSON(matrix) }}
+        run: |
+          set -euo pipefail
+          python3 runtime-v2/ci/module_pipeline.py prepare-module --unit "$UNIT_JSON" --candidate-dir candidate \
+            --base-root /Applications/ServBay --work-root "$RUNNER_TEMP/module-work" \
+            --output-dir "$RUNNER_TEMP/module-artifact" --output "$RUNNER_TEMP/module-request.json"
+      - name: Compile Runtime v2 package
+        run: |
+          set -euo pipefail
+          python3 runtime-v2/ci/build_module.py --request "$RUNNER_TEMP/module-request.json"
+      - name: Resolve verified module Artifact name
+        id: artifact
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'runtime/ci')
+          import build_state
+          directory = Path(os.environ['RUNNER_TEMP']) / 'module-artifact'
+          files = [path for path in (directory / 'meta.json', directory / 'candidate.json') if path.is_file()]
+          if len(files) != 1:
+              raise ValueError('Exactly one formal metadata or nonpublishing candidate is required')
+          value = json.loads(files[0].read_text())
+          if files[0].name == 'candidate.json':
+              if value.get('schema_version') != 1 or value.get('publishable') is not False:
+                  raise ValueError('Dependency candidate must remain nonpublishing')
+              sys.path.insert(0, 'runtime-v2/ci')
+              import module_dependencies
+              name = module_dependencies.candidate_artifact_name(value['meta'])
+              if value.get('artifact_name') != name:
+                  raise ValueError('Dependency candidate name differs')
+          else:
+              name = build_state.artifact_name(value)
+          print('name=' + name)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ runner.temp }}/module-artifact/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload independent module diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-log-${{ matrix.arch }}-${{ matrix.name }}-${{ matrix.version }}-${{ matrix.host.series }}-r${{ matrix.build_revision }}
+          path: |
+            runtime-v2/logs/*.log
+            runtime-v2/logs/*.txt
+            ${{ runner.temp }}/module-work/logs/*
+          if-no-files-found: warn
+          retention-days: 7
+
+  finalize-modules:
+    name: Bind ${{ matrix.unit_job }}
+    needs: [plan, module-plan, module-build]
+    if: ${{ always() && needs.module-plan.result == 'success' && needs.module-plan.outputs.dependency_count != '0' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.module-plan.outputs.dependency_matrix) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Download exact dependency host candidate
+        if: ${{ matrix.request.candidate_artifact != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.request.candidate_artifact }}
+          path: dependency-host
+      - name: Download immutable module plan
+        uses: actions/download-artifact@v4
+        with:
+          name: module-plan-${{ inputs.pkg }}-${{ inputs.version }}-${{ inputs.arch }}-r${{ inputs.build_revision }}
+          path: module-plan
+      - name: Bind exact module dependencies
+        id: binding
+        env:
+          UNIT_JSON: ${{ toJSON(matrix) }}
+          MODULE_PLAN_FILE: module-plan/module-plan.json
+          HOST_DIR: dependency-host
+          FINAL_MODULE_DIR: final-module
+        run: |
+          set -euo pipefail
+          python3 runtime-v2/ci/module_pipeline.py finalize-module
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.binding.outputs.artifact_name }}
+          path: final-module/*
+          if-no-files-found: error
+          retention-days: 7
+
+  finalize-core:
+    name: Finalize ${{ matrix.unit_job }}
+    needs: [plan, module-plan, module-build, finalize-modules]
+    if: ${{ always() && needs.module-plan.result == 'success' && needs.module-plan.outputs.core_count != '0' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.module-plan.outputs.cores) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Download frozen candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: candidate
+      - name: Download immutable module plan
+        uses: actions/download-artifact@v4
+        with:
+          name: module-plan-${{ inputs.pkg }}-${{ inputs.version }}-${{ inputs.arch }}-r${{ inputs.build_revision }}
+          path: module-plan
+      - name: Read back exact successful module Artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+        run: python3 runtime-v2/ci/module_pipeline.py fetch-modules --plan module-plan/module-plan.json --output module-metas.json
+      - name: Finalize Runtime v2 core
+        id: final
+        env:
+          CANDIDATE_DIR: candidate
+          MODULE_PLAN_FILE: module-plan/module-plan.json
+          MODULE_META_LIST: module-metas.json
+          FINAL_CORE_DIR: final-core
+          PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+        run: |
+          set -euo pipefail
+          python3 runtime-v2/ci/module_pipeline.py finalize
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.final.outputs.artifact_name }}
+          path: final-core/*
+          if-no-files-found: error
+          retention-days: 7
+
+  collect-macos-v2:
+    needs: [plan, build, module-plan, module-build, finalize-modules, finalize-core]
+    if: ${{ always() && inputs.runtime_version == 'v2' && github.workflow == 'build-macos' && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Persist exact producer results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
+          INCLUDE_CURRENT_RUN_MODULES: 'true'
+          BUILD_RECORDS_JSON: ${{ needs.plan.outputs.matrix }}
+        run: /bin/bash runtime/ci/collect_builds.sh

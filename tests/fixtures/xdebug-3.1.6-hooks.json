@@ -1,0 +1,35 @@
+{
+  "source": {
+    "url": "https://pecl.php.net/get/xdebug-3.1.6.tgz",
+    "sha256": "554eca0b4d5b7b93cb2258fab0b0bd84cc8721e74322a2255c14e137cbcad5d2",
+    "bytes": 232196
+  },
+  "hooks": {
+    "develop": {
+      "symbol": "xdebug_develop_minit",
+      "header_path": "src/develop/develop.h",
+      "header_sha256": "8541cc4d16c52056bd3971c945fe1d55d23d84439f2f6c0ca0b2d5c3640c06de",
+      "implementation_path": "src/develop/develop.c",
+      "implementation_sha256": "a3163f9b274e355c162076ecd976a330277224c508cc1d35dd4250d6c09b7f2f",
+      "header_context": "void xdebug_init_develop_globals(xdebug_develop_globals_t *xg);\nvoid xdebug_deinit_develop_globals(xdebug_develop_globals_t *xg);\n\nvoid xdebug_develop_minit();\nvoid xdebug_develop_mshutdown();\nvoid xdebug_develop_rinit();\nvoid xdebug_develop_post_deactivate();\n",
+      "declaration": "void xdebug_develop_minit();",
+      "definition": "void xdebug_develop_minit(INIT_FUNC_ARGS)",
+      "call": "xdebug_develop_minit(INIT_FUNC_ARGS_PASSTHRU);",
+      "call_path": "xdebug-3.1.6/xdebug.c",
+      "call_source_sha256": "903393f6957ca2534aa69b691aec40ae4f77213b5604ce35156fc6db81dc0460"
+    },
+    "gcstats": {
+      "symbol": "xdebug_gcstats_minit",
+      "header_path": "src/gcstats/gc_stats.h",
+      "header_sha256": "eeb660fba0155ffc7b9802813e3c7a75ab37514caf5aa257d7d47efb23210207",
+      "implementation_path": "src/gcstats/gc_stats.c",
+      "implementation_sha256": "51211a7ec3edd9b76fba2e563c2bbb760a1f8bab731ff92c5c1801a014e32d2c",
+      "header_context": "void xdebug_gcstats_init_if_requested(zend_op_array* op_array);\n\nvoid xdebug_init_gc_stats_globals(xdebug_gc_stats_globals_t *xg);\nvoid xdebug_gcstats_minit();\nvoid xdebug_gcstats_mshutdown();\nvoid xdebug_gcstats_rinit();\nvoid xdebug_gcstats_rshutdown();\n",
+      "declaration": "void xdebug_gcstats_minit();",
+      "definition": "void xdebug_gcstats_minit()",
+      "call": "xdebug_gcstats_minit();",
+      "call_path": "xdebug-3.1.6/xdebug.c",
+      "call_source_sha256": "903393f6957ca2534aa69b691aec40ae4f77213b5604ce35156fc6db81dc0460"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+xdebug 3.1.6 declares xdebug_develop_minit() with an empty parameter list
+while its definition takes INIT_FUNC_ARGS. On PHP 8.x INIT_FUNC_ARGS_PASSTHRU
+expands to `type, module_number`, so the call in xdebug.c fails with
+"too many arguments to function call, expected 0, have 2".
+
+3.1.6 is the only xdebug line that still supports PHP 7.4 (3.2+ require 8.0),
+so the declaration is corrected here. The sibling hooks (gcstats, debugger,
+profiler) genuinely take no arguments in both declaration and definition and
+are left alone.
+
+--- a/src/develop/develop.h
++++ b/src/develop/develop.h
+@@ -67,7 +67,7 @@
+ void xdebug_init_develop_globals(xdebug_develop_globals_t *xg);
+ void xdebug_deinit_develop_globals(xdebug_develop_globals_t *xg);
+ 
+-void xdebug_develop_minit();
++void xdebug_develop_minit(INIT_FUNC_ARGS);
+ void xdebug_develop_mshutdown();
+ void xdebug_develop_rinit();
+ void xdebug_develop_post_deactivate();

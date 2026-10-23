@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "source": "Two controlled real job_outcomes/collect_results reproductions; core finalizer name follows the current build-macos workflow.",
+  "cases": [
+    {
+      "id": "core-finalize",
+      "record": {
+        "runtime_version": "v2",
+        "os": "macos",
+        "kind": "package",
+        "name": "php",
+        "version": "8.4.27",
+        "arch": "x86_64",
+        "build_revision": 0
+      },
+      "producer": {
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "run_id": "12345",
+        "run_attempt": 2
+      },
+      "jobs": [
+        {
+          "id": 101,
+          "name": "Build v2 60e5873d3a72aa174f90197b958d8aef23960ea2ec3584e27781158c9346aac7",
+          "run_id": 12345,
+          "run_attempt": 2,
+          "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Compile Runtime v2 package",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "name": "Finalize Build v2 60e5873d3a72aa174f90197b958d8aef23960ea2ec3584e27781158c9346aac7",
+          "run_id": 12345,
+          "run_attempt": 2,
+          "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "completed",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "name": "Finalize Runtime v2 core",
+              "status": "completed",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "module-bind",
+      "record": {
+        "runtime_version": "v2",
+        "os": "macos",
+        "kind": "postgresql-extension",
+        "name": "pgrouting",
+        "recipe_name": "pgrouting",
+        "version": "3.8.0",
+        "build_revision": 0,
+        "arch": "x86_64",
+        "host": {
+          "type": "postgresql",
+          "series": "18",
+          "abi": {
+            "major": 18
+          }
+        }
+      },
+      "producer": {
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "run_id": "123",
+        "run_attempt": 2
+      },
+      "jobs": [
+        {
+          "id": 101,
+          "name": "Build v2 380ea9d4ab207935bcadc611126c3ebab768c4f3ce484d653f283e9f599fbaf8",
+          "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 123,
+          "run_attempt": 2,
+          "steps": [
+            {
+              "name": "Compile Runtime v2 package",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "name": "Bind Build v2 380ea9d4ab207935bcadc611126c3ebab768c4f3ce484d653f283e9f599fbaf8",
+          "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_id": 123,
+          "run_attempt": 2,
+          "steps": [
+            {
+              "name": "Bind exact module dependencies",
+              "status": "completed",
+              "conclusion": "failure"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

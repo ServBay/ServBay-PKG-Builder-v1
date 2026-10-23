@@ -1,0 +1,65 @@
+--- ext-src/php_swoole.cc.bak	2025-07-06 17:22:42
++++ ext-src/php_swoole.cc	2025-07-06 17:28:21
+@@ -240,7 +240,15 @@
+ 
+ void php_swoole_register_shutdown_function(const char *function) {
+     php_shutdown_function_entry shutdown_function_entry;
+-#if PHP_VERSION_ID >= 80100
++#if PHP_VERSION_ID >= 80500
++    zval function_name;
++    memset(&shutdown_function_entry, 0, sizeof(php_shutdown_function_entry));
++    ZVAL_STRING(&function_name, function);
++    shutdown_function_entry.params = NULL;
++    shutdown_function_entry.param_count = 0;
++    register_user_shutdown_function(Z_STRVAL(function_name), Z_STRLEN(function_name), &shutdown_function_entry);
++    zval_ptr_dtor(&function_name);
++#elif PHP_VERSION_ID >= 80100
+     zval function_name;
+     ZVAL_STRING(&function_name, function);
+     zend_fcall_info_init(
+--- ext-src/swoole_runtime.cc.bak	2025-07-06 13:00:10
++++ ext-src/swoole_runtime.cc	2025-07-06 17:20:18
+@@ -190,12 +190,26 @@
+             memcpy(new_list, old_list, ZEND_TYPE_LIST_SIZE(old_list->num_types));
+             ZEND_TYPE_SET_PTR(new_arg_info[i].type, new_list);
+ 
++#if PHP_VERSION_ID >= 80500
++            // For PHP 8.5+, ZEND_TYPE_LIST_FOREACH gives a const pointer, which we can't modify.
++            // We must use a manual loop over the list we allocated ourselves.
++            for (uint32_t j = 0; j < new_list->num_types; j++) {
++                zend_type *list_type = &new_list->types[j];
++                if (ZEND_TYPE_HAS_NAME(*list_type)) {
++                    zend_string *name = zend_string_dup(ZEND_TYPE_NAME(*list_type), 1);
++                    ZEND_TYPE_SET_PTR(*list_type, name);
++                }
++            }
++#else
+             zend_type *list_type;
+             ZEND_TYPE_LIST_FOREACH(new_list, list_type) {
+-                zend_string *name = zend_string_dup(ZEND_TYPE_NAME(*list_type), 1);
+-                ZEND_TYPE_SET_PTR(*list_type, name);
++                if (ZEND_TYPE_HAS_NAME(*list_type)) {
++                    zend_string *name = zend_string_dup(ZEND_TYPE_NAME(*list_type), 1);
++                    ZEND_TYPE_SET_PTR(*list_type, name);
++                }
+             }
+             ZEND_TYPE_LIST_FOREACH_END();
++#endif
+         } else if (ZEND_TYPE_HAS_NAME(arg_info[i].type)) {
+             zend_string *name = zend_string_dup(ZEND_TYPE_NAME(arg_info[i].type), 1);
+             ZEND_TYPE_SET_PTR(new_arg_info[i].type, name);
+--- thirdparty/php/main/SAPI.h.bak	2025-07-06 12:58:45
++++ thirdparty/php/main/SAPI.h	2025-07-06 12:59:41
+@@ -38,7 +38,11 @@
+ 
+     switch (arg) {
+     case PARSE_STRING:
+-        separator = PG(arg_separator).input;
++#if PHP_VERSION_ID >= 80500
++    	separator = ZSTR_VAL(PG(arg_separator).input);
++#else
++    	separator = PG(arg_separator).input;
++#endif
+         break;
+     case PARSE_COOKIE:
+         separator = (char *) ";\0";
