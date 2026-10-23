@@ -1553,7 +1553,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ngrok\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.39.13\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:26Z",
+      "artifact_id": "12519346315",
+      "artifact_name": "pkg2-macos-arm64-package-ngrok-3.39.13",
+      "artifact_zip_sha256": "893ca304f446b8c0c55b32b247d6c38ae94ffdc87cc7ace37833c50768723d0e",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
+        "run_attempt": 1,
+        "run_id": "39993601784"
+      },
+      "package_sha256": "b888b4eac4e203b2c1b9db733f8e82a7e02253f04d0cd0d855fdefc49ef6f7f8",
+      "producer": {
+        "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
+        "run_attempt": 1,
+        "run_id": "39993601784"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1564,16 +1579,7 @@
         "runtime_version": "v2",
         "version": "3.39.13"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:47+00:00",
-        "expires_at": "2026-10-24T01:15:47+00:00",
-        "producer": {
-          "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
-          "run_attempt": 1,
-          "run_id": "39993601784"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"12.22.12\"}": {
       "consecutive_failures": 0,
@@ -4666,7 +4672,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ngrok\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.39.13\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:52Z",
+      "artifact_id": "12518642667",
+      "artifact_name": "pkg2-macos-x86_64-package-ngrok-3.39.13",
+      "artifact_zip_sha256": "409e939edf0a08503926e3ebaa15a6938a255f97bb488da8c9ef1258c915cfd9",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
+        "run_attempt": 1,
+        "run_id": "39993601784"
+      },
+      "package_sha256": "0350ca99f8195ab363979a1eb900896475e3ee26b3685eb8dca5dc5e1b2d8075",
+      "producer": {
+        "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
+        "run_attempt": 1,
+        "run_id": "39993601784"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4677,16 +4698,7 @@
         "runtime_version": "v2",
         "version": "3.39.13"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:47+00:00",
-        "expires_at": "2026-10-24T01:15:47+00:00",
-        "producer": {
-          "commit": "4150dbe4289e4425f4f176ec4962099e1fa9a729",
-          "run_attempt": 1,
-          "run_id": "39993601784"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"12.22.12\"}": {
       "consecutive_failures": 0,
