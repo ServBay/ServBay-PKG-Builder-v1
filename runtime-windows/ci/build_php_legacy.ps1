@@ -374,31 +374,20 @@ typedef unsigned __int8 u_char;
 #ifndef u_int32_t
 typedef uint32_t u_int32_t;
 #endif
+/* The VC11 dependency archives (libxml2, libbz2, libmcrypt, ...) import the
+ * pre-UCRT stdio symbols. legacy_stdio_definitions.lib covers the printf
+ * family, but not the stdio-array import slot the dllimport objects use, so
+ * define that here. This header is included by every PHP translation unit,
+ * which is what lets each extension DLL resolve the symbol on its own. */
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+#include <stdio.h>
+static FILE * __cdecl php_pre_ucrt_iob(void) { return __acrt_iob_func(0); }
+__declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void) = php_pre_ucrt_iob;
 #else
 "@
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
         Write-Step 'Scoped the PHP 5 CRT shims to pre-UCRT compilers'
 
-        # The VC11 dependency archives (libxml2_a_dll, libmcrypt_a, iconv_a)
-        # reference pre-UCRT stdio symbols - __imp___iob_func, __imp_vfprintf,
-        # __imp_sprintf_s - that UCRT dropped or moved. Visual Studio ships a
-        # compatibility archive for exactly this, so pull it into the link
-        # instead of hand-defining the symbols.
-        $MainC = Join-Path $SourceDir 'main\main.c'
-        $iobShim = @'
-
-#if defined(_MSC_VER) && _MSC_VER >= 1900
-/* Bridge the pre-UCRT stdio symbols the VC11 dependency archives import.
- * legacy_stdio_definitions.lib supplies __iob_func and the printf family, but
- * not the import slot the __declspec(dllimport) objects actually reference. */
-#pragma comment(lib, "legacy_stdio_definitions.lib")
-#include <stdio.h>
-FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
-FILE * (__cdecl * __imp___iob_func)(void) = __iob_func;
-#endif
-'@
-        Add-Content -Path $MainC -Value $iobShim -Encoding ASCII
-        Write-Step 'Linked legacy_stdio_definitions for the VC11 archives'
     }
 
     # --- Configure ---------------------------------------------------------
