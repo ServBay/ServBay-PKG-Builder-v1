@@ -309,6 +309,24 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("@('5.5', '5.6', '7.0', '7.1', '7.2', '7.3')", text)
 
 
+class DispatchPermissionsTests(unittest.TestCase):
+    """A reusable workflow can never be granted more than its caller."""
+
+    def test_caller_grants_what_build_macos_requests(self):
+        # build-macos.yml asks for contents: write + actions: read. When the
+        # orchestrator only granted contents: read, every manual dispatch died
+        # with startup_failure before any job ran - GitHub refuses to start a
+        # run whose called workflow requests more than the caller allows.
+        dispatch = yaml.safe_load(DISPATCH.read_text())
+        caller = dispatch["permissions"]
+        callee = yaml.safe_load((ROOT / ".github/workflows/build-macos.yml").read_text())["permissions"]
+        for scope, level in callee.items():
+            self.assertIn(scope, caller, f"caller does not grant {scope} at all")
+            self.assertEqual(
+                caller[scope], level, f"caller grants {scope}: {caller[scope]}, callee wants {level}"
+            )
+
+
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
     def setUp(self):
         self.workflow = yaml.safe_load(WORKFLOW.read_text())
