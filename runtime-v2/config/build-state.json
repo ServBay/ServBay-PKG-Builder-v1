@@ -3104,6 +3104,15 @@
         "runtime_version": "v2",
         "version": "4.0.9"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:58+00:00",
+        "expires_at": "2026-10-24T01:43:58+00:00",
+        "producer": {
+          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+          "run_attempt": 1,
+          "run_id": "39997398685"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
@@ -6354,6 +6363,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "4.0.9"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:58+00:00",
+        "expires_at": "2026-10-24T01:43:58+00:00",
+        "producer": {
+          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+          "run_attempt": 1,
+          "run_id": "39997398685"
+        }
       },
       "status": "discovered"
     },
