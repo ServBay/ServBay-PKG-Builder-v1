@@ -736,7 +736,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.27.3\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997404749"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -747,16 +752,7 @@
         "runtime_version": "v2",
         "version": "1.27.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:38+00:00",
-        "expires_at": "2026-10-24T01:43:38+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997404749"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.32.0\"}": {
       "artifact_expires_at": "2026-10-30T17:01:52Z",
@@ -4020,7 +4016,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.27.3\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997404749"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4031,16 +4032,7 @@
         "runtime_version": "v2",
         "version": "1.27.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:38+00:00",
-        "expires_at": "2026-10-24T01:43:38+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997404749"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.32.0\"}": {
       "artifact_expires_at": "2026-10-30T17:03:06Z",
