@@ -117,6 +117,9 @@ class HttpdAprLibtoolBackfillTests(unittest.TestCase):
         self.assertIn("share/apr-1/build/libtool", joined)
         self.assertIn("command -v glibtool", joined)
         self.assertIn("> \"$_apr_libtool\"", joined)
+        # httpd 的调用不带 --tag，GNU libtool 推断不了自定义 wrapper 的 tag；
+        # 回填物必须显式注入 --tag=CC。
+        self.assertIn('exec %s --tag=CC "$@"', joined)
 
 
 class PhpLegacyMakefileFlagsTests(unittest.TestCase):
