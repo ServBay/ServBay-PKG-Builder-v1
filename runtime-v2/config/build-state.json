@@ -732,6 +732,15 @@
         "runtime_version": "v2",
         "version": "1.27.3"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:38+00:00",
+        "expires_at": "2026-10-24T01:43:38+00:00",
+        "producer": {
+          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+          "run_attempt": 1,
+          "run_id": "39997404749"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.32.0\"}": {
@@ -3937,6 +3946,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "1.27.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:38+00:00",
+        "expires_at": "2026-10-24T01:43:38+00:00",
+        "producer": {
+          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+          "run_attempt": 1,
+          "run_id": "39997404749"
+        }
       },
       "status": "discovered"
     },
