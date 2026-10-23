@@ -1284,6 +1284,15 @@
         "runtime_version": "v2",
         "version": "100.19.1"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:32:02+00:00",
+        "expires_at": "2026-10-24T01:32:02+00:00",
+        "producer": {
+          "commit": "0559f5afef02ed6b921d019143351669644554be",
+          "run_attempt": 1,
+          "run_id": "39995817416"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mono\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.14.1\"}": {
@@ -4441,6 +4450,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "100.19.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:32:02+00:00",
+        "expires_at": "2026-10-24T01:32:02+00:00",
+        "producer": {
+          "commit": "0559f5afef02ed6b921d019143351669644554be",
+          "run_attempt": 1,
+          "run_id": "39995817416"
+        }
       },
       "status": "discovered"
     },
