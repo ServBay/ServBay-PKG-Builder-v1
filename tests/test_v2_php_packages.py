@@ -308,6 +308,51 @@ exit 0
         self.assertTrue(alias.is_symlink())
         self.assertTrue(alias.resolve().is_file())
 
+    def test_fresh_build_environment_recreates_the_base_baked_compiler_wrapper(self):
+        # base 烘焙的 *-config（apr-1-config/apu-1-config/MagickCore-config…）把
+        # Utility runtime 构建机的编译器 wrapper 绝对路径写死为 --cc 输出
+        # （RUNTIME_TOOL_DIR=$RUNNER_TEMP/runtime-v2-tools）。包编译 runner 上该
+        # 路径不存在，任何咨询 --cc 的 configure（如 httpd 的 APR-util 探测）
+        # 都会报 "C compiler cannot create executables"。环境初始化必须在
+        # runner 上按同一契约重建 wrapper。
+        base = self.root / "base"
+        common = base / "packages/common/bin"
+        common.mkdir(parents=True)
+        runner_temp = self.root / "runner-temp"
+        (runner_temp / "runtime-v2-tools").mkdir(parents=True)
+        baked_cc = runner_temp / "runtime-v2-tools" / "cc"
+        apr_config = common / "apu-1-config"
+        apr_config.write_text("#!/bin/sh\n" +
+                              'case "$1" in\n' +
+                              f'  --cc) echo "{baked_cc}" ;;\n' +
+                              '  --version) echo "APR-util 1.6.3" ;;\n' +
+                              '  *) echo "usage" >&2; exit 1 ;;\n' +
+                              "esac\n")
+        apr_config.chmod(0o755)
+        script = "\n".join([
+            "export SERVBAY_RECIPE_LIBRARY_ONLY=1",
+            "source " + shlex.quote(str(ROOT / "runtime-v2/scripts/build_package.sh")) + " || exit 1",
+            "unset SERVBAY_RECIPE_LIBRARY_ONLY", "architecture=arm64", 'BUILD_CPU_ARCH="-arch arm64"',
+            'BUILD_MACOS_TARGET="-target arm64-apple-macos12.00"', "init_logging || exit 1",
+            "setup_package_build_environment httpd 2.4.69 || exit 1",
+            # --cc 输出必须是现在真实可执行的编译器（config 消费方会直接执行它）。
+            f'cc=$("{apr_config}" --cc) || exit 1',
+            '[[ -x "$cc" ]] || { echo "baked --cc is not executable: $cc"; exit 1; }',
+            # 真实消费方（configure/make）会带上环境 CFLAGS（含 -isysroot）；
+            # wrapper 本体与 runtime 侧契约一致，只做编译器转发不注入 SDK 标志。
+            # ${=CFLAGS}：zsh 显式分词，模拟 sh 语义下的 CFLAGS 展开。
+            'echo "int main(void){return 0;}" | "$cc" -x c ${=CFLAGS} -o /dev/null - || exit 1',
+            "exit 0",
+        ])
+        result = subprocess.run(["/bin/zsh", "-c", script], capture_output=True, text=True,
+                                env=dict(os.environ, SERVBAY_BASE_FULL_PATH=str(base),
+                                         SERVBAY_BUILD_ROOT=str(self.root / "build"),
+                                         RUNNER_TEMP=str(runner_temp)))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertTrue(baked_cc.is_symlink() or baked_cc.is_file())
+        self.assertIn("clang", os.path.realpath(baked_cc))
+
+
     def test_only_explicit_security_releases_allow_a_different_primary_source_version(self):
         spec = importlib.util.spec_from_file_location("php_package_meta", ROOT / "runtime/ci/package_meta.py")
         metadata = importlib.util.module_from_spec(spec)
