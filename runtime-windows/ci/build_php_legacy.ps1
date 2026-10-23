@@ -381,8 +381,11 @@ typedef uint32_t u_int32_t;
  * which is what lets each extension DLL resolve the symbol on its own. */
 #pragma comment(lib, "legacy_stdio_definitions.lib")
 #include <stdio.h>
+#ifndef PHP_PRE_UCRT_STDIO_BRIDGE
+#define PHP_PRE_UCRT_STDIO_BRIDGE
 static FILE * __cdecl php_pre_ucrt_iob(void) { return __acrt_iob_func(0); }
 __declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void) = php_pre_ucrt_iob;
+#endif
 #else
 "@
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
