@@ -421,6 +421,10 @@ try {
         }
         $modern = @"
 #if _MSC_VER >= 1900
+/* The bundled header has no outer guard on this branch, so every inclusion
+ * would redefine the shim below. */
+#ifndef PHP_PRE_UCRT_SHIM
+#define PHP_PRE_UCRT_SHIM
 /* The UCRT provides <stdint.h>; this file would only redefine it. Keep the
  * BSD aliases the bundled header added on top - crypt_freesec.c relies on
  * u_char, and other code on u_int32_t. */
@@ -431,16 +435,43 @@ typedef unsigned __int8 u_char;
 #ifndef u_int32_t
 typedef uint32_t u_int32_t;
 #endif
-/* The VC11 dependency archives (libxml2, libbz2, libpng, ...) import the
- * pre-UCRT stdio symbols. legacy_stdio_definitions.lib covers the printf
- * family; the stdio-array slot comes from php5.dll, which exports
- * __iob_func and therefore puts __imp___iob_func in php5.lib. */
-#pragma comment(lib, "legacy_stdio_definitions.lib")
 #include <stdio.h>
+#endif /* PHP_PRE_UCRT_SHIM */
 #else
 "@
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
         Write-Step 'Scoped the PHP 5 CRT shims to pre-UCRT compilers'
+
+        # php_stdint.h is not included by every extension - ext/curl's objects
+        # carry no trace of it - so the linker directives have to live in
+        # main\php.h, which every translation unit does include.
+        $PhpHeader = Join-Path $SourceDir 'main\php.h'
+        $headerText = [IO.File]::ReadAllText($PhpHeader)
+        if ($headerText.Contains('PHP_PRE_UCRT_LINK_SHIM')) {
+            throw 'main\php.h already carries the pre-UCRT link shim'
+        }
+        $linkShim = @'
+
+/* --- pre-UCRT stdio shim (see runtime-windows/ci/build_php_legacy.ps1) --- */
+#if defined(_MSC_VER) && _MSC_VER >= 1900
+#ifndef PHP_PRE_UCRT_LINK_SHIM
+#define PHP_PRE_UCRT_LINK_SHIM
+/* The VC11 dependency archives (libxml2, libbz2, libpng, libcurl, ...) import
+ * the pre-UCRT stdio symbols. legacy_stdio_definitions.lib provides them, but
+ * the pragma only adds the library - the /include directives pull the member
+ * that actually defines the slots. The pre-UCRT vsnprintf spellings cannot be
+ * declared here (UCRT declares them as dllimports), so they are routed to
+ * compatibility functions exported by php5.dll. */
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+#pragma comment(linker, "/include:__imp_sscanf")
+#pragma comment(linker, "/include:__imp_sprintf")
+#pragma comment(linker, "/alternatename:vsnprintf=php_compat_vsnprintf")
+#pragma comment(linker, "/alternatename:_vsnprintf=php_compat__vsnprintf")
+#endif
+#endif
+'@
+        [IO.File]::WriteAllText($PhpHeader, $headerText.TrimEnd() + $linkShim, [Text.Encoding]::ASCII)
+        Write-Step 'Routed the pre-UCRT stdio slots from main\php.h'
 
         # libpng and the other /MT-style archives reference __iob_func
         # directly instead of going through the import slot. Export it from
@@ -453,6 +484,29 @@ typedef uint32_t u_int32_t;
 /* The pre-UCRT stdio array the VC11 dependency archives expect. */
 #include <stdio.h>
 __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
+
+/* The VC11 archives import sscanf/sprintf through the pre-UCRT dllimport
+ * slots. legacy_stdio_definitions.lib provides them, but a pragma comment
+ * only adds the library - it does not pull the member that defines them, so
+ * the header forces the symbols in. Defining them here instead would collide
+ * with that member. vpxmt.lib (VP8, linked by gd) calls the pre-UCRT
+ * vsnprintf by name and _vsnprintf through MSVCRT.lib's shim. */
+#undef sprintf
+#undef sscanf
+#undef vsnprintf
+#include <stdio.h>
+#include <stdarg.h>
+/* vpxmt.lib (VP8, linked by gd) calls the pre-UCRT vsnprintf by name and
+ * _vsnprintf through MSVCRT.lib's shim. UCRT declares vsnprintf as a dllimport,
+ * so it cannot be defined here; route the references instead. */
+__declspec(dllexport) int __cdecl php_compat_vsnprintf(char *buf, size_t count, const char *format, va_list args)
+{
+    return _vsnprintf_s(buf, count, _TRUNCATE, format, args);
+}
+__declspec(dllexport) int __cdecl php_compat__vsnprintf(char *buf, size_t count, const char *format, va_list args)
+{
+    return _vsnprintf_s(buf, count, _TRUNCATE, format, args);
+}
 
 /* cclient (imap) and the OLDNAMES shim read the timezone globals through
  * __imp_daylight / __imp_tzname. UCRT removed those variables entirely -
