@@ -82,6 +82,8 @@ $MajorMinor = ($BaseVersion -split '\.')[0] + '.' + ($BaseVersion -split '\.')[1
 # manifests are keyed by CRT, and the import libraries in them are the ones
 # the official binaries linked against.
 $CrtByBranch = @{
+    '5.5' = 'vc11'
+    '5.6' = 'vc11'
     '7.0' = 'vc14'
     '7.1' = 'vc14'
     '7.2' = 'vc15'
@@ -117,6 +119,10 @@ New-Item -ItemType Directory -Force -Path $Root, $SdkDir, $ToolsDir | Out-Null
 # libraries. MSVC has kept the vcruntime140 ABI since 2015, so that links.
 $ToolsetPattern = switch ($Crt) {
     'vc14' { '^14\.0\d*\.' }
+    # 5.5/5.6 shipped against VS2012 (v110), which no longer exists. VS2019's
+    # 14.2x is the closest surviving toolset and the least likely to reject
+    # code from that era; it falls back to the newest one when absent.
+    'vc11' { '^14\.2\d*\.' }
     'vc15' { '^14\.1\d*\.' }
     'vs16' { '^14\.2\d*\.' }
 }
@@ -149,11 +155,11 @@ if (-not (Test-Path $VcVars)) { throw "vcvarsall.bat is missing: $VcVars" }
 Write-Step "Using MSVC $ToolsetVer from $VsPath"
 
 # --- Upstream inputs -------------------------------------------------------
-# SDK 2.1 (20110915) is the last one that can build 7.0/7.1; its buildtree also
-# lacks the vc15/vs16 layouts. 7.2+ use the current SDK, whose buildtree knows
-# every supported compiler.
+# SDK 2.1 (20110915) is the last one that can build 5.5/5.6, 7.0 and 7.1; its
+# buildtree also lacks the vc15/vs16 layouts. Everything newer uses the current
+# SDK, whose buildtree knows every supported compiler.
 $SdkZip = Join-Path $ToolsDir "php-sdk-$Crt.zip"
-if ($Crt -eq 'vc14') {
+if ($Crt -in @('vc11', 'vc14')) {
     $SdkUrl = 'https://downloads.php.net/~windows/php-sdk/php-sdk-binary-tools-20110915.zip'
 } else {
     $SdkUrl = 'https://github.com/php/php-sdk-binary-tools/archive/refs/tags/php-sdk-2.8.4.zip'
@@ -178,17 +184,17 @@ if (-not (Test-Path (Join-Path $SdkRoot 'bin'))) {
 $env:PHP_SDK_ROOT_PATH = $SdkRoot
 $env:PATH = "$(Join-Path $SdkRoot 'bin');$(Join-Path $SdkRoot 'msys2\usr\bin');" + $env:PATH
 
-# VC14 is the only branch php.net published an aggregate dependency bundle
-# for. Everything above it ships one zip per library plus a series manifest
-# that pins the exact versions that branch was released against.
+# vc11 and vc14 shipped as one aggregate dependency bundle per branch.
+# Everything above them ships one zip per library plus a series manifest that
+# pins the exact versions that branch was released against.
 $DepsArchive = $null
 $DepsPackages = @()
 $DepsCache = Join-Path $ToolsDir "deps-$MajorMinor-$Crt-$Arch"
-if ($Crt -eq 'vc14') {
-    $DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-vc14-$Arch.7z"
+if ($Crt -in @('vc11', 'vc14')) {
+    $DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-$Crt-$Arch.7z"
     if (-not (Test-Path $DepsArchive)) {
-        Write-Step "Downloading PHP $MajorMinor VC14 dependency libraries ($Arch)"
-        Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/deps-$MajorMinor-vc14-$Arch.7z" -OutFile $DepsArchive
+        Write-Step "Downloading PHP $MajorMinor $Crt dependency libraries ($Arch)"
+        Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/deps-$MajorMinor-$Crt-$Arch.7z" -OutFile $DepsArchive
     }
 } else {
     $SeriesUrl = "https://downloads.php.net/~windows/php-sdk/deps/series/packages-$MajorMinor-$Crt-$Arch-stable.txt"
@@ -228,9 +234,10 @@ try {
 finally { Pop-Location }
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 if (-not (Test-Path $BuildDir)) {
-    if ($Crt -eq 'vc14') {
-        # SDK 2.1 predates vc14 and only creates vc6..vc9, all as siblings
-        # under phpdev; copy vc9 to get the vc14 layout.
+    if ($Crt -in @('vc11', 'vc14')) {
+        # SDK 2.1 predates both vc11 and vc14 and only creates vc6..vc9, all as
+        # siblings under phpdev; copy vc9 to get the requested layout. The tree
+        # is just deps\{bin,include,lib}, which the dependency archive fills.
         $Vc9Dir = Join-Path $PhpDevRoot 'vc9'
         if (-not (Test-Path $Vc9Dir)) { throw "phpsdk_buildtree did not create $Vc9Dir" }
         Copy-Item -Recurse -Force $Vc9Dir $BuildDir
@@ -246,7 +253,7 @@ if (-not (Test-Path $SevenZip)) {
     $SevenZip = Join-Path $ToolsDir '7zr.exe'
 }
 Write-Step 'Extracting dependency libraries'
-if ($Crt -eq 'vc14') {
+if ($Crt -in @('vc11', 'vc14')) {
     & $SevenZip x $DepsArchive "-o$BuildDir" -y | Out-Null
 } else {
     # The per-library zips are already laid out as deps\{bin,include,lib}.
@@ -320,8 +327,12 @@ try {
     # --enable-snapshot-build is what php.net's own Windows releases use: it
     # turns on every optional module and builds each one shared, which is what
     # puts the 37 php_*.dll files in ext/. Without it the package would be a
-    # bare CLI that cannot serve a ServBay site.
-    $configureArgs = @('--enable-snapshot-build', '--disable-zts', '--enable-cli', '--enable-cgi')
+    # bare CLI that cannot serve a ServBay site. PHP 5 always builds both the
+    # CLI and CGI SAPIs, so those flags only exist from 7.0 on.
+    $configureArgs = @('--enable-snapshot-build', '--disable-zts')
+    if ($MajorMinor -notin @('5.5', '5.6')) {
+        $configureArgs += @('--enable-cli', '--enable-cgi')
+    }
     & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && cscript //nologo configure.js $($configureArgs -join ' ')"
 
     # --- Align the module build ID with the official extensions -------------
@@ -357,8 +368,10 @@ try {
     } else {
         $headerText = Get-Content $ConfigHeader -Raw
         # Branches that recognise the toolset emit a bare identifier, the ones
-        # that do not emit a quoted version string; accept either.
-        $updated = [regex]::Replace($headerText, '#define\s+PHP_COMPILER_ID\s+("[^"]*"|\S+)', "#define PHP_COMPILER_ID `"$CompatId`"")
+        # that do not emit a quoted version string, and PHP 5 leaves the value
+        # empty because its table stops at VS2013. Replace the whole line so
+        # all three forms end up with the official ID.
+        $updated = [regex]::Replace($headerText, '(?m)^#define\s+PHP_COMPILER_ID[^\r\n]*', "#define PHP_COMPILER_ID `"$CompatId`"")
         Set-Content -Path $ConfigHeader -Value $updated -Encoding ASCII
         Write-Step "Module build ID set to $CompatId in $ConfigHeader"
     }
@@ -429,10 +442,11 @@ try {
     $ArchZip = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
     # windows.php.net spells the 7.4 CRT tag in lower case and puts the EOL
     # branches under archives\.
-    $CrtTag = switch ($Crt) { 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
+    $CrtTag = switch ($Crt) { 'vc11' { 'VC11' } 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
     if ($MajorMinor -eq '7.4') { $CrtTag = 'vc15' }
     $OfficialName = "php-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip"
-    $OfficialBase = if ($MajorMinor -in @('7.0', '7.1', '7.2', '7.3')) {
+    # EOL branches live under archives\; 8.0/8.1 remain in the current tree.
+    $OfficialBase = if ($MajorMinor -in @('5.5', '5.6', '7.0', '7.1', '7.2', '7.3')) {
         'https://windows.php.net/downloads/releases/archives/'
     } else {
         'https://windows.php.net/downloads/releases/'

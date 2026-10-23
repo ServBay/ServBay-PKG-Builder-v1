@@ -95,6 +95,9 @@ jobs:
           )
           $pecl = 'https://downloads.php.net/~windows/pecl/releases'
           $pinned = @{
+            '5.6' = @{
+              apcu = "$pecl/apcu/4.0.8/php_apcu-4.0.8-5.6-nts-vc11-x64.zip"
+            }
             '7.0' = @{
               apcu = "$pecl/apcu/5.1.15/php_apcu-5.1.15-7.0-nts-vc14-x64.zip"
               grpc = "$pecl/grpc/1.17.0/php_grpc-1.17.0-7.0-nts-vc14-x64.zip"
