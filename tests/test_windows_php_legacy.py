@@ -312,6 +312,15 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("$CrtVersion = 1700", text)
         self.assertIn("cannot pin the toolset name", text)
 
+    def test_php5_scopes_the_snprintf_macro(self):
+        # UCRT provides a real snprintf and aborts compilation while the macro
+        # is defined ("Macro definition of snprintf conflicts with Standard
+        # Library function declaration"). PHP 5 defines it unconditionally.
+        text = PS1.read_text()
+        self.assertIn("#define snprintf _snprintf", text)
+        self.assertIn("'#if _MSC_VER < 1900'", text)
+        self.assertIn("does not define the snprintf macro as expected", text)
+
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
         self.assertIn("'vc11' { 'VC11' }", text)
