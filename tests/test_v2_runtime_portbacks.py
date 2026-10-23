@@ -122,6 +122,19 @@ class HttpdAprLibtoolBackfillTests(unittest.TestCase):
         self.assertIn('exec %s --tag=CC "$@"', joined)
 
 
+class BrewGdbmHeaderCopyTests(unittest.TestCase):
+    def test_setup_copies_brew_gdbm_headers_into_the_searched_include_dir(self):
+        # CPython 的 PY_CPPFLAGS 只带 configure 烘焙的基础 -I，不继承运行时
+        # 追加的 CPPFLAGS：brew gdbm 的头必须复制进 ServBay include 目录。
+        recipe = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = recipe.split("setup_package_build_environment() {", 1)[1].split("\n}", 1)[0]
+        code = [line for line in body.splitlines() if line.strip() and not line.strip().startswith("#")]
+        joined = "\n".join(code)
+        self.assertIn("/opt/homebrew/opt/gdbm/include", joined)
+        self.assertIn("/usr/local/opt/gdbm/include", joined)
+        self.assertIn('cp "$_gdbm_include/gdbm.h" "$_gdbm_include/gdbm-ndbm.h"', joined)
+
+
 class PhpLegacyMakefileFlagsTests(unittest.TestCase):
     """A7（v1 6b03016）：旧分支 libjpeg 回调签名降级必须写进 configure 生成的
     Makefile 的 CFLAGS_CLEAN——PHP configure 会重建 CFLAGS，环境变量到不了编译行。"""
