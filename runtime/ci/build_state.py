@@ -7,9 +7,11 @@ import copy
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import time
 import zipfile
 
 
@@ -28,7 +30,12 @@ def clean_record(record):
     """Copy only public scheduling fields, never arbitrary input metadata."""
     if record.get("runtime_version") not in ("v1", "v2"):
         raise ValueError("Invalid runtime_version")
-    if record.get("os") != "macos" or record.get("arch") not in ("x86_64", "arm64"):
+    arch = record.get("arch")
+    if record.get("os") == "windows":
+        if record["runtime_version"] != "v2" or arch not in ("x64", "x86_64"):
+            raise ValueError("Windows build identities require runtime v2 and x86_64")
+        arch = "x86_64"
+    elif record.get("os") != "macos" or arch not in ("x86_64", "arm64"):
         raise ValueError("Invalid macOS build platform")
     if record.get("kind") not in KINDS:
         raise ValueError("Invalid kind")
@@ -36,6 +43,7 @@ def clean_record(record):
     if type(revision) is not int or revision < 0:
         raise ValueError("Invalid build_revision")
     result = {key: record[key] for key in ("runtime_version", "os", "kind", "arch")}
+    result["arch"] = arch
     result.update(name=_text(record.get("name"), "name"),
                   version=_text(record.get("version"), "version"), build_revision=revision)
     if "build_type" in record:
@@ -70,7 +78,7 @@ def artifact_name(record):
     row = clean_record(record)
     if row["runtime_version"] != "v2":
         raise ValueError("The pkg2 artifact protocol requires runtime v2")
-    name = f"pkg2-macos-{row['arch']}-{row['kind']}-{row['name']}-{row['version']}"
+    name = f"pkg2-{row['os']}-{row['arch']}-{row['kind']}-{row['name']}-{row['version']}"
     if "host" in row:
         name += f"-{row['host']['series']}"
     if row["build_revision"]:
@@ -400,6 +408,10 @@ class StateConflict(Exception):
     """The public ledger changed after it was read."""
 
 
+class LedgerTransient(RuntimeError):
+    """A retryable transport failure (secondary rate limit, transient 5xx)."""
+
+
 def persist_results(records, artifacts, producer, artifact_dir, read_state, write_state, outcomes=None):
     return _persist(lambda state: collect_results(state, records, artifacts, producer, artifact_dir, outcomes),
                     read_state, write_state)
@@ -409,8 +421,15 @@ def persist_plan(records, read_state, write_state):
     return _persist(lambda state: plan_pending(state, records), read_state, write_state)
 
 
-def _persist(operation, read_state, write_state):
-    for attempt in range(3):
+def _persist(operation, read_state, write_state, attempts=6, sleep=time.sleep):
+    """CAS-persist with exponential backoff.
+
+    Parallel package runs contend on one public ledger: concurrent writers hit
+    compare-and-swap conflicts, and bursty content PUTs trip GitHub's secondary
+    rate limits (403) or transient 5xx. All three are retryable with backoff;
+    anything else (token, missing file) fails fast.
+    """
+    for attempt in range(attempts):
         sha, state = read_state()
         collected = operation(state)
         if collected["state"] == state:
@@ -418,27 +437,33 @@ def _persist(operation, read_state, write_state):
         try:
             write_state(sha, collected["state"])
             return collected
-        except StateConflict:
-            if attempt == 2:
+        except (StateConflict, LedgerTransient):
+            if attempt == attempts - 1:
                 raise
+        sleep(min(2 ** attempt, 30))
 
 
-def github_state_store(repository, path):
+def github_state_store(repository, path, ref=None):
+    """One ledger per ref: runs on a branch reserve against that branch's copy,
+    so experimental runs never touch the main ledger and vice versa."""
+    branch = ref or os.environ.get("GITHUB_REF_NAME") or "main"
     endpoint = f"repos/{repository}/contents/{path}"
 
     def read_state():
-        result = subprocess.run(["gh", "api", endpoint + "?ref=main"], check=True, capture_output=True, text=True)
+        result = subprocess.run(["gh", "api", endpoint + f"?ref={branch}"], check=True, capture_output=True, text=True)
         remote = json.loads(result.stdout)
         return remote["sha"], json.loads(base64.b64decode(remote["content"]))
 
     def write_state(sha, state):
-        payload = {"message": "chore: record macOS v2 build results", "branch": "main", "sha": sha,
+        payload = {"message": "chore: record macOS v2 build results", "branch": branch, "sha": sha,
                    "content": base64.b64encode((json.dumps(state, indent=2, sort_keys=True) + "\n").encode()).decode()}
         result = subprocess.run(["gh", "api", "--method", "PUT", endpoint, "--input", "-"],
                                 input=json.dumps(payload), capture_output=True, text=True)
         if result.returncode:
             if "HTTP 409" in result.stderr:
                 raise StateConflict("The Builder ledger changed concurrently")
+            if "HTTP 403" in result.stderr or "HTTP 5" in result.stderr:
+                raise LedgerTransient("The ledger write hit a retryable transport failure: " + result.stderr.strip()[:200])
             raise RuntimeError("Could not persist the Builder ledger with its repository token")
 
     return read_state, write_state
