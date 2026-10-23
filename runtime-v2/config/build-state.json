@@ -1172,7 +1172,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"minio\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2025-10-15T17-29-55Z\"}": {
+      "artifact_expires_at": "2026-10-30T17:50:03Z",
+      "artifact_id": "12519714600",
+      "artifact_name": "pkg2-macos-arm64-package-minio-2025-10-15T17-29-55Z",
+      "artifact_zip_sha256": "6c054b88712044cd377ecf5856c2c7225451554586edd7589c130dc02bcdd8d5",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997383982"
+      },
+      "package_sha256": "f5b96ae7bd13c8359c494014de3aabb28ae11093a074add35524b547a9860eb8",
+      "producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997383982"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1183,16 +1198,7 @@
         "runtime_version": "v2",
         "version": "2025-10-15T17-29-55Z"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:30+00:00",
-        "expires_at": "2026-10-24T01:43:30+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997383982"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.0.31\"}": {
       "consecutive_failures": 0,
@@ -4452,7 +4458,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"minio\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2025-10-15T17-29-55Z\"}": {
+      "artifact_expires_at": "2026-10-30T17:48:15Z",
+      "artifact_id": "12520791933",
+      "artifact_name": "pkg2-macos-x86_64-package-minio-2025-10-15T17-29-55Z",
+      "artifact_zip_sha256": "fa538a2ff91cc54e9e3ee42c018db15675a61ef2ea8ce1c51f4fa735c8bea056",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997383982"
+      },
+      "package_sha256": "59a0e41cd6e77577841a016fcbe07f740b1c04e60868576cf75b1bb38b39837e",
+      "producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997383982"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4463,16 +4484,7 @@
         "runtime_version": "v2",
         "version": "2025-10-15T17-29-55Z"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:30+00:00",
-        "expires_at": "2026-10-24T01:43:30+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997383982"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.0.31\"}": {
       "consecutive_failures": 0,
