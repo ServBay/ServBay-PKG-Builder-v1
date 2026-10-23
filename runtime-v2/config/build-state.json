@@ -51,7 +51,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "artifact_expires_at": "2026-10-30T13:40:39Z",
+      "artifact_id": "12505467617",
+      "artifact_name": "pkg2-macos-arm64-package-memcached-1.6.45",
+      "artifact_zip_sha256": "008d29e34462bcf33c9687528ca84df1b68c9a112e0df16c6ca424d152828568",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962833235"
+      },
+      "package_sha256": "a68f67e380cceae2a0efe51262b99749afd3a332d382bfd1bf15d70b88ec4e40",
+      "producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962833235"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -62,16 +77,7 @@
         "runtime_version": "v2",
         "version": "1.6.45"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T13:38:38+00:00",
-        "expires_at": "2026-10-23T21:38:38+00:00",
-        "producer": {
-          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
-          "run_attempt": 1,
-          "run_id": "39962833235"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-29T17:06:34Z",
@@ -200,7 +206,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "artifact_expires_at": "2026-10-30T13:41:36Z",
+      "artifact_id": "12505358322",
+      "artifact_name": "pkg2-macos-x86_64-package-memcached-1.6.45",
+      "artifact_zip_sha256": "5d06df31f12fc3aacc5ef6b0c64927d0104b7d8da1285c0d04f2278fff2b4ba5",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962833235"
+      },
+      "package_sha256": "457b27a40fdb2aa09355ed9b51a4fc0da8c040904daa2fe08f52453847f21d3d",
+      "producer": {
+        "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
+        "run_attempt": 1,
+        "run_id": "39962833235"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -211,16 +232,7 @@
         "runtime_version": "v2",
         "version": "1.6.45"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T13:38:38+00:00",
-        "expires_at": "2026-10-23T21:38:38+00:00",
-        "producer": {
-          "commit": "ed052f2de83aee1c4884978fe5340023ef853b18",
-          "run_attempt": 1,
-          "run_id": "39962833235"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-29T17:38:30Z",
