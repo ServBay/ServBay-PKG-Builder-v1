@@ -36,6 +36,7 @@ def refresh_modules(profile, host_versions, fetch_bytes):
     if profile.get('schema_version') != 1:
         raise ValueError('Unsupported actual module profile schema')
     updated, changes, sources, fetched, metadata = copy.deepcopy(profile), [], {}, {}, {}
+    diagnostics = []
     updater = _existing.PackageUpdater(runtime_version='v2')
     def fetch(url):
         if url not in fetched:
@@ -83,7 +84,15 @@ def refresh_modules(profile, host_versions, fetch_bytes):
                         key = recipe, version
                         if key not in metadata:
                             url = 'https://pecl.php.net/get/' + discovery['package'] + '-' + version + '.tgz'
-                            metadata[key] = _php_release(fetch(url), version)
+                            # PECL 对部分老版本 tarball 返回 500（xdebug-2.3.0 实测）。
+                            # 候选拉取/校验失败只能跳过该候选试下一个可用版本，
+                            # 不能让单个远端抖动中止整个刷新（线上 39982857996）。
+                            try:
+                                metadata[key] = _php_release(fetch(url), version)
+                            except _existing.requests.RequestException as error:
+                                diagnostics.append({'recipe': recipe, 'host_series': series, 'version': version,
+                                                    'url': url, 'error': str(error)})
+                                continue
                         support, host = metadata[key], host_versions[series]
                         if (updater.compare_versions(host, support['min']) < 0
                                 or support['max'] and updater.compare_versions(host, support['max']) > 0
@@ -106,16 +115,16 @@ def refresh_modules(profile, host_versions, fetch_bytes):
                     changes.append({'host_type': host_type, 'host_series': series, 'recipe_name': recipe,
                                     'previous_version': current, 'version': version})
                     break
-    return updated, changes, sources
+    return updated, changes, sources, diagnostics
 
 
 def refresh_file(config, host_versions, fetch_bytes, dry_run=False):
     config = Path(config)
     profile = json.loads(config.read_text())
-    updated, changes, sources = refresh_modules(profile, host_versions, fetch_bytes)
+    updated, changes, sources, diagnostics = refresh_modules(profile, host_versions, fetch_bytes)
     if changes and not dry_run:
         config.write_text(json.dumps(updated, indent=2) + '\n')
-    return {'updates': changes, 'discovery_sha256': sources}
+    return {'updates': changes, 'discovery_sha256': sources, 'diagnostics': diagnostics}
 
 
 def main():
