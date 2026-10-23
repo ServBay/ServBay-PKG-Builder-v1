@@ -391,7 +391,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
+      "artifact_expires_at": "2026-10-30T15:45:34Z",
+      "artifact_id": "12513347779",
+      "artifact_name": "pkg2-macos-x86_64-package-apache-2.4.69-r2",
+      "artifact_zip_sha256": "e351edf870ac84c92d46ca4f22c4907704aa83895e49c3eacaab393c0c97c28a",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "0ee7db4ee6f646cf8280a84e2af31cd38d1e0e08",
+        "run_attempt": 1,
+        "run_id": "39979591323"
+      },
+      "package_sha256": "c82c4434d91f9979ebf51372ad33125a0f855f5e25f513693b49911546e0f363",
+      "producer": {
+        "commit": "0ee7db4ee6f646cf8280a84e2af31cd38d1e0e08",
+        "run_attempt": 1,
+        "run_id": "39979591323"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -403,16 +418,7 @@
         "runtime_version": "v2",
         "version": "2.4.69"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T15:35:43+00:00",
-        "expires_at": "2026-10-23T23:35:43+00:00",
-        "producer": {
-          "commit": "0ee7db4ee6f646cf8280a84e2af31cd38d1e0e08",
-          "run_attempt": 1,
-          "run_id": "39979591323"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     }
   }
 }
