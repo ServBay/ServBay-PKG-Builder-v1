@@ -3038,6 +3038,15 @@
         "runtime_version": "v2",
         "version": "30.2"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:16:02+00:00",
+        "expires_at": "2026-10-24T01:16:02+00:00",
+        "producer": {
+          "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+          "run_attempt": 1,
+          "run_id": "39993623281"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
@@ -6135,6 +6144,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "30.2"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:16:02+00:00",
+        "expires_at": "2026-10-24T01:16:02+00:00",
+        "producer": {
+          "commit": "c9bafedd0cad193ad76d5213116ab7bfd5cbace4",
+          "run_attempt": 1,
+          "run_id": "39993623281"
+        }
       },
       "status": "discovered"
     },
