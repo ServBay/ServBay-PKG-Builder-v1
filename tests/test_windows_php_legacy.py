@@ -303,6 +303,15 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         text = PS1.read_text()
         self.assertIn(r"(?m)^#define\s+PHP_COMPILER_ID[^\r\n]*", text)
 
+    def test_php5_pins_the_toolset_name_before_configure(self):
+        # Without the clamp configure prints "Detected compiler undefined" and
+        # dies in write_summary ('length' is null or not an object) before it
+        # writes a Makefile, so nmake then finds nothing to build.
+        text = PS1.read_text()
+        self.assertIn("if (!VC_VERSIONS[VCVERS]) { VCVERS = $CrtVersion; }", text)
+        self.assertIn("$CrtVersion = 1700", text)
+        self.assertIn("cannot pin the toolset name", text)
+
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
         self.assertIn("'vc11' { 'VC11' }", text)

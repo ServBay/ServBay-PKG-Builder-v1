@@ -290,6 +290,31 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Failed to apply $($p.Name)" }
     }
 
+    # --- Teach configure this toolset's name -------------------------------
+    # PHP 5's compiler table stops at VS2013 (1800). A newer cl.exe reports
+    # "19.29", which is not a key in VC_VERSIONS/VC_VERSIONS_SHORT: configure
+    # prints "Detected compiler undefined" and then dies in write_summary with
+    # "'length' is null or not an object" before it ever writes the Makefile.
+    # Clamp an unknown value to the CRT the branch shipped against, so the
+    # flags, the summary and the module build ID all behave like the official
+    # binaries. 7.0+ understand newer toolsets well enough not to need this.
+    if ($MajorMinor -in @('5.5', '5.6')) {
+        $CrtVersion = 1700   # VC11, the CRT 5.5/5.6 were released against
+        $ConfigW32 = Join-Path $SourceDir 'win32\build\config.w32'
+        $lines = Get-Content $ConfigW32
+        if (-not ($lines -match '^\s*VCVERS\s*=\s*probe_binary')) {
+            throw "win32\build\config.w32 does not probe VCVERS; cannot pin the toolset name"
+        }
+        $patched = foreach ($l in $lines) {
+            $l
+            if ($l -match '^\s*VCVERS\s*=\s*probe_binary') {
+                "if (!VC_VERSIONS[VCVERS]) { VCVERS = $CrtVersion; }"
+            }
+        }
+        $patched | Set-Content -Path $ConfigW32 -Encoding ASCII
+        Write-Step "Pinned an unrecognised toolset to VC_VERSIONS $CrtVersion"
+    }
+
     # --- Configure ---------------------------------------------------------
     # VC14 regenerates CFLAGS inside configure, so the shim is forced in twice:
     # through CL for configure's own probe compiles, and through the generated
