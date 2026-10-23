@@ -1263,7 +1263,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.3.13\"}": {
+      "artifact_expires_at": "2026-10-30T17:45:44Z",
+      "artifact_id": "12521240574",
+      "artifact_name": "pkg2-macos-arm64-package-mongodb-8.3.13",
+      "artifact_zip_sha256": "205a469b3298431fff1438fdebcfd3ca584493168829eb7de6c2af43a49824e4",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+        "run_attempt": 1,
+        "run_id": "39997427225"
+      },
+      "package_sha256": "1f7b38b95d8eb6b96675be3c0004075ac507034ab6138dd161160ac0d6e38376",
+      "producer": {
+        "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+        "run_attempt": 1,
+        "run_id": "39997427225"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1274,16 +1289,7 @@
         "runtime_version": "v2",
         "version": "8.3.13"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:47+00:00",
-        "expires_at": "2026-10-24T01:43:47+00:00",
-        "producer": {
-          "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
-          "run_attempt": 1,
-          "run_id": "39997427225"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.13.0\"}": {
       "artifact_expires_at": "2026-10-30T17:33:50Z",
@@ -4529,7 +4535,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.3.13\"}": {
+      "artifact_expires_at": "2026-10-30T17:45:26Z",
+      "artifact_id": "12520147255",
+      "artifact_name": "pkg2-macos-x86_64-package-mongodb-8.3.13",
+      "artifact_zip_sha256": "aed8fe04231a6cc2821f8eecb5f902d3b853fe39bed37d129d86cc2a1fcff5bc",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+        "run_attempt": 1,
+        "run_id": "39997427225"
+      },
+      "package_sha256": "8c8f61eaae7fbfc5dfc6fee6f368cc92473991e9845bb55da0ac50a51cfbfa3f",
+      "producer": {
+        "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+        "run_attempt": 1,
+        "run_id": "39997427225"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4540,16 +4561,7 @@
         "runtime_version": "v2",
         "version": "8.3.13"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:47+00:00",
-        "expires_at": "2026-10-24T01:43:47+00:00",
-        "producer": {
-          "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
-          "run_attempt": 1,
-          "run_id": "39997427225"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.13.0\"}": {
       "artifact_expires_at": "2026-10-30T17:34:58Z",
