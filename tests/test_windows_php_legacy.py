@@ -25,8 +25,31 @@ PS1 = ROOT / "runtime-windows/ci/build_php_legacy.ps1"
 SHIM = ROOT / "runtime-windows/ci/vc14-intrinsics.h"
 PATCH_ROOT = ROOT / "runtime/patch"
 
-# The branches whose official dependency bundles exist for VC14.
+# Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
+# VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
+EOL_VERSIONS = [
+    "7.0.33.1",
+    "7.1.33.1",
+    "7.2.34.1",
+    "7.3.33.1",
+    "7.4.33.1",
+    "8.0.30.1",
+    "8.1.34.1",
+]
 VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
+
+# The compiler branch each PHP branch was released against. The series
+# manifest is keyed by it, so getting this wrong downloads the wrong CRT's
+# libraries and links instead of failing outright.
+CRT_BY_BRANCH = {
+    "7.0": "vc14",
+    "7.1": "vc14",
+    "7.2": "vc15",
+    "7.3": "vc15",
+    "7.4": "vc15",
+    "8.0": "vs16",
+    "8.1": "vs16",
+}
 
 
 def major_minor(version):
@@ -38,7 +61,7 @@ class WindowsPhpLegacyPatchTests(unittest.TestCase):
     def test_patch_directory_follows_php_prefix(self):
         # runtime/patch/<branch> is named php7.0, not 7.0. The workflow once
         # joined the bare version and failed on the runner.
-        for version in VC14_VERSIONS:
+        for version in EOL_VERSIONS:
             branch_dir = PATCH_ROOT / f"php{major_minor(version)}"
             self.assertTrue(
                 branch_dir.is_dir(),
@@ -68,11 +91,14 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
         self.assertNotIn("deps-7.0-vc14-x64.7z", text)
 
-    def test_rejects_branches_without_vc14_deps(self):
+    def test_rejects_branches_outside_the_supported_series(self):
+        # The script has no dependency source for anything outside the table,
+        # so it must fail before configure rather than build a bare CLI.
         text = PS1.read_text()
-        self.assertIn("$MajorMinor -notin @('7.0', '7.1')", text)
+        self.assertIn("$CrtByBranch", text)
+        self.assertIn("does not cover PHP", text)
 
-    def test_toolset_prefers_v140_and_falls_back(self):
+    def test_toolset_prefers_the_branch_toolset_and_falls_back(self):
         # Microsoft no longer ships the v140 toolset to hosted runners: the
         # standalone VS2015 bootstrapper is retired, and asking the runner's
         # own installer for the VC.140 component returns 0 without changing
@@ -80,8 +106,10 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # image does have.
         text = PS1.read_text()
         self.assertNotIn("aka.ms/vs/15/release/vs_buildtools.exe", text)
-        self.assertIn(r"^14\.0\d*\.", text)
-        self.assertIn("MSVC v140 is not available", text)
+        self.assertIn(r"'^14\.0\d*\.'", text)
+        self.assertIn(r"'^14\.1\d*\.'", text)
+        self.assertIn(r"'^14\.2\d*\.'", text)
+        self.assertIn("toolset is available; building PHP", text)
         # configure.js and the dependency bundle key off the compiler, and the
         # toolset is only selected explicitly. Both the configure and the nmake
         # invocation need it.
@@ -126,7 +154,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # staged copy is exercised before it is packed.
         text = PS1.read_text()
         self.assertIn("extension_dir=$StageExt", text)
-        self.assertIn("Unable to load dynamic library", text)
+        self.assertIn("Unable to (load dynamic library|initialize module)", text)
 
     def test_version_check_flattens_captured_output(self):
         # `php -v` is multi-line, and -notmatch against an array filters it,
@@ -150,6 +178,96 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         text = SHIM.read_text()
         self.assertIn("_MSC_VER < 1910", text)
         self.assertIn("_mm_loadu_si64", text)
+
+
+class WindowsPhpEolBranchTests(unittest.TestCase):
+    """PHP 7.2-8.1 have no VC14 bundle; they build from the series manifest."""
+
+    def test_crt_table_covers_every_eol_branch(self):
+        text = PS1.read_text()
+        for branch, crt in CRT_BY_BRANCH.items():
+            self.assertRegex(
+                text,
+                rf"'{re.escape(branch)}'\s*=\s*'{crt}'",
+                f"{branch} must map to {crt}",
+            )
+
+    def test_upper_branches_read_the_series_manifest(self):
+        # php.net publishes one deps/series/packages-<branch>-<crt>-<arch>-
+        # stable.txt per branch. The branch is what selects the library
+        # versions; guessing latest would link a newer CRT's import libraries.
+        text = PS1.read_text()
+        self.assertIn("deps/series/packages-$MajorMinor-$Crt-$Arch-stable.txt", text)
+        self.assertIn("deps/$Crt/$Arch/$name", text)
+
+    def test_upper_branches_use_the_modern_sdk(self):
+        # SDK 2.1 (20110915) predates 7.2 and cannot build it; its buildtree
+        # also lacks the vc15/vs16 layouts.
+        text = PS1.read_text()
+        self.assertIn("php-sdk-2.8.4", text)
+        self.assertIn("phpsdk_buildtree.bat", text)
+
+    def test_vc14_bundle_stays_single_archive(self):
+        # 7.0/7.1 are the only branches php.net shipped an aggregate bundle
+        # for. Keep that path, it is the one already proven on the runner.
+        text = PS1.read_text()
+        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+
+    def test_intrinsics_shim_is_vc14_only(self):
+        # _mm_loadu_si64 exists from VS2017 on. Injecting the shim into a
+        # vc15/vs16 build would shadow the real intrinsic.
+        text = PS1.read_text()
+        self.assertRegex(text, r"if\s*\(\s*\$Crt\s+-eq\s+'vc14'\s*\)")
+
+    def test_pecl_extensions_are_staged(self):
+        # --enable-snapshot-build builds the core ext/ modules only. The
+        # published packages also carry imagick, redis, mongodb and friends,
+        # so a source build without them is a regression.
+        text = PS1.read_text()
+        self.assertIn("$ExtManifest", text)
+        self.assertIn("php_*.dll", text)
+        self.assertIn("$StageExt", text)
+
+    def test_extension_runtime_dependencies_travel_with_the_package(self):
+        # A PECL archive bundles what the module links against: ImageMagick's
+        # CORE_RL_*/IM_MOD_RL_*, libyaml's yaml.dll. Dropping those left
+        # php_imagick and php_yaml unable to load ("The specified module could
+        # not be found"). An official build keeps them under ext\ beside the
+        # module that loads them.
+        # Windows resolves an extension's imports against php.exe's
+        # directory, not ext\, so the runtime goes to the package root.
+        text = PS1.read_text()
+        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$Stage -Force")
+
+    def test_pecl_extensions_are_smoke_tested(self):
+        text = PS1.read_text()
+        self.assertRegex(text, r"extension=php_\$ext\.dll")
+
+    def test_module_build_id_matches_the_official_extensions(self):
+        # configure.js stops mapping toolsets at VS2017, so a newer cl.exe
+        # yields the raw version ("19.44.35229") while every php.net and PECL
+        # extension was built as ",VC15"/",VS16". The loader then refuses
+        # them. The build sets the ID to the branch's official one.
+        text = PS1.read_text()
+        self.assertIn("PHP_COMPILER_ID", text)
+        self.assertIn("$Crt.ToUpper()", text)
+        self.assertIn("main\\config.w32.h", text)
+        # Branches that recognise the toolset write a bare identifier, the
+        # ones that do not write a quoted version, so both have to match.
+        self.assertIn('("[^"]*"|\\S+)', text)
+        # 8.0/8.1 already emit the right identifier; the smoke test is the
+        # guard there, so skipping the rewrite must be recorded.
+        self.assertIn("keeping the detected value", text)
+        self.assertIn("#define\\s+PHP_COMPILER_ID", text)
+
+    def test_smoke_test_checks_loaded_modules_not_just_exit_code(self):
+        # "Unable to initialize module" is a warning: php.exe still exits 0.
+        # The first 7.2 build passed this way with none of the PECL DLLs
+        # actually registered, so the test has to read back the module list.
+        text = PS1.read_text()
+        self.assertIn("get_loaded_extensions", text)
+        self.assertIn("Unable to (load dynamic library|initialize module)", text)
+        self.assertNotIn("echo 'extensions ok'", text)
 
 
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
@@ -185,6 +303,68 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
             self.assertNotIn("${{ inputs.", run, f"step {step.get('name')} inlines an input")
             self.assertNotIn("${{ github.event", run)
 
+    def test_official_archive_is_the_package_base(self):
+        # A source build cannot produce dev\*.lib, sasl2\, lib\enchant,
+        # extras\ssl, deplister.exe, the phar launcher, the docs, or the
+        # extensions that need the .NET/Oracle SDKs. The published packages
+        # carried all of them, so the official archive is unpacked first and
+        # the compiled binaries replace the unpatched ones on top.
+        text = PS1.read_text()
+        self.assertIn("php-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip", text)
+        self.assertIn("windows.php.net/downloads/releases/", text)
+        self.assertIn("Expand-Archive -Path $OfficialZip", text)
+
+    def test_archive_provided_layout_is_verified(self):
+        # Dropping the base layer is silent: the package still loads, it just
+        # cannot build extensions or load enchant/SASL any more.
+        text = PS1.read_text()
+        self.assertIn("deplister.exe", text)
+        self.assertIn("extras\\ssl\\openssl.cnf", text)
+        self.assertIn("phar.phar.bat", text)
+        self.assertIn("did not provide", text)
+        self.assertIn("phpize could not build an extension", text)
+
+    def test_dependency_dlls_do_not_override_the_archive(self):
+        # The archive carries the runtime its own extensions link against.
+        # Overwriting those with the build tree's copies can break com_dotnet
+        # and oci8, so only missing names are added.
+        text = PS1.read_text()
+        self.assertRegex(text, r"Where-Object \{ -not \(Test-Path \(Join-Path \$Stage \$_\.Name\)\) \}")
+
+    def test_imagick_round_trip_is_not_skipped(self):
+        # The coder set differs by branch (7.0 ships none), so keying the test
+        # off one module name silently skipped it there. A branch without
+        # coders must be reported, not passed over quietly.
+        text = PS1.read_text()
+        self.assertIn("Join-Path $StageExt 'php_imagick.dll'", text)
+        self.assertNotIn("IM_MOD_RL_png_.dll'", text)
+        self.assertIn("carries no IM_MOD_RL_* coders", text)
+        self.assertIn("Write-Warning", text)
+
+    def test_imagick_round_trip_is_exercised(self):
+        # Loading the DLL proves nothing about the coders; only an actual
+        # encode/decode does.
+        text = PS1.read_text()
+        self.assertIn("newImage(8, 8, 'red')", text)
+        self.assertIn("readImageBlob", text)
+        self.assertIn("not where it looks", text)
+
+    def test_only_core_import_libraries_go_to_dev(self):
+        # Release\ holds one .lib per extension plus object-layout mirrors;
+        # the official package ships only php<major>.lib. Copying them all
+        # grew the package by ~40 files per branch.
+        text = PS1.read_text()
+        self.assertIn("Get-ChildItem $ReleaseDir -File -Filter '*.lib'", text)
+        self.assertIn("$_.Name -match '^php\d+(embed)?\.lib$'", text)
+
+    def test_extension_archives_contribute_their_config(self):
+        # imagick ships ImageMagick's policy/delegates XML and memcached a
+        # sample ini. policy.xml drives ImageMagick's security limits, so it
+        # belongs in the package rather than being dropped with the pdb files.
+        text = PS1.read_text()
+        self.assertIn("Join-Path $unpack 'config'", text)
+        self.assertIn("-Filter '*.ini'", text)
+
     def test_dispatch_routes_legacy_php_away_from_the_ubuntu_pipeline(self):
         dispatch = yaml.safe_load(DISPATCH.read_text())
         jobs = dispatch["jobs"]
@@ -193,12 +373,46 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
             jobs["build-windows-legacy"]["uses"],
             "./.github/workflows/build-windows-php-legacy.yml",
         )
-        # The normal pipeline must stand down for the same versions, otherwise
-        # both jobs build php and the second one overwrites the artifact.
+        # Every EOL branch has to be diverted: the stock pipeline repackages
+        # the upstream zip and cannot apply a source patch, so a version that
+        # slips through ships unfixed.
         normal = jobs["build-windows"]["if"]
-        self.assertIn("startsWith(inputs.windows_version, '7.0.')", normal)
-        self.assertIn("startsWith(inputs.windows_version, '7.1.')", normal)
+        legacy = jobs["build-windows-legacy"]["if"]
+        for version in EOL_VERSIONS:
+            prefix = major_minor(version) + "."
+            self.assertIn(f"startsWith(inputs.windows_version, '{prefix}')", normal)
+            self.assertIn(f"startsWith(inputs.windows_version, '{prefix}')", legacy)
         self.assertIn("build-windows-legacy", jobs["dispatch-downstream"]["needs"])
+
+    def test_extension_manifest_is_generated_for_the_legacy_build(self):
+        # PECL extension URLs live in php-exts.json; the workflow flattens
+        # them for the requested branch/arch so the script does not have to
+        # parse that file on Windows.
+        steps = self.workflow["jobs"]["build"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        self.assertTrue(
+            any("extension manifest" in n.lower() for n in names),
+            f"no extension manifest step in {names}",
+        )
+        build = next(s for s in steps if s.get("name") == "Build PHP")
+        self.assertIn("-ExtManifest", build["run"])
+        # Only the set the stock pipeline installs: php-exts.json also lists
+        # extras the published packages never carried.
+        manifest_step = next(s for s in steps if "extension manifest" in s.get("name", "").lower())
+        for ext in ("imagick", "redis", "mongodb", "igbinary"):
+            self.assertIn(f"'{ext}'", manifest_step["run"])
+        self.assertIn("$required", manifest_step["run"])
+        # apcu and grpc were in the EOL packages but are not in php-exts.json.
+        self.assertIn("$pinned", manifest_step["run"])
+        for branch in ("7.0", "7.1", "7.2", "7.3", "7.4", "8.0"):
+            self.assertIn(f"'{branch}'", manifest_step["run"])
+        # 8.1 never shipped either, so pinning one would invent a dependency.
+        self.assertNotIn("'8.1' = @{", manifest_step["run"])
+        for step in steps:
+            run = step.get("run")
+            if not run:
+                continue
+            self.assertNotIn("${{ inputs.", run, f"step {step.get('name')} inlines an input")
 
 
 if __name__ == "__main__":
