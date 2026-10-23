@@ -378,6 +378,24 @@ typedef uint32_t u_int32_t;
 "@
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
         Write-Step 'Scoped the PHP 5 CRT shims to pre-UCRT compilers'
+
+        # The VC11 dependency libraries (libxml2_a_dll, libmcrypt_a) reach the
+        # stdio array through the pre-UCRT import slot __imp___iob_func, which
+        # UCRT dropped. Define both the function and its import slot against
+        # the UCRT equivalent so those archives link. PHP's own stdio use is
+        # unaffected: its _iob_index calls go through the same slot.
+        $MainC = Join-Path $SourceDir 'main\main.c'
+        $iobShim = @'
+
+#if defined(_MSC_VER) && _MSC_VER >= 1900
+/* Bridge the pre-UCRT stdio symbols the VC11 dependency libraries import. */
+#include <stdio.h>
+FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
+FILE * (__cdecl * __imp___iob_func)(void) = __iob_func;
+#endif
+'@
+        Add-Content -Path $MainC -Value $iobShim -Encoding ASCII
+        Write-Step 'Bridged the pre-UCRT stdio symbols for the VC11 archives'
     }
 
     # --- Configure ---------------------------------------------------------

@@ -338,6 +338,14 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("no longer includes the relative signal header", text)
         self.assertIn("does not look like the bundled stdint", text)
 
+    def test_php5_bridges_the_pre_ucrt_stdio_slot(self):
+        # libxml2_a_dll.lib and libmcrypt_a.lib reference __imp___iob_func,
+        # which UCRT removed; without the bridge the DLL fails to link with
+        # three unresolved externals.
+        text = PS1.read_text()
+        self.assertIn("__imp___iob_func", text)
+        self.assertIn("__acrt_iob_func(0)", text)
+
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
         self.assertIn("'vc11' { 'VC11' }", text)
