@@ -75,6 +75,15 @@
         "runtime_version": "v2",
         "version": "2.11.7"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:40+00:00",
+        "expires_at": "2026-10-24T01:00:40+00:00",
+        "producer": {
+          "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+          "run_attempt": 1,
+          "run_id": "39991493046"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"cloudflared\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2026.10.3\"}": {
@@ -2989,6 +2998,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "2.11.7"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:00:40+00:00",
+        "expires_at": "2026-10-24T01:00:40+00:00",
+        "producer": {
+          "commit": "d4a6520e81c72556fb2f9fb0ff5caf07fcb17721",
+          "run_attempt": 1,
+          "run_id": "39991493046"
+        }
       },
       "status": "discovered"
     },
