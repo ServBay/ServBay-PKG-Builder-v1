@@ -352,6 +352,8 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # This header has no guard of its own above the bundled part, so the
         # bridge needs one or the second inclusion redefines it.
         self.assertIn("#ifndef PHP_PRE_UCRT_STDIO_BRIDGE", text)
+        # libpng references the function itself, not the import slot.
+        self.assertIn("__declspec(dllexport) FILE * __cdecl __iob_func(void)", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()

@@ -391,6 +391,22 @@ __declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void) = php_pre_ucrt_i
         Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
         Write-Step 'Scoped the PHP 5 CRT shims to pre-UCRT compilers'
 
+        # libpng and the other /MT-style archives reference __iob_func
+        # directly instead of going through the import slot. Export it from
+        # php5.dll so each extension resolves it through php5.lib rather than
+        # needing its own definition.
+        $MainC = Join-Path $SourceDir 'main\main.c'
+        $iobExport = @'
+
+#if defined(_MSC_VER) && _MSC_VER >= 1900
+/* The pre-UCRT stdio array the VC11 dependency archives expect. */
+#include <stdio.h>
+__declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
+#endif
+'@
+        Add-Content -Path $MainC -Value $iobExport -Encoding ASCII
+        Write-Step 'Exported __iob_func for the VC11 archives'
+
     }
 
     # --- Configure ---------------------------------------------------------
