@@ -1265,6 +1265,15 @@
         "runtime_version": "v2",
         "version": "8.3.13"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:47+00:00",
+        "expires_at": "2026-10-24T01:43:47+00:00",
+        "producer": {
+          "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+          "run_attempt": 1,
+          "run_id": "39997427225"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.13.0\"}": {
@@ -4488,6 +4497,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.3.13"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:47+00:00",
+        "expires_at": "2026-10-24T01:43:47+00:00",
+        "producer": {
+          "commit": "849d1e213a1b86cf03bbcb121f423ffa83f7b87b",
+          "run_attempt": 1,
+          "run_id": "39997427225"
+        }
       },
       "status": "discovered"
     },
