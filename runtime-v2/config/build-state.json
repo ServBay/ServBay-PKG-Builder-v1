@@ -80,7 +80,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:35Z",
+      "artifact_id": "12518004661",
+      "artifact_name": "pkg2-macos-arm64-package-bun-1.4.4",
+      "artifact_zip_sha256": "3cfc4add7cd074a4fb2817a8962aba7ca42c562dc0d91fe7015a1646803fe335",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993563434"
+      },
+      "package_sha256": "17185a9d2035b0128add2b0d49863dc7fd33760160a2da0d15124eb1ec64d012",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993563434"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -91,16 +106,7 @@
         "runtime_version": "v2",
         "version": "1.4.4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:40+00:00",
-        "expires_at": "2026-10-24T01:15:40+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993563434"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
       "artifact_expires_at": "2026-10-30T17:09:28Z",
@@ -3199,7 +3205,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:37Z",
+      "artifact_id": "12518089069",
+      "artifact_name": "pkg2-macos-x86_64-package-bun-1.4.4",
+      "artifact_zip_sha256": "a0c55dba0e0d0e4f96780036cbd3742535137646f6852ec04729a45d5e425ef1",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993563434"
+      },
+      "package_sha256": "1473c42d3980a182e80f5b2b113c6086220da997c243770879308fdd16243b78",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993563434"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -3210,16 +3231,7 @@
         "runtime_version": "v2",
         "version": "1.4.4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:40+00:00",
-        "expires_at": "2026-10-24T01:15:40+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993563434"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
       "artifact_expires_at": "2026-10-30T17:09:33Z",
