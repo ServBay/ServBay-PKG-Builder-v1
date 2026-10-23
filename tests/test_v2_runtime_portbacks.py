@@ -104,6 +104,21 @@ class RedisLinkDriverTests(unittest.TestCase):
         self.assertIn('LD="$(CC)"', install[0])
 
 
+class HttpdAprLibtoolBackfillTests(unittest.TestCase):
+    def test_httpd_backfills_the_missing_apr_build_libtool(self):
+        # base 的 devlib 不带 share/apr-1/build/libtool，而 httpd 的 make 按
+        # apr-config 报告的路径直接调用它（run 39965591690 两架构实测
+        # "No such file or directory"）。配方必须在构建时用 brew glibtool
+        # 回填该路径；断言剥掉注释，只看真实代码。
+        recipe = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = recipe.split("build_httpd() {", 1)[1].split("\n}", 1)[0]
+        code = [line for line in body.splitlines() if line.strip() and not line.strip().startswith("#")]
+        joined = "\n".join(code)
+        self.assertIn("share/apr-1/build/libtool", joined)
+        self.assertIn("command -v glibtool", joined)
+        self.assertIn("> \"$_apr_libtool\"", joined)
+
+
 class PhpLegacyMakefileFlagsTests(unittest.TestCase):
     """A7（v1 6b03016）：旧分支 libjpeg 回调签名降级必须写进 configure 生成的
     Makefile 的 CFLAGS_CLEAN——PHP configure 会重建 CFLAGS，环境变量到不了编译行。"""

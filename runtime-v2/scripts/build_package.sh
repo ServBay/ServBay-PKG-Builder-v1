@@ -2568,6 +2568,25 @@ build_httpd() {
     unpack_package "$packageFullName" "$sourceFilename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
+    # base 的 devlib 只发布 APR 的 bin/-config 脚本，不带 share/apr-1/build/
+    # （httpd 的 make 会按 apr-config 报告的路径直接调用其中的 libtool，
+    # 两架构 run 39965591690 实测 "No such file or directory"）。用 brew 的
+    # glibtool（GNU libtool，语法与 APR 生成的 libtool 兼容）在原路径顶上；
+    # 编译器由 httpd 的 make 显式传递，base 烘焙 wrapper 已在环境初始化时重建。
+    local _apr_libtool="${SERVBAY_COMMON_PATH}/share/apr-1/build/libtool"
+    if [[ ! -x "$_apr_libtool" ]]; then
+        local _glibtool
+        _glibtool=$(command -v glibtool) || {
+            log_message "ERROR" "glibtool is required to backfill the APR build libtool."
+            cd "$SERVBAY_BUILD_DIR"
+            return 1
+        }
+        mkdir -p "${_apr_libtool:h}" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+        printf '#!/bin/sh\nexec %s "$@"\n' "$_glibtool" > "$_apr_libtool" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+        chmod +x "$_apr_libtool" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+        log_message "INFO" "Backfilled the missing APR build libtool with ${_glibtool}."
+    fi
+
     # 4. Configure Apache HTTPD.
     log_message "INFO" "Configuring Apache HTTPD v${version}..."
     # Using backslashes for readability. All paths are based on the final ServBay structure.
