@@ -349,6 +349,9 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # It must live in a header every translation unit sees, otherwise each
         # extension DLL fails to link on its own (php_bz2.dll did).
         self.assertIn("php_pre_ucrt_iob", text)
+        # This header has no guard of its own above the bundled part, so the
+        # bridge needs one or the second inclusion redefines it.
+        self.assertIn("#ifndef PHP_PRE_UCRT_STDIO_BRIDGE", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
