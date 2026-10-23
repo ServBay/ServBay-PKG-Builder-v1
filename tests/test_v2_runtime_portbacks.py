@@ -45,8 +45,11 @@ print -rl -- "${{CMAKE_ARGS[@]}}"
         # MySQL Router 的 harness_tls 自己跑 find_package(OpenSSL)；不 pin
         # OPENSSL_ROOT_DIR 会抓到 CI runner 的 brew openssl@3（3.x 头 + base 库
         # -> OSSL_DECODER_*/OSSL_PARAM_* 未定义）。v1 bf1d8e2。
+        # 8.0-8.3 无 harness_tls、v1 未钉，但按用户裁决做防御性一致（WITH_SSL 与
+        # FindOpenSSL 恒指同一 base OpenSSL）；5.6 有历史钉、5.7 无。
         for version, expected in (("8.4.6", True), ("9.4.0", True), ("9.7.0", True),
-                                  ("8.0.44", False), ("8.3.0", False), ("5.7.44", False)):
+                                  ("8.0.44", True), ("8.3.0", True),
+                                  ("5.7.44", False), ("5.5.62", False)):
             with self.subTest(version=version):
                 args = self.run_cmake_args(version)
                 pin = [arg for arg in args if arg.startswith("-DOPENSSL_ROOT_DIR=")]

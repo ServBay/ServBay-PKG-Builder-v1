@@ -1645,7 +1645,10 @@ _get_mysql_cmake_args() {
     # 不 pin OPENSSL_ROOT_DIR 时它会抓到 CI runner 的 brew openssl@3，按 3.x 头文件
     # 编译 tls_*_context.cc 却链接 base 的 OpenSSL，产生未定义的
     # OSSL_DECODER_*/OSSL_PARAM_* 符号（v1 bf1d8e2）。
-    if [[ "$version_major" == "8.4" || "$version_major" == 9.* ]]; then
+    # 8.0-8.3 没有 Router/harness_tls，v1 也从未钉过；按用户裁决做防御性一致：
+    # WITH_SSL 与 FindOpenSSL 永远指向同一个 base OpenSSL，即使未来 8.x 点版本
+    # 内部新增 find_package(OpenSSL) 消费者也不会漂移到 brew。
+    if [[ "$version_major" == 8.* || "$version_major" == 9.* ]]; then
         CMAKE_ARGS+=("-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
     fi
 
