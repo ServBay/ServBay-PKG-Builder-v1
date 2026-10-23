@@ -6029,11 +6029,11 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.15.1\"}": {
-      "consecutive_failures": 1,
+      "consecutive_failures": 2,
       "last_collected_producer": {
-        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "commit": "ee8c559b2d480deb0edd6dceec4c980794104b47",
         "run_attempt": 1,
-        "run_id": "39997391922"
+        "run_id": "40008026750"
       },
       "record": {
         "arch": "x86_64",
@@ -6044,15 +6044,6 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "3.15.1"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-23T19:01:11+00:00",
-        "expires_at": "2026-10-24T03:01:11+00:00",
-        "producer": {
-          "commit": "ee8c559b2d480deb0edd6dceec4c980794104b47",
-          "run_attempt": 1,
-          "run_id": "40008026750"
-        }
       },
       "status": "build-failed"
     },
