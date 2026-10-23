@@ -6599,7 +6599,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.15.1\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "310d74aedae9b00a83abde163dab19a0bdb7e6cb",
+        "run_attempt": 1,
+        "run_id": "40018066972"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -6610,16 +6615,7 @@
         "runtime_version": "v2",
         "version": "3.15.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T20:17:39+00:00",
-        "expires_at": "2026-10-24T04:17:39+00:00",
-        "producer": {
-          "commit": "310d74aedae9b00a83abde163dab19a0bdb7e6cb",
-          "run_attempt": 1,
-          "run_id": "40018066972"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "artifact_expires_at": "2026-10-30T15:45:34Z",
