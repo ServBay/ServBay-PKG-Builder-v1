@@ -344,10 +344,11 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # three unresolved externals.
         text = PS1.read_text()
         self.assertIn("#pragma comment(lib, \"legacy_stdio_definitions.lib\")", text)
-        self.assertIn("__imp___iob_func", text)
-        self.assertIn("__imp_vfprintf", text)
-        self.assertIn("__cdecl * __imp___iob_func)(void) = __iob_func;", text)
+        self.assertIn("__declspec(selectany) FILE * (__cdecl * __imp___iob_func)(void)", text)
         self.assertIn("__acrt_iob_func(0)", text)
+        # It must live in a header every translation unit sees, otherwise each
+        # extension DLL fails to link on its own (php_bz2.dll did).
+        self.assertIn("php_pre_ucrt_iob", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
