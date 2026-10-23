@@ -2114,7 +2114,12 @@ build_redis() {
     # -mmacosx-version-min) from leaking into Redis's tests/modules Makefile, which
     # invokes ld directly and cannot handle these compiler-driver flags.
     # Redis finds OpenSSL via OPENSSL_PREFIX and links its own deps in-tree.
-    make install PREFIX="${prefix}" BUILD_TLS=yes CFLAGS="${CFLAGS}" LDFLAGS="" OPENSSL_PREFIX="${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" CC=gcc MACOSX_DEPLOYMENT_TARGET="${BUILD_OS_MIN_VERSION}"
+    # LD="$(CC)" routes every link through the compiler driver: redis's
+    # src/modules/Makefile hardcodes "-L /Library/Developer/CommandLineTools/
+    # SDKs/MacOSX.sdk/usr/lib -lsystem" on Darwin, and the Intel runner's CLT ld
+    # cannot parse that SDK's libSystem.B.tbd (arm64e.x1 unknown architecture,
+    # x86_64 run 39962827584) while the clang driver handles it (v1 8.4.2 same).
+    make install PREFIX="${prefix}" BUILD_TLS=yes CFLAGS="${CFLAGS}" LDFLAGS="" OPENSSL_PREFIX="${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" CC=gcc LD="$(CC)" MACOSX_DEPLOYMENT_TARGET="${BUILD_OS_MIN_VERSION}"
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Redis 'make install' failed."
         cd "$SERVBAY_BUILD_DIR"

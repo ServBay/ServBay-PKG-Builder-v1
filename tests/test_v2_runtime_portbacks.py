@@ -86,6 +86,24 @@ print -rl -- "${{CMAKE_ARGS[@]}}"
         self.assertIn("unset CPPFLAGS", body)
 
 
+class RedisLinkDriverTests(unittest.TestCase):
+    def test_redis_install_routes_links_through_the_compiler_driver(self):
+        # redis 的 src/modules/Makefile 在 Darwin 上把 LIBS 硬编码为
+        # "-L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lsystem"
+        # 并用裸 ld 链接；Intel runner 的 CLT ld 解析不了该 SDK 的
+        # libSystem.B.tbd（arm64e.x1 unknown architecture，x86_64 run 39962827584
+        # 实测失败，arm64 的 ld 较新所以通过）。LD="$(CC)" 让链接走编译器驱动；
+        # LDFLAGS="" 继续隔离全局 gcc 风格链接标志。
+        # 断言剥掉注释行，只看真实命令（否则注释里的关键词会假绿）。
+        recipe = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = recipe.split("build_redis() {", 1)[1].split("\n}", 1)[0]
+        commands = [line for line in body.splitlines() if line.strip().startswith("make ")]
+        install = [line for line in commands if "install" in line]
+        self.assertEqual(1, len(install), f"expected one make install command, got {install}")
+        self.assertIn('LDFLAGS=""', install[0])
+        self.assertIn('LD="$(CC)"', install[0])
+
+
 class PhpLegacyMakefileFlagsTests(unittest.TestCase):
     """A7（v1 6b03016）：旧分支 libjpeg 回调签名降级必须写进 configure 生成的
     Makefile 的 CFLAGS_CLEAN——PHP configure 会重建 CFLAGS，环境变量到不了编译行。"""
