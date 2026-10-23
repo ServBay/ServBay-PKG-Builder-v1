@@ -2992,6 +2992,15 @@
         "runtime_version": "v2",
         "version": "1.99.1"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:53+00:00",
+        "expires_at": "2026-10-24T01:15:53+00:00",
+        "producer": {
+          "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+          "run_attempt": 1,
+          "run_id": "39993615144"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"subversion\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.15.0\"}": {
@@ -6071,6 +6080,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "1.99.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:53+00:00",
+        "expires_at": "2026-10-24T01:15:53+00:00",
+        "producer": {
+          "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+          "run_attempt": 1,
+          "run_id": "39993615144"
+        }
       },
       "status": "discovered"
     },
