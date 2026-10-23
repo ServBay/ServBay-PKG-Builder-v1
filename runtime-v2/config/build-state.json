@@ -138,11 +138,21 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
-      "consecutive_failures": 1,
+      "artifact_expires_at": "2026-10-30T14:36:59Z",
+      "artifact_id": "12509381504",
+      "artifact_name": "pkg2-macos-arm64-package-apache-2.4.69-r1",
+      "artifact_zip_sha256": "7e3be4b07993d6f80d9c8cefba50ddb2e7a99b1d51a548a9cc238b2cad3ada28",
+      "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "eed6e38edcaa45be01646950112fec67fbd2fdf7",
+        "commit": "301d8f897ef1509e49df69a597869bc516eb39dc",
         "run_attempt": 1,
-        "run_id": "39969006714"
+        "run_id": "39970607571"
+      },
+      "package_sha256": "8afcc33e81ffcc3b649a50738c09543e5cdda91e334de5491ec1a46c82ecd896",
+      "producer": {
+        "commit": "301d8f897ef1509e49df69a597869bc516eb39dc",
+        "run_attempt": 1,
+        "run_id": "39970607571"
       },
       "record": {
         "arch": "arm64",
@@ -155,16 +165,7 @@
         "runtime_version": "v2",
         "version": "2.4.69"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T14:33:22+00:00",
-        "expires_at": "2026-10-23T22:33:22+00:00",
-        "producer": {
-          "commit": "301d8f897ef1509e49df69a597869bc516eb39dc",
-          "run_attempt": 1,
-          "run_id": "39970607571"
-        }
-      },
-      "status": "build-failed"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:22:58Z",
