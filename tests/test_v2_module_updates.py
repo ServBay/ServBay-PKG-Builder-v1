@@ -49,7 +49,7 @@ class ModuleUpdateTests(unittest.TestCase):
             if '/get/memcache-' in url:
                 return packages[url.split('memcache-')[1][:-4]]
             return json.dumps([{'name': 'v0.9.0'}, {'name': 'v0.8.7'}, {'name': 'v0.8.6rc1'}]).encode()
-        updated, changes, sources = helper.refresh_modules(profile, {'5.6': '5.6.40.1', '8.4': '8.4.27'}, fetch)
+        updated, changes, sources, _ = helper.refresh_modules(profile, {'5.6': '5.6.40.1', '8.4': '8.4.27'}, fetch)
         self.assertEqual(original, profile)
         self.assertEqual('2.2.7', updated['hosts']['php']['5.6']['memcache'])
         self.assertEqual('8.2', updated['hosts']['php']['8.4']['memcache'])
@@ -60,6 +60,38 @@ class ModuleUpdateTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(packages['8.2']).hexdigest(), sources['https://pecl.php.net/get/memcache-8.2.tgz'])
         self.assertTrue(all('abi' not in row for row in changes), 'Discovery must not invent an ABI before exact host probing')
         self.assertEqual(1, fetched.count('https://pecl.php.net/rest/r/memcache/allreleases.xml'))
+
+    def test_unreachable_pecl_candidates_are_skipped_without_aborting_the_refresh(self):
+        # PECL 对部分老版本 tarball 返回 500（xdebug-2.3.0 实测）；候选拉取失败
+        # 只能跳过该候选继续找下一个可用版本，不能中止整个刷新。
+        helper = self.helper()
+        profile = self.profile()
+        packages = {'8.1': self.pecl_package('8.1', '8.0.0'), '2.2.8': self.pecl_package('2.2.8', '7.0.0')}
+        failures = []
+
+        def fetch(url):
+            if url.endswith('/get/memcache-8.2.tgz'):
+                failures.append(url)
+                raise helper._existing.requests.HTTPError('500 Server Error for url: ' + url)
+            return self.pecl_stub_fetch(url, packages)
+
+        updated, changes, sources, diagnostics = helper.refresh_modules(
+            profile, {'5.6': '5.6.40.1', '8.4': '8.4.27'}, fetch)
+        self.assertEqual(['https://pecl.php.net/get/memcache-8.2.tgz'], failures)
+        self.assertEqual('8.1', updated['hosts']['php']['8.4']['memcache'])
+        self.assertEqual([{'recipe': 'memcache', 'host_series': '8.4', 'version': '8.2',
+                           'url': 'https://pecl.php.net/get/memcache-8.2.tgz',
+                           'error': '500 Server Error for url: https://pecl.php.net/get/memcache-8.2.tgz'}],
+                         diagnostics)
+        self.assertEqual(('php', '8.4', 'memcache', '8.1'),
+                         (changes[0]['host_type'], changes[0]['host_series'], changes[0]['recipe_name'], changes[0]['version']))
+
+    def pecl_stub_fetch(self, url, packages):
+        if url.endswith('/allreleases.xml'):
+            return b'<a><r><v>8.2</v><s>stable</s></r><r><v>8.1</v><s>stable</s></r><r><v>2.2.8</v><s>stable</s></r></a>'
+        if '/get/memcache-' in url:
+            return packages[url.split('memcache-')[1][:-4]]
+        return json.dumps([{'name': 'v0.9.0'}, {'name': 'v0.8.7'}, {'name': 'v0.8.6rc1'}]).encode()
 
     def test_failed_discovery_is_not_an_empty_update_and_never_rewrites_profile(self):
         helper = self.helper()
@@ -79,7 +111,7 @@ class ModuleUpdateTests(unittest.TestCase):
         profile['recipes'] = {'psr': {'kind': 'php-extension', 'discovery': {'type': 'pecl', 'package': 'psr'}}}
         profile['hosts'] = {'php': {'7.4': {'psr': '1.1.0', 'phalcon': '4.1.2'}}, 'postgresql': {}}
         profile['bundles'] = {'php': {'7.4': {'phalcon': {'psr': '1.1.0'}}}}
-        updated, changes, _ = helper.refresh_modules(profile, {'7.4': '7.4.33.1'}, lambda url: b'<a/>')
+        updated, changes, _, _ = helper.refresh_modules(profile, {'7.4': '7.4.33.1'}, lambda url: b'<a/>')
         self.assertEqual(profile, updated)
         self.assertEqual([], changes)
         profile = self.profile()
@@ -105,7 +137,7 @@ class ModuleUpdateTests(unittest.TestCase):
             if '/git/trees/' in url:
                 return json.dumps({'tree': [{'path': 'libjieba', 'type': 'commit', 'mode': '160000', 'sha': commit}]}).encode()
             return component if '/yanyiwu/' in url else main
-        updated, changes, sources = helper.refresh_modules(profile, {}, fetch)
+        updated, changes, sources, _ = helper.refresh_modules(profile, {}, fetch)
         self.assertEqual('2.0.2', updated['hosts']['postgresql']['18']['pg_jieba'])
         pins = updated['recipes']['pg_jieba']['source_pins']['2.0.2']
         self.assertEqual('https://github.com/jaiminpan/pg_jieba/archive/refs/tags/v2.0.2.tar.gz', pins['url'])
@@ -143,6 +175,6 @@ class ModuleUpdateTests(unittest.TestCase):
                     archive.addfile(member, io.BytesIO(package))
                 def fetch(url):
                     return b'<a><r><v>8.2</v><s>stable</s></r></a>' if url.endswith('.xml') else output.getvalue()
-                updated, changes, _ = helper.refresh_modules(profile, {'8.4': '8.4.27'}, fetch)
+                updated, changes, _, _ = helper.refresh_modules(profile, {'8.4': '8.4.27'}, fetch)
                 self.assertEqual(profile, updated)
                 self.assertEqual([], changes)
