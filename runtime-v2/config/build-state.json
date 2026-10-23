@@ -3028,7 +3028,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"subversion\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.15.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:20:07Z",
+      "artifact_id": "12519560903",
+      "artifact_name": "pkg2-macos-arm64-package-subversion-1.15.0",
+      "artifact_zip_sha256": "21c1a9dc3142745516f9ddb77c58f44054a1f89b88bf95a0802e1598a5df166b",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+        "run_attempt": 1,
+        "run_id": "39993630656"
+      },
+      "package_sha256": "e91f81398deefbe3814137fc3561019590e3a75af88e793a24a8f85566908efc",
+      "producer": {
+        "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+        "run_attempt": 1,
+        "run_id": "39993630656"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3039,16 +3054,7 @@
         "runtime_version": "v2",
         "version": "1.15.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:59+00:00",
-        "expires_at": "2026-10-24T01:15:59+00:00",
-        "producer": {
-          "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
-          "run_attempt": 1,
-          "run_id": "39993630656"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"typesense\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"30.2\"}": {
       "artifact_expires_at": "2026-10-30T17:17:51Z",
@@ -6165,7 +6171,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"subversion\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.15.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:21:02Z",
+      "artifact_id": "12517979586",
+      "artifact_name": "pkg2-macos-x86_64-package-subversion-1.15.0",
+      "artifact_zip_sha256": "a9a4e9e47556ed3b0edfc3e48302d22e2c662b21cbb83ef2509bc168523f9d63",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+        "run_attempt": 1,
+        "run_id": "39993630656"
+      },
+      "package_sha256": "34e8ddbc95f7b8459a1536e7cbcd13a9a0820da1abc0ae9136b6402fcd1756b3",
+      "producer": {
+        "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+        "run_attempt": 1,
+        "run_id": "39993630656"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -6176,16 +6197,7 @@
         "runtime_version": "v2",
         "version": "1.15.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:59+00:00",
-        "expires_at": "2026-10-24T01:15:59+00:00",
-        "producer": {
-          "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
-          "run_attempt": 1,
-          "run_id": "39993630656"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"typesense\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"30.2\"}": {
       "artifact_expires_at": "2026-10-30T17:18:06Z",
