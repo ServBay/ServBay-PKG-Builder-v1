@@ -389,6 +389,30 @@
         "version": "1.31.8"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "apache",
+        "os": "macos",
+        "recipe_name": "httpd",
+        "runtime_version": "v2",
+        "version": "2.4.69"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T15:35:43+00:00",
+        "expires_at": "2026-10-23T23:35:43+00:00",
+        "producer": {
+          "commit": "0ee7db4ee6f646cf8280a84e2af31cd38d1e0e08",
+          "run_attempt": 1,
+          "run_id": "39979591323"
+        }
+      },
+      "status": "discovered"
     }
   }
 }
