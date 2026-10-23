@@ -6156,6 +6156,12 @@ setup_package_build_environment() {
     # LDFLAGS 需要包含静态库依赖的额外库：lzma, zstd (用于 libzip), resolv (用于 DNS)
     export LDFLAGS="-isysroot ${SDK_PATH} -Wl,-rpath -Wl,${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -L${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/lib -L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_PACKAGE_FULL_PATH} -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -llzma -lzstd -lresolv"
     export CPPFLAGS="-I${SDK_PATH}/usr/include -I${SERVBAY_STATIC_INCLUDE_PATH} -I${SERVBAY_COMMON_INCLUDE_PATH} -I${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}/include"
+    # brew gdbm 的 ndbm 头（python _dbmmodule 等消费方）：-isysroot 会抑制
+    # /usr/local/include 的默认搜索，而两个 runner 的 brew 前缀不同（arm64=
+    # /opt/homebrew，x86_64=/usr/local），显式把 gdbm 的 opt include 加进检索
+    # 路径；不存在的 -I 会被静默忽略，单侧安装不受影响（x86_64 run
+    # 40008026750 实测 configure 能找到、make 带上 CPPFLAGS 后找不到）。
+    export CPPFLAGS="${CPPFLAGS} -I/opt/homebrew/opt/gdbm/include -I/usr/local/opt/gdbm/include"
     export CXXFLAGS="-isysroot ${SDK_PATH} -Qunused-arguments -O3 -mmacosx-version-min=${BUILD_OS_MIN_VERSION} ${BUILD_CPU_ARCH} ${BUILD_MACOS_TARGET} -Wno-enum-constexpr-conversion"
 
     # PHP 版本特定的 C++ 标志（必须在基础 CXXFLAGS 设置之后）
