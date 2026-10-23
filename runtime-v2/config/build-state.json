@@ -2,7 +2,22 @@
   "schema_version": 1,
   "units": {
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
+      "artifact_expires_at": "2026-10-30T17:02:48Z",
+      "artifact_id": "12517613929",
+      "artifact_name": "pkg2-macos-arm64-package-adminer-6.1.2",
+      "artifact_zip_sha256": "30e4ad0898f28f86a890cb61d303d99f90b375a1f251057e0b5aa8db894669f2",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+        "run_attempt": 1,
+        "run_id": "39991525630"
+      },
+      "package_sha256": "e39f7bf4f0027418dc322242f5d9d8ef088cece26f189f92cf7305b84fb6cfc4",
+      "producer": {
+        "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+        "run_attempt": 1,
+        "run_id": "39991525630"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -13,16 +28,7 @@
         "runtime_version": "v2",
         "version": "6.1.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:00:54+00:00",
-        "expires_at": "2026-10-24T01:00:54+00:00",
-        "producer": {
-          "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
-          "run_attempt": 1,
-          "run_id": "39991525630"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "consecutive_failures": 0,
@@ -2977,7 +2983,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
+      "artifact_expires_at": "2026-10-30T17:02:50Z",
+      "artifact_id": "12517633475",
+      "artifact_name": "pkg2-macos-x86_64-package-adminer-6.1.2",
+      "artifact_zip_sha256": "c0a5cfbe91a5edfdfc3d991b0009d2435a3a9ef0cbccd937cbff18d4f51b183c",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+        "run_attempt": 1,
+        "run_id": "39991525630"
+      },
+      "package_sha256": "7927bed3e74b43654c784267bd06840eb85caf313411259fb821993f6deef797",
+      "producer": {
+        "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
+        "run_attempt": 1,
+        "run_id": "39991525630"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -2988,16 +3009,7 @@
         "runtime_version": "v2",
         "version": "6.1.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:00:54+00:00",
-        "expires_at": "2026-10-24T01:00:54+00:00",
-        "producer": {
-          "commit": "113c0b1db9d3bfc736001e71e8c06c05911d3255",
-          "run_attempt": 1,
-          "run_id": "39991525630"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "consecutive_failures": 0,
