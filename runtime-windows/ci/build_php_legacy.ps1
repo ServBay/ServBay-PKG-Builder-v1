@@ -393,7 +393,7 @@ typedef uint32_t u_int32_t;
  * not the import slot the __declspec(dllimport) objects actually reference. */
 #pragma comment(lib, "legacy_stdio_definitions.lib")
 #include <stdio.h>
-extern FILE * __cdecl __iob_func(void);
+FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0); }
 FILE * (__cdecl * __imp___iob_func)(void) = __iob_func;
 #endif
 '@
