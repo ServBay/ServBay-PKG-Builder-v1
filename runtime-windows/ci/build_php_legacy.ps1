@@ -313,6 +313,27 @@ try {
         }
         $patched | Set-Content -Path $ConfigW32 -Encoding ASCII
         Write-Step "Pinned an unrecognised toolset to VC_VERSIONS $CrtVersion"
+
+        # UCRT ships a real snprintf and refuses to be compiled when it is a
+        # macro ("Macro definition of snprintf conflicts with Standard Library
+        # function declaration"). PHP 5 predates that function and defines the
+        # macro unconditionally, which was correct for VS2012 and earlier.
+        $ZendConfig = Join-Path $SourceDir 'Zend\zend_config.w32.h'
+        $lines = Get-Content $ZendConfig
+        if (-not ($lines -match '^#define snprintf _snprintf$')) {
+            throw "Zend\zend_config.w32.h does not define the snprintf macro as expected"
+        }
+        $patched = foreach ($l in $lines) {
+            if ($l -eq '#define snprintf _snprintf') {
+                '#if _MSC_VER < 1900'
+                $l
+                '#endif'
+            } else {
+                $l
+            }
+        }
+        $patched | Set-Content -Path $ZendConfig -Encoding ASCII
+        Write-Step 'Scoped the snprintf macro to pre-UCRT compilers'
     }
 
     # --- Configure ---------------------------------------------------------
