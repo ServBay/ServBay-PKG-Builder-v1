@@ -388,8 +388,13 @@ typedef uint32_t u_int32_t;
         $iobShim = @'
 
 #if defined(_MSC_VER) && _MSC_VER >= 1900
-/* Bridge the pre-UCRT stdio symbols the VC11 dependency archives import. */
+/* Bridge the pre-UCRT stdio symbols the VC11 dependency archives import.
+ * legacy_stdio_definitions.lib supplies __iob_func and the printf family, but
+ * not the import slot the __declspec(dllimport) objects actually reference. */
 #pragma comment(lib, "legacy_stdio_definitions.lib")
+#include <stdio.h>
+extern FILE * __cdecl __iob_func(void);
+FILE * (__cdecl * __imp___iob_func)(void) = __iob_func;
 #endif
 '@
         Add-Content -Path $MainC -Value $iobShim -Encoding ASCII
