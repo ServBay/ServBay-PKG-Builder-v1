@@ -334,6 +334,45 @@ try {
         }
         $patched | Set-Content -Path $ZendConfig -Encoding ASCII
         Write-Step 'Scoped the snprintf macro to pre-UCRT compilers'
+
+        # The rest of the 5.x source assumes the pre-UCRT CRT: it declares
+        # struct timespec itself, ships its own stdint.h, and reaches for the
+        # standard <signal.h> through a relative path that only existed in the
+        # SDK's build tree. Each of those now collides with the modern SDK.
+        $TimeHeader = Join-Path $SourceDir 'win32\time.h'
+        $lines = Get-Content $TimeHeader
+        if (-not ($lines -contains '#ifndef timespec')) {
+            throw "win32\time.h no longer guards struct timespec the expected way"
+        }
+        ($lines -replace '^#ifndef timespec$', '#if _MSC_VER < 1900') |
+            Set-Content -Path $TimeHeader -Encoding ASCII
+
+        $SignalHeader = Join-Path $SourceDir 'win32\signal.h'
+        $lines = Get-Content $SignalHeader
+        if (-not ($lines -contains '#include <../include/signal.h>')) {
+            throw "win32\signal.h no longer includes the relative signal header"
+        }
+        ($lines -replace '^#include <\.\./include/signal\.h>$', '#include <signal.h>') |
+            Set-Content -Path $SignalHeader -Encoding ASCII
+
+        # UCRT's stdint.h is authoritative from VS2015 on; PHP's bundled copy
+        # redefines every typedef in it and the compiler rejects the clash.
+        $StdintHeader = Join-Path $SourceDir 'win32\php_stdint.h'
+        $body = Get-Content $StdintHeader -Raw
+        if (-not $body.Contains('typedef int16_t   int_fast16_t;')) {
+            throw "win32\php_stdint.h does not look like the bundled stdint"
+        }
+        $modern = @"
+#if _MSC_VER >= 1900
+/* The UCRT provides <stdint.h>; this file would only redefine it. */
+#include <stdint.h>
+#ifndef u_int32_t
+typedef uint32_t u_int32_t;
+#endif
+#else
+"@
+        Set-Content -Path $StdintHeader -Value ($modern + $body + "`n#endif") -Encoding ASCII
+        Write-Step 'Scoped the PHP 5 CRT shims to pre-UCRT compilers'
     }
 
     # --- Configure ---------------------------------------------------------
