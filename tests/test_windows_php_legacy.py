@@ -343,8 +343,9 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # which UCRT removed; without the bridge the DLL fails to link with
         # three unresolved externals.
         text = PS1.read_text()
+        self.assertIn("#pragma comment(lib, \"legacy_stdio_definitions.lib\")", text)
         self.assertIn("__imp___iob_func", text)
-        self.assertIn("__acrt_iob_func(0)", text)
+        self.assertIn("__imp_vfprintf", text)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
