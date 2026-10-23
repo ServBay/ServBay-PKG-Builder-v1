@@ -296,6 +296,15 @@
         "runtime_version": "v2",
         "version": "10.0.402"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:50+00:00",
+        "expires_at": "2026-10-24T01:43:50+00:00",
+        "producer": {
+          "commit": "384ac65b2ac86b0305fecc5a1b8f6ff819c6cba8",
+          "run_attempt": 1,
+          "run_id": "39997415210"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.100-rc1\"}": {
@@ -3528,6 +3537,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "10.0.402"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:43:50+00:00",
+        "expires_at": "2026-10-24T01:43:50+00:00",
+        "producer": {
+          "commit": "384ac65b2ac86b0305fecc5a1b8f6ff819c6cba8",
+          "run_attempt": 1,
+          "run_id": "39997415210"
+        }
       },
       "status": "discovered"
     },
