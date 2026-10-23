@@ -3125,7 +3125,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ruby\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"4.0.9\"}": {
+      "artifact_expires_at": "2026-10-30T17:49:25Z",
+      "artifact_id": "12520891861",
+      "artifact_name": "pkg2-macos-arm64-package-ruby-4.0.9",
+      "artifact_zip_sha256": "bfc2c4b3c3af7be1fbbb4f30002f7b89cd2d64d557f53f2105551594ea99e255",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997398685"
+      },
+      "package_sha256": "16f503d2e3dfcc2f497e504a23c661dc301bde8bfa6c460f050468fabfc297eb",
+      "producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997398685"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3136,16 +3151,7 @@
         "runtime_version": "v2",
         "version": "4.0.9"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:58+00:00",
-        "expires_at": "2026-10-24T01:43:58+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997398685"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-10-30T17:19:16Z",
@@ -6407,7 +6413,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ruby\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"4.0.9\"}": {
+      "artifact_expires_at": "2026-10-30T17:55:22Z",
+      "artifact_id": "12520289147",
+      "artifact_name": "pkg2-macos-x86_64-package-ruby-4.0.9",
+      "artifact_zip_sha256": "daec1e53f43ccd0acb855bfecfb9bc115b3b1eb6869807766a7570bb9388f285",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997398685"
+      },
+      "package_sha256": "ac599d05698760e09f737f225547cd60b8275b85613fc26d5d8d824539dea35c",
+      "producer": {
+        "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
+        "run_attempt": 1,
+        "run_id": "39997398685"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -6418,16 +6439,7 @@
         "runtime_version": "v2",
         "version": "4.0.9"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:43:58+00:00",
-        "expires_at": "2026-10-24T01:43:58+00:00",
-        "producer": {
-          "commit": "baa1eb395d8529cf559ac7505b1b8d595fcdbe08",
-          "run_attempt": 1,
-          "run_id": "39997398685"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-10-30T17:21:28Z",
