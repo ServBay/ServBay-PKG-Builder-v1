@@ -141,8 +141,18 @@ jobs:
               $manifest[$name] = $pinned[$branch][$name]
             }
           }
+          # 5.5 was published without any PECL extension, and PECL only offers
+          # a handful of VC11 builds for it. Shipping the core set alone keeps
+          # the package at parity with the one it replaces; an empty manifest
+          # is expected there. Every other branch must have extensions.
+          $coreOnly = @('5.5')
           if ($manifest.Count -eq 0) {
-            throw "No PECL extensions defined for PHP $branch ($env:ARCH)"
+            if ($branch -notin $coreOnly) {
+              throw "No PECL extensions defined for PHP $branch ($env:ARCH)"
+            }
+            Write-Host "PHP $branch ($env:ARCH) ships the core extensions only"
+            '{}' | Set-Content -Path 'ext-manifest.json' -Encoding ASCII
+            exit 0
           }
           $manifest | ConvertTo-Json | Set-Content -Path 'ext-manifest.json' -Encoding ASCII
           Write-Host "PHP $branch ($env:ARCH) extensions: $(($manifest.Keys | Sort-Object) -join ', ')"
