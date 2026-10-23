@@ -136,6 +136,30 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "apache",
+        "os": "macos",
+        "recipe_name": "httpd",
+        "runtime_version": "v2",
+        "version": "2.4.69"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T14:22:16+00:00",
+        "expires_at": "2026-10-23T22:22:16+00:00",
+        "producer": {
+          "commit": "eed6e38edcaa45be01646950112fec67fbd2fdf7",
+          "run_attempt": 1,
+          "run_id": "39969006714"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:22:58Z",
       "artifact_id": "12488367344",
@@ -300,6 +324,30 @@
         "version": "8.4.2"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "apache",
+        "os": "macos",
+        "recipe_name": "httpd",
+        "runtime_version": "v2",
+        "version": "2.4.69"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T14:22:16+00:00",
+        "expires_at": "2026-10-23T22:22:16+00:00",
+        "producer": {
+          "commit": "eed6e38edcaa45be01646950112fec67fbd2fdf7",
+          "run_attempt": 1,
+          "run_id": "39969006714"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-30T08:27:13Z",
