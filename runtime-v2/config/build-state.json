@@ -1261,6 +1261,15 @@
         "runtime_version": "v2",
         "version": "2.13.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:31:54+00:00",
+        "expires_at": "2026-10-24T01:31:54+00:00",
+        "producer": {
+          "commit": "0559f5afef02ed6b921d019143351669644554be",
+          "run_attempt": 1,
+          "run_id": "39995808316"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
@@ -4409,6 +4418,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "2.13.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:31:54+00:00",
+        "expires_at": "2026-10-24T01:31:54+00:00",
+        "producer": {
+          "commit": "0559f5afef02ed6b921d019143351669644554be",
+          "run_attempt": 1,
+          "run_id": "39995808316"
+        }
       },
       "status": "discovered"
     },
