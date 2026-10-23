@@ -82,6 +82,8 @@ $MajorMinor = ($BaseVersion -split '\.')[0] + '.' + ($BaseVersion -split '\.')[1
 # manifests are keyed by CRT, and the import libraries in them are the ones
 # the official binaries linked against.
 $CrtByBranch = @{
+    '5.3' = 'vc9'
+    '5.4' = 'vc9'
     '5.5' = 'vc11'
     '5.6' = 'vc11'
     '7.0' = 'vc14'
@@ -144,6 +146,7 @@ $ToolsetPattern = switch ($Crt) {
     # 5.5/5.6 shipped against VS2012 (v110), which no longer exists. VS2019's
     # 14.2x is the closest surviving toolset and the least likely to reject
     # code from that era; it falls back to the newest one when absent.
+    'vc9'  { '^14\.2\d*\.' }
     'vc11' { '^14\.2\d*\.' }
     'vc15' { '^14\.1\d*\.' }
     'vs16' { '^14\.2\d*\.' }
@@ -197,7 +200,7 @@ Write-Step "Using MSVC $ToolsetVer from $VsPath"
 # buildtree also lacks the vc15/vs16 layouts. Everything newer uses the current
 # SDK, whose buildtree knows every supported compiler.
 $SdkZip = Join-Path $ToolsDir "php-sdk-$Crt.zip"
-if ($Crt -in @('vc11', 'vc14')) {
+if ($Crt -in @('vc9', 'vc11', 'vc14')) {
     $SdkUrl = 'https://downloads.php.net/~windows/php-sdk/php-sdk-binary-tools-20110915.zip'
 } else {
     $SdkUrl = 'https://github.com/php/php-sdk-binary-tools/archive/refs/tags/php-sdk-2.8.4.zip'
@@ -228,11 +231,16 @@ $env:PATH = "$(Join-Path $SdkRoot 'bin');$(Join-Path $SdkRoot 'msys2\usr\bin');"
 $DepsArchive = $null
 $DepsPackages = @()
 $DepsCache = Join-Path $ToolsDir "deps-$MajorMinor-$Crt-$Arch"
-if ($Crt -in @('vc11', 'vc14')) {
-    $DepsArchive = Join-Path $ToolsDir "deps-$MajorMinor-$Crt-$Arch.7z"
+if ($Crt -in @('vc9', 'vc11', 'vc14')) {
+    $DepsName = switch ($MajorMinor) {
+        '5.3' { "deps-5.3-vc9-x86_2014-09.7z" }
+        '5.4' { "deps-5.4-vc9-x86_2015-05.7z" }
+        default { "deps-$MajorMinor-$Crt-$Arch.7z" }
+    }
+    $DepsArchive = Join-Path $ToolsDir $DepsName
     if (-not (Test-Path $DepsArchive)) {
         Write-Step "Downloading PHP $MajorMinor $Crt dependency libraries ($Arch)"
-        Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/deps-$MajorMinor-$Crt-$Arch.7z" -OutFile $DepsArchive
+        Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/archives/$DepsName" -OutFile $DepsArchive
     }
 } else {
     $SeriesUrl = "https://downloads.php.net/~windows/php-sdk/deps/series/packages-$MajorMinor-$Crt-$Arch-stable.txt"
@@ -272,8 +280,8 @@ try {
 finally { Pop-Location }
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 if (-not (Test-Path $BuildDir)) {
-    if ($Crt -in @('vc11', 'vc14')) {
-        # SDK 2.1 predates both vc11 and vc14 and only creates vc6..vc9, all as
+    if ($Crt -in @('vc9', 'vc11', 'vc14')) {
+        # SDK 2.1 predates vc11 and vc14 and only creates vc6..vc9, all as
         # siblings under phpdev; copy vc9 to get the requested layout. The tree
         # is just deps\{bin,include,lib}, which the dependency archive fills.
         $Vc9Dir = Join-Path $PhpDevRoot 'vc9'
@@ -291,7 +299,7 @@ if (-not (Test-Path $SevenZip)) {
     $SevenZip = Join-Path $ToolsDir '7zr.exe'
 }
 Write-Step 'Extracting dependency libraries'
-if ($Crt -in @('vc11', 'vc14')) {
+if ($Crt -in @('vc9', 'vc11', 'vc14')) {
     & $SevenZip x $DepsArchive "-o$BuildDir" -y | Out-Null
 } else {
     # The per-library zips are already laid out as deps\{bin,include,lib}.
@@ -336,8 +344,8 @@ try {
     # Clamp an unknown value to the CRT the branch shipped against, so the
     # flags, the summary and the module build ID all behave like the official
     # binaries. 7.0+ understand newer toolsets well enough not to need this.
-    if ($MajorMinor -in @('5.5', '5.6')) {
-        $CrtVersion = 1700   # VC11, the CRT 5.5/5.6 were released against
+    if ($MajorMinor -in @('5.3', '5.4', '5.5', '5.6')) {
+        $CrtVersion = if ($MajorMinor -in @('5.3', '5.4')) { 1500 } else { 1700 }
         $ConfigW32 = Join-Path $SourceDir 'win32\build\config.w32'
         $lines = Get-Content $ConfigW32
         if (-not ($lines -match '^\s*VCVERS\s*=\s*probe_binary')) {
@@ -463,8 +471,13 @@ typedef uint32_t u_int32_t;
  * declared here (UCRT declares them as dllimports), so they are routed to
  * compatibility functions exported by php5.dll. */
 #pragma comment(lib, "legacy_stdio_definitions.lib")
+/* The x64 archive defines the __imp_sscanf/__imp_sprintf slots; the x86 one
+ * only defines the functions, so x86 gets the slots from php5.dll instead. */
+#if defined(_M_X64)
 #pragma comment(linker, "/include:__imp_sscanf")
 #pragma comment(linker, "/include:__imp_sprintf")
+#else
+#endif
 #pragma comment(linker, "/alternatename:vsnprintf=php_compat_vsnprintf")
 #pragma comment(linker, "/alternatename:_vsnprintf=php_compat__vsnprintf")
 #endif
@@ -472,6 +485,48 @@ typedef uint32_t u_int32_t;
 '@
         [IO.File]::WriteAllText($PhpHeader, $headerText.TrimEnd() + $linkShim, [Text.Encoding]::ASCII)
         Write-Step 'Routed the pre-UCRT stdio slots from main\php.h'
+
+            # Extension DLLs link $(PHPLIB) before their dependency archives, so
+            # a symbol php5.dll exports that only cclient (imap) needs is never
+            # resolved - the linker does not rescan php5.lib once cclient turns
+            # out to reference it. Listing it again at the end fixes the order
+            # without touching any extension's flags.
+            $ConfUtils = Join-Path $SourceDir 'win32\build\confutils.js'
+            $text = [IO.File]::ReadAllText($ConfUtils)
+            $oldLink = '$(DLL_LDFLAGS) $(LDFLAGS) $(LDFLAGS_" + EXT + ")'
+            $newLink = '$(DLL_LDFLAGS) $(LDFLAGS) $(LDFLAGS_" + EXT + ") $(BUILD_DIR)\\$(PHPLIB)'
+            $hits = ([regex]::Matches($text, [regex]::Escape($oldLink))).Count
+            if ($hits -eq 0) {
+                throw 'confutils.js no longer emits the extension link line as expected'
+            }
+            [IO.File]::WriteAllText($ConfUtils, $text.Replace($oldLink, $newLink), [Text.Encoding]::ASCII)
+            Write-Step "Reordered php5.lib after the dependency archives ($hits rules)"
+
+            # link.exe only accepts /version:<major>.<minor>; 5.3.29 is three
+            # segments and modern linkers reject it outright.
+            $ConfigW32 = Join-Path $SourceDir 'win32\build\config.w32'
+            $text = [IO.File]::ReadAllText($ConfigW32)
+            $oldVer = 'PHP_VERSION + "." + PHP_MINOR_VERSION + "." + PHP_RELEASE_VERSION);'
+            $newVer = 'PHP_VERSION + "." + PHP_MINOR_VERSION);'
+            if ($text.Contains($oldVer)) {
+                [IO.File]::WriteAllText($ConfigW32, $text.Replace($oldVer, $newVer), [Text.Encoding]::ASCII)
+                Write-Step 'Trimmed the DLL version to major.minor for link.exe'
+            } else {
+                throw 'win32\build\config.w32 no longer defines LDFLAGS the expected way'
+            }
+
+        # --- PHP 5.3/5.4 vs the modern SDK --------------------------------
+        if ($MajorMinor -in @('5.3', '5.4')) {
+            # ARG_MAX is a POSIX constant; the modern SDK's <limits.h> does not
+            # define it, and glob.c only includes limits.h on Win32.
+            $GlobC = Join-Path $SourceDir 'win32\glob.c'
+            $text = [IO.File]::ReadAllText($GlobC)
+            if ($text.Contains('ARG_MAX') -and -not $text.Contains('PHP_ARG_MAX_FALLBACK')) {
+                $text = $text.Replace('#include "glob.h"', "#include `"glob.h`"`r`n/* ARG_MAX is POSIX; the modern SDK does not define it. */`r`n#ifndef ARG_MAX`r`n#define ARG_MAX 32768`r`n#endif`r`n#define PHP_ARG_MAX_FALLBACK 1")
+                [IO.File]::WriteAllText($GlobC, $text, [Text.Encoding]::ASCII)
+                Write-Step 'Defined ARG_MAX for win32\glob.c'
+            }
+        }
 
         # libpng and the other /MT-style archives reference __iob_func
         # directly instead of going through the import slot. Export it from
@@ -496,6 +551,10 @@ __declspec(dllexport) FILE * __cdecl __iob_func(void) { return __acrt_iob_func(0
 #undef vsnprintf
 #include <stdio.h>
 #include <stdarg.h>
+#if defined(_M_IX86)
+__declspec(dllexport) int (__cdecl *__imp_sscanf)(const char *, const char *, ...) = sscanf;
+__declspec(dllexport) int (__cdecl *__imp_sprintf)(const char *, const char *, ...) = sprintf;
+#endif
 /* vpxmt.lib (VP8, linked by gd) calls the pre-UCRT vsnprintf by name and
  * _vsnprintf through MSVCRT.lib's shim. UCRT declares vsnprintf as a dllimport,
  * so it cannot be defined here; route the references instead. */
@@ -509,20 +568,21 @@ __declspec(dllexport) int __cdecl php_compat__vsnprintf(char *buf, size_t count,
 }
 
 /* cclient (imap) and the OLDNAMES shim read the timezone globals through
- * __imp_daylight / __imp_tzname. UCRT removed those variables entirely -
- * it exposes _get_daylight() and _get_tzname() instead - so export stand-ins
- * and fill them from the UCRT accessors at load time. The names are exported
- * by the linker: in UCRT's headers daylight and tzname are macros, so they
- * cannot be spelled as C identifiers here. */
+ * __imp_daylight / __imp_tzname. UCRT removed those variables entirely - it
+ * exposes _get_daylight() and _get_tzname() instead - so define them here and
+ * export them. Exported data gives the import library the __imp_* entries
+ * cclient needs; a /export: pragma alone does not. daylight and tzname are
+ * macros in <time.h>, hence the undefs. */
 #include <time.h>
 #include <stdlib.h>
-/* Not static: the linker can only export symbols that are visible. */
-int   php_daylight_slot = 0;
-char *php_tzname_slot[2] = { NULL, NULL };
-#pragma comment(linker, "/export:daylight=php_daylight_slot,DATA")
-#pragma comment(linker, "/export:_daylight=php_daylight_slot,DATA")
-#pragma comment(linker, "/export:tzname=php_tzname_slot,DATA")
-#pragma comment(linker, "/export:_tzname=php_tzname_slot,DATA")
+#undef daylight
+#undef tzname
+#undef _daylight
+#undef _tzname
+__declspec(dllexport) int   daylight = 0;
+__declspec(dllexport) int   _daylight = 0;
+__declspec(dllexport) char *tzname[2] = { NULL, NULL };
+__declspec(dllexport) char *_tzname[2] = { NULL, NULL };
 
 static void php_pre_ucrt_timezone_init(void)
 {
@@ -530,12 +590,13 @@ static void php_pre_ucrt_timezone_init(void)
     static char dst_name[64];
     size_t len = 0;
 
-    _get_daylight(&php_daylight_slot);
+    _get_daylight(&daylight);
+    _daylight = daylight;
     if (_get_tzname(&len, std_name, sizeof(std_name), 0) == 0) {
-        php_tzname_slot[0] = std_name;
+        tzname[0] = _tzname[0] = std_name;
     }
     if (_get_tzname(&len, dst_name, sizeof(dst_name), 1) == 0) {
-        php_tzname_slot[1] = dst_name;
+        tzname[1] = _tzname[1] = dst_name;
     }
 }
 
@@ -629,7 +690,7 @@ static long php_soap_timezone(void)
     # bare CLI that cannot serve a ServBay site. PHP 5 always builds both the
     # CLI and CGI SAPIs, so those flags only exist from 7.0 on.
     $configureArgs = @('--enable-snapshot-build', '--disable-zts')
-    if ($MajorMinor -notin @('5.5', '5.6')) {
+    if ($MajorMinor -notin @('5.3', '5.4', '5.5', '5.6')) {
         $configureArgs += @('--enable-cli', '--enable-cgi')
     }
     & cmd /c "`"$VcVars`" $ArchArg -vcvars_ver=$ToolsetVer && cscript //nologo configure.js $($configureArgs -join ' ')"
@@ -691,9 +752,15 @@ static long php_soap_timezone(void)
     if ($LASTEXITCODE -ne 0) { throw "nmake failed with $LASTEXITCODE" }
 
     # --- Package -----------------------------------------------------------
+    # 7.0+ writes to <arch>\Release; PHP 5.3/5.4 write straight to Release.
     $ReleaseDir = Join-Path $SourceDir "$Arch\Release"
     if (-not (Test-Path (Join-Path $ReleaseDir 'php.exe'))) {
-        throw "Build produced no php.exe in $ReleaseDir"
+        $flatRelease = Join-Path $SourceDir 'Release'
+        if (Test-Path (Join-Path $flatRelease 'php.exe')) {
+            $ReleaseDir = $flatRelease
+        } else {
+            throw "Build produced no php.exe under $($SourceDir)\Release or $ReleaseDir"
+        }
     }
     $VerifyRun = Invoke-Captured -Exe (Join-Path $ReleaseDir 'php.exe') -Arguments @('-v')
     # -notmatch on an array filters it, so it is true whenever any single line
@@ -746,6 +813,45 @@ static long php_soap_timezone(void)
     # these two files php_curl/php_intl/php_pgsql/php_ldap fail to start with
     # "The specified module could not be found". The official 5.x packages
     # never bundled them either, which made them unusable on a clean machine.
+    # 5.3/5.4 link VC9-built dependency libraries (ssleay32, libeay32, icu*49,
+    # libpq, libsasl), which import MSVCR90. The redistributable ships those as
+    # private ("nosxs") copies, which are the ones meant to sit next to the exe.
+    if ($MajorMinor -in @('5.3', '5.4')) {
+        $Vc9Arch = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
+        $Vc9Redist = Join-Path $ToolsDir "vcredist2008_$Vc9Arch.exe"
+        if (-not (Test-Path $Vc9Redist)) {
+            Write-Step "Downloading the VC++ 2008 redistributable ($Vc9Arch)"
+            $vc9Url = if ($Vc9Arch -eq 'x64') {
+                'https://download.microsoft.com/download/d/d/9/dd9a82d0-52ef-40db-8dab-795376989c03/vcredist_x64.exe'
+            } else {
+                'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe'
+            }
+            Invoke-WebRequest -Uri $vc9Url -OutFile $Vc9Redist
+        }
+        $Vc9Streams = Join-Path $ToolsDir "vcredist2008-$Vc9Arch-msi"
+        if (-not (Test-Path (Join-Path $Vc9Streams 'vc_red.cab'))) {
+            if (Test-Path $Vc9Streams) { Remove-Item -Recurse -Force $Vc9Streams }
+            New-Item -ItemType Directory -Force -Path $Vc9Streams | Out-Null
+            & $SevenZip x $Vc9Redist "-o$Vc9Streams" -y | Out-Null
+        }
+        $Vc9Cab = Join-Path $Vc9Streams 'vc_red.cab'
+        if (-not (Test-Path $Vc9Cab)) {
+            throw 'The VC++ 2008 redistributable did not contain vc_red.cab'
+        }
+        $Vc9Extract = Join-Path $Vc9Streams 'dll'
+        if (-not (Test-Path $Vc9Extract)) {
+            & $SevenZip x $Vc9Cab "-o$Vc9Extract" -y | Out-Null
+        }
+        foreach ($pair in @(@('nosxs_msvcr90.dll', 'msvcr90.dll'), @('nosxs_msvcp90.dll', 'msvcp90.dll'))) {
+            $src = Join-Path $Vc9Extract $pair[0]
+            if (-not (Test-Path $src)) {
+                throw "Could not extract $($pair[0]) from the VC++ 2008 redistributable"
+            }
+            Copy-Item $src (Join-Path $Stage $pair[1]) -Force
+        }
+        Write-Step 'Bundled the VC++ 2008 runtime the dependency libraries need'
+    }
+
     if ($MajorMinor -in @('5.5', '5.6')) {
         $VcArch = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
         $VcRedist = Join-Path $ToolsDir "vcredist2012_$VcArch.exe"
@@ -806,11 +912,11 @@ static long php_soap_timezone(void)
     $ArchZip = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
     # windows.php.net spells the 7.4 CRT tag in lower case and puts the EOL
     # branches under archives\.
-    $CrtTag = switch ($Crt) { 'vc11' { 'VC11' } 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
+    $CrtTag = switch ($Crt) { 'vc9' { 'VC9' } 'vc11' { 'VC11' } 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
     if ($MajorMinor -eq '7.4') { $CrtTag = 'vc15' }
     $OfficialName = "php-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip"
     # EOL branches live under archives\; 8.0/8.1 remain in the current tree.
-    $OfficialBase = if ($MajorMinor -in @('5.5', '5.6', '7.0', '7.1', '7.2', '7.3')) {
+    $OfficialBase = if ($MajorMinor -in @('5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3')) {
         'https://windows.php.net/downloads/releases/archives/'
     } else {
         'https://windows.php.net/downloads/releases/'
@@ -925,7 +1031,14 @@ static long php_soap_timezone(void)
     # make. Losing them is silent until someone tries to use the package, so
     # check the ones that matter before anything is packed.
     Write-Step 'Checking the archive-provided layout'
-    $RequiredPaths = @('deplister.exe', 'dev', 'extras\ssl\openssl.cnf', 'phar.phar.bat', 'pharcommand.phar', 'lib\enchant')
+    # 5.3/5.4 full packages ship no deplister, no extras\ssl and no lib\enchant;
+    # requiring them there would fail on an archive that is complete for its
+    # branch.
+    $RequiredPaths = if ($MajorMinor -in @('5.3', '5.4')) {
+        @('dev', 'phar.phar.bat', 'pharcommand.phar')
+    } else {
+        @('deplister.exe', 'dev', 'extras\ssl\openssl.cnf', 'phar.phar.bat', 'pharcommand.phar', 'lib\enchant')
+    }
     if ($MajorMinor -in @('7.0', '7.1', '7.2', '7.3', '7.4')) { $RequiredPaths += 'sasl2' }
     $MissingPaths = @($RequiredPaths | Where-Object { -not (Test-Path (Join-Path $Stage $_)) })
     if ($MissingPaths) {
@@ -934,8 +1047,10 @@ static long php_soap_timezone(void)
     # The enchant backend is named per branch (libenchant_ispell/myspell on
     # 7.x, libenchant2_hunspell on 8.x), so just require the directory to be
     # populated.
-    if (-not (Get-ChildItem (Join-Path $Stage 'lib\enchant') -Filter '*.dll' -File -ErrorAction SilentlyContinue)) {
-        throw 'lib\enchant\ carries no engines; the enchant extension cannot spell-check'
+    if ($MajorMinor -notin @('5.3', '5.4')) {
+        if (-not (Get-ChildItem (Join-Path $Stage 'lib\enchant') -Filter '*.dll' -File -ErrorAction SilentlyContinue)) {
+            throw 'lib\enchant\ carries no engines; the enchant extension cannot spell-check'
+        }
     }
     $DevLib = Get-ChildItem (Join-Path $Stage 'dev') -Filter 'php*.lib' -File -ErrorAction SilentlyContinue
     if (-not $DevLib) { throw 'dev\ carries no php*.lib; phpize could not build an extension' }

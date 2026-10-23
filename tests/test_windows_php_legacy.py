@@ -28,6 +28,8 @@ PATCH_ROOT = ROOT / "runtime/patch"
 # Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
 # VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
 EOL_VERSIONS = [
+    "5.3.29.1",
+    "5.4.45.1",
     "5.5.38.1",
     "5.6.40.1",
     "7.0.33.1",
@@ -44,6 +46,8 @@ VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
 # manifest is keyed by it, so getting this wrong downloads the wrong CRT's
 # libraries and links instead of failing outright.
 CRT_BY_BRANCH = {
+    "5.3": "vc9",
+    "5.4": "vc9",
     "5.5": "vc11",
     "5.6": "vc11",
     "7.0": "vc14",
@@ -283,7 +287,7 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # come from one archive keyed by the branch's own CRT.
         text = PS1.read_text()
         self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
-        self.assertIn("$Crt -in @('vc11', 'vc14')", text)
+        self.assertIn("$Crt -in @('vc9', 'vc11', 'vc14')", text)
 
     def test_php5_prefers_the_vs2019_toolset(self):
         # v110 is gone. VS2019's 14.2x rejects less of the 2019-era source
@@ -296,7 +300,7 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # PHP 5 always builds the CLI and CGI SAPIs; those configure flags
         # only exist from 7.0.
         text = PS1.read_text()
-        self.assertIn("if ($MajorMinor -notin @('5.5', '5.6'))", text)
+        self.assertIn("if ($MajorMinor -notin @('5.3', '5.4', '5.5', '5.6'))", text)
         self.assertIn("--enable-cli", text)
 
     def test_compiler_id_rewrite_covers_an_empty_value(self):
@@ -311,7 +315,7 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # writes a Makefile, so nmake then finds nothing to build.
         text = PS1.read_text()
         self.assertIn("if (!VC_VERSIONS[VCVERS]) { VCVERS = $CrtVersion; }", text)
-        self.assertIn("$CrtVersion = 1700", text)
+        self.assertIn("$CrtVersion = if ($MajorMinor -in @('5.3', '5.4')) { 1500 } else { 1700 }", text)
         self.assertIn("cannot pin the toolset name", text)
 
     def test_php5_scopes_the_snprintf_macro(self):
@@ -361,9 +365,11 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         # library supplies __imp_daylight / __imp_tzname for cclient.
         # daylight/tzname are macros in UCRT's headers, so the names have to
         # be exported by the linker rather than declared in C.
-        self.assertIn("/export:daylight=php_daylight_slot,DATA", text)
-        self.assertIn("/export:tzname=php_tzname_slot,DATA", text)
-        self.assertIn("_get_daylight(&php_daylight_slot)", text)
+        # UCRT removed the variables; export real ones so the import library
+        # carries the __imp_ entries cclient needs.
+        self.assertIn("__declspec(dllexport) int   daylight = 0;", text)
+        self.assertIn("__declspec(dllexport) char *tzname[2]", text)
+        self.assertIn("_get_daylight(&daylight)", text)
         # libcurl_a.lib in 5.5 wants the dllimport slots, not the functions.
         # sscanf goes through an export from php5.dll, like __iob_func.
         # Export the import slots, not the functions: exporting "sscanf"
@@ -405,12 +411,42 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("F_CENTRAL_msvcr110_$VcArch", text)
         self.assertIn("Could not extract $runtimeDll", text)
 
+    def test_php53_uses_the_dated_vc9_bundles(self):
+        # php.net published exactly one vc9 bundle per branch, stamped with the
+        # month it was rolled; there is no deps-5.3-vc9-x86.7z.
+        text = PS1.read_text()
+        self.assertIn('deps-5.3-vc9-x86_2014-09.7z', text)
+        self.assertIn('deps-5.4-vc9-x86_2015-05.7z', text)
+
+    def test_php53_bundles_the_vc9_runtime(self):
+        # 5.3/5.4 dependency libraries import MSVCR90, which no runner image
+        # carries. The redistributable ships private copies meant to sit next
+        # to the executable.
+        text = PS1.read_text()
+        self.assertIn('vcredist2008', text)
+        self.assertIn('nosxs_msvcr90.dll', text)
+        self.assertIn("Could not extract $($pair[0])", text)
+
+    def test_php53_patches_the_2014_source(self):
+        # ARG_MAX is not in the modern SDK; link.exe only accepts a two-segment
+        # /version; and 5.3/5.4 write to Release\ rather than <arch>\Release.
+        text = PS1.read_text()
+        self.assertIn('PHP_ARG_MAX_FALLBACK', text)
+        self.assertIn("Trimmed the DLL version to major.minor", text)
+        self.assertIn("PHP 5.3/5.4 write straight to Release", text)
+
+    def test_php53_keeps_the_archives_it_actually_ships(self):
+        # 5.3/5.4 full packages carry no deplister, no extras\ssl and no
+        # lib\enchant, so requiring them would fail a complete archive.
+        text = PS1.read_text()
+        self.assertIn("$RequiredPaths = if ($MajorMinor -in @('5.3', '5.4'))", text)
+
     def test_php55_ships_the_core_set_only(self):
         # The published 5.5 package carried no PECL extension at all, and PECL
         # offers only a handful of VC11 builds for it. An empty manifest is
         # expected for 5.5 and must not be confused with a broken one.
         workflow = WORKFLOW.read_text()
-        self.assertIn("$coreOnly = @('5.5')", workflow)
+        self.assertIn("$coreOnly = @('5.3', '5.4', '5.5')", workflow)
         self.assertIn("ships the core extensions only", workflow)
         # Every other branch still fails loudly when its manifest is empty.
         self.assertIn("throw \"No PECL extensions defined for PHP $branch", workflow)
@@ -418,7 +454,7 @@ class WindowsPhp5BuildTests(unittest.TestCase):
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
         self.assertIn("'vc11' { 'VC11' }", text)
-        self.assertIn("@('5.5', '5.6', '7.0', '7.1', '7.2', '7.3')", text)
+        self.assertIn("@('5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3')", text)
 
 
 class DispatchPermissionsTests(unittest.TestCase):

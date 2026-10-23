@@ -145,7 +145,7 @@ jobs:
           # a handful of VC11 builds for it. Shipping the core set alone keeps
           # the package at parity with the one it replaces; an empty manifest
           # is expected there. Every other branch must have extensions.
-          $coreOnly = @('5.5')
+          $coreOnly = @('5.3', '5.4', '5.5')
           if ($manifest.Count -eq 0) {
             if ($branch -notin $coreOnly) {
               throw "No PECL extensions defined for PHP $branch ($env:ARCH)"
