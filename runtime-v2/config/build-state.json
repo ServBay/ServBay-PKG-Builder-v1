@@ -3005,7 +3005,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
+      "artifact_expires_at": "2026-10-30T17:19:16Z",
+      "artifact_id": "12518923060",
+      "artifact_name": "pkg2-macos-arm64-package-rust-1.99.1",
+      "artifact_zip_sha256": "cc16445ea0405a8d896c458c510634f7780131638fa8483504017e5bad10e3ef",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+        "run_attempt": 1,
+        "run_id": "39993615144"
+      },
+      "package_sha256": "514b13808c7ccadf89bafa81abc5d3f41b8d65f9f00f447dcb9b9b28e9fa5bce",
+      "producer": {
+        "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+        "run_attempt": 1,
+        "run_id": "39993615144"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3016,16 +3031,7 @@
         "runtime_version": "v2",
         "version": "1.99.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:53+00:00",
-        "expires_at": "2026-10-24T01:15:53+00:00",
-        "producer": {
-          "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
-          "run_attempt": 1,
-          "run_id": "39993615144"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"subversion\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.15.0\"}": {
       "artifact_expires_at": "2026-10-30T17:20:07Z",
@@ -6148,7 +6154,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
+      "artifact_expires_at": "2026-10-30T17:21:28Z",
+      "artifact_id": "12519526155",
+      "artifact_name": "pkg2-macos-x86_64-package-rust-1.99.1",
+      "artifact_zip_sha256": "773b2d045b23bc62453989ee4f257ee91e5f2497a089d5258e040080c2c3c6bd",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+        "run_attempt": 1,
+        "run_id": "39993615144"
+      },
+      "package_sha256": "f35ebb8f650704fc91514e91550dc3bfa21f9d33d7f8ed52fe891dc39cfe4bab",
+      "producer": {
+        "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
+        "run_attempt": 1,
+        "run_id": "39993615144"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -6159,16 +6180,7 @@
         "runtime_version": "v2",
         "version": "1.99.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:53+00:00",
-        "expires_at": "2026-10-24T01:15:53+00:00",
-        "producer": {
-          "commit": "225500b909cfb42f8979fa2c77fbb0594b3dccbd",
-          "run_attempt": 1,
-          "run_id": "39993615144"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"subversion\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.15.0\"}": {
       "artifact_expires_at": "2026-10-30T17:21:02Z",
