@@ -28,6 +28,7 @@ PATCH_ROOT = ROOT / "runtime/patch"
 # Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
 # VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
 EOL_VERSIONS = [
+    "5.5.38.1",
     "5.6.40.1",
     "7.0.33.1",
     "7.1.33.1",
@@ -43,6 +44,7 @@ VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
 # manifest is keyed by it, so getting this wrong downloads the wrong CRT's
 # libraries and links instead of failing outright.
 CRT_BY_BRANCH = {
+    "5.5": "vc11",
     "5.6": "vc11",
     "7.0": "vc14",
     "7.1": "vc14",
@@ -390,6 +392,16 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("vcredist_x64.exe", text)
         self.assertIn("F_CENTRAL_msvcr110_$VcArch", text)
         self.assertIn("Could not extract $runtimeDll", text)
+
+    def test_php55_ships_the_core_set_only(self):
+        # The published 5.5 package carried no PECL extension at all, and PECL
+        # offers only a handful of VC11 builds for it. An empty manifest is
+        # expected for 5.5 and must not be confused with a broken one.
+        workflow = WORKFLOW.read_text()
+        self.assertIn("$coreOnly = @('5.5')", workflow)
+        self.assertIn("ships the core extensions only", workflow)
+        # Every other branch still fails loudly when its manifest is empty.
+        self.assertIn("throw \"No PECL extensions defined for PHP $branch", workflow)
 
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
