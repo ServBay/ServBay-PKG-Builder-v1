@@ -2582,7 +2582,10 @@ build_httpd() {
             return 1
         }
         mkdir -p "${_apr_libtool:h}" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
-        printf '#!/bin/sh\nexec %s "$@"\n' "$_glibtool" > "$_apr_libtool" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
+        # httpd 的构建以 "--silent --mode=compile <cc>" 调用且不带 --tag；GNU
+        # libtool 无法从自定义 wrapper 推断 tagged configuration，必须显式给
+        # --tag=CC（httpd/APR/APR-util 全为 C，CC 标签对 compile/link 都正确）。
+        printf '#!/bin/sh\nexec %s --tag=CC "$@"\n' "$_glibtool" > "$_apr_libtool" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
         chmod +x "$_apr_libtool" || { cd "$SERVBAY_BUILD_DIR"; return 1; }
         log_message "INFO" "Backfilled the missing APR build libtool with ${_glibtool}."
     fi
