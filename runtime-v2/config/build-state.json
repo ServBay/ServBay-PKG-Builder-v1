@@ -3015,6 +3015,15 @@
         "runtime_version": "v2",
         "version": "1.15.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:59+00:00",
+        "expires_at": "2026-10-24T01:15:59+00:00",
+        "producer": {
+          "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+          "run_attempt": 1,
+          "run_id": "39993630656"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"typesense\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"30.2\"}": {
@@ -6103,6 +6112,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "1.15.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-23T17:15:59+00:00",
+        "expires_at": "2026-10-24T01:15:59+00:00",
+        "producer": {
+          "commit": "d49669eb275e2a0fb76263d00a7df5195ea3be5d",
+          "run_attempt": 1,
+          "run_id": "39993630656"
+        }
       },
       "status": "discovered"
     },
