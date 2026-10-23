@@ -321,6 +321,21 @@ class WindowsPhp5BuildTests(unittest.TestCase):
         self.assertIn("'#if _MSC_VER < 1900'", text)
         self.assertIn("does not define the snprintf macro as expected", text)
 
+    def test_php5_scopes_the_pre_ucrt_crt_shims(self):
+        # The 5.x source assumes the pre-UCRT CRT: it declares struct timespec
+        # itself, ships a bundled stdint.h, and reaches <signal.h> through a
+        # relative path that only existed inside the SDK build tree. Each one
+        # collides with the modern SDK.
+        text = PS1.read_text()
+        self.assertIn("#ifndef timespec", text)
+        self.assertIn("'#if _MSC_VER < 1900'", text)
+        self.assertIn("#include <../include/signal.h>", text)
+        self.assertIn("typedef int16_t   int_fast16_t;", text)
+        # Each edit must fail loudly rather than silently skipping.
+        self.assertIn("no longer guards struct timespec", text)
+        self.assertIn("no longer includes the relative signal header", text)
+        self.assertIn("does not look like the bundled stdint", text)
+
     def test_php5_official_archive_is_under_archives(self):
         text = PS1.read_text()
         self.assertIn("'vc11' { 'VC11' }", text)
