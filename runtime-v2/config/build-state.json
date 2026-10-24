@@ -210,7 +210,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:08Z",
+      "artifact_id": "12518442925",
+      "artifact_name": "pkg2-macos-arm64-package-deno-2.9.8",
+      "artifact_zip_sha256": "48be7690b420be93af1012a82290dd53ce2287ab4ef2235a2ff7ebace4afff23",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993570601"
+      },
+      "package_sha256": "808d286a05f63e7c358d44bc14ecebc5f327a3f666163d3606a5f427ff64e6e7",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993570601"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -221,19 +236,25 @@
         "runtime_version": "v2",
         "version": "2.9.8"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:34+00:00",
-        "expires_at": "2026-10-24T01:15:34+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993570601"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"disk-cleaner\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:34Z",
+      "artifact_id": "12519705333",
+      "artifact_name": "pkg2-macos-arm64-package-disk-cleaner-1.0.0",
+      "artifact_zip_sha256": "6e96ea4ab1364581ed6a180e87456f80560e8171acae36fc13cab267f5a3ec06",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993576094"
+      },
+      "package_sha256": "e212fda5dcc048f24b3f5eb8138f10337c669f62440217116cd47192659e9e67",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993576094"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -244,16 +265,7 @@
         "runtime_version": "v2",
         "version": "1.0.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:45+00:00",
-        "expires_at": "2026-10-24T01:15:45+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993576094"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
       "artifact_expires_at": "2026-10-30T17:02:17Z",
@@ -752,6 +764,15 @@
         "runtime_version": "v2",
         "version": "1.27.3"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:09:49+00:00",
+        "expires_at": "2026-10-24T11:09:49+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057143323"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.32.0\"}": {
@@ -1106,7 +1127,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:01Z",
+      "artifact_id": "12518482347",
+      "artifact_name": "pkg2-macos-arm64-package-maven-3.10.0",
+      "artifact_zip_sha256": "631f0d1072248b53ace877f2ff24c33195cbf4d796a7a005897487131e922af3",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993582121"
+      },
+      "package_sha256": "c79b7d815ec0460d6156239c375649b8f4714d6a4a2a551bdedf7439e91a27c5",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993582121"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1117,16 +1153,7 @@
         "runtime_version": "v2",
         "version": "3.10.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:42+00:00",
-        "expires_at": "2026-10-24T01:15:42+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993582121"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"meilisearch\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.55.0\"}": {
       "consecutive_failures": 0,
@@ -3514,7 +3541,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:58Z",
+      "artifact_id": "12518697304",
+      "artifact_name": "pkg2-macos-x86_64-package-deno-2.9.8",
+      "artifact_zip_sha256": "11a6744d9de73d537f14d12efc288d60441d27e66b08dea28ac1b0f7bfb78261",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993570601"
+      },
+      "package_sha256": "3867a7cdc5ee62f8839cdc8cb31205fd0b80a45e2c34fb9d73a33d7f2ab48cff",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993570601"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -3525,19 +3567,25 @@
         "runtime_version": "v2",
         "version": "2.9.8"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:34+00:00",
-        "expires_at": "2026-10-24T01:15:34+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993570601"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"disk-cleaner\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:18:25Z",
+      "artifact_id": "12518457753",
+      "artifact_name": "pkg2-macos-x86_64-package-disk-cleaner-1.0.0",
+      "artifact_zip_sha256": "65c60c8d1d47e7468ef32a992f7afb5a1cd2cabb3b3a8a9c107afef54e6a5a32",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993576094"
+      },
+      "package_sha256": "fe446378e99c256865ed8fc0481f0df57e8e9ceac5f18480680df913b00c2777",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993576094"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -3548,16 +3596,7 @@
         "runtime_version": "v2",
         "version": "1.0.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:45+00:00",
-        "expires_at": "2026-10-24T01:15:45+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993576094"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
       "artifact_expires_at": "2026-10-30T17:02:31Z",
@@ -4056,6 +4095,15 @@
         "runtime_version": "v2",
         "version": "1.27.3"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:09:49+00:00",
+        "expires_at": "2026-10-24T11:09:49+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057143323"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.32.0\"}": {
@@ -4410,7 +4458,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "artifact_expires_at": "2026-10-30T17:17:41Z",
+      "artifact_id": "12518986997",
+      "artifact_name": "pkg2-macos-x86_64-package-maven-3.10.0",
+      "artifact_zip_sha256": "aedcacf36b65ad276cbfb14a25af9d37800bf9f54d2aa1a26eea6e54e8dde6b3",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993582121"
+      },
+      "package_sha256": "cf2dd76dcb0d4cb8cb20d1e4469655ba1742cdb9e3938987d1bc836d7c009dc4",
+      "producer": {
+        "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
+        "run_attempt": 1,
+        "run_id": "39993582121"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4421,16 +4484,7 @@
         "runtime_version": "v2",
         "version": "3.10.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T17:15:42+00:00",
-        "expires_at": "2026-10-24T01:15:42+00:00",
-        "producer": {
-          "commit": "ef8cc7f6d959073c47c4cd0d580adeb6338d0d6a",
-          "run_attempt": 1,
-          "run_id": "39993582121"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"meilisearch\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.55.0\"}": {
       "consecutive_failures": 0,
