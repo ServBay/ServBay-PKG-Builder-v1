@@ -1114,7 +1114,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"13.1.1\"}": {
+      "artifact_expires_at": "2026-10-31T03:24:00Z",
+      "artifact_id": "12546148274",
+      "artifact_name": "pkg2-macos-arm64-package-mariadb-13.1.1",
+      "artifact_zip_sha256": "2c431eb190e94510509434d2e4ef4151aa0f9da6bdbeca32c92cf8564aca9d78",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057152005"
+      },
+      "package_sha256": "9b26a7e50b86541a52512005ad91bbea10bd256b069644fb73cc3d32242f63a2",
+      "producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057152005"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1125,16 +1140,7 @@
         "runtime_version": "v2",
         "version": "13.1.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T03:09:52+00:00",
-        "expires_at": "2026-10-24T11:09:52+00:00",
-        "producer": {
-          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
-          "run_attempt": 1,
-          "run_id": "40057152005"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
       "artifact_expires_at": "2026-10-30T17:17:01Z",
@@ -4470,7 +4476,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"13.1.1\"}": {
+      "artifact_expires_at": "2026-10-31T03:44:54Z",
+      "artifact_id": "12546374421",
+      "artifact_name": "pkg2-macos-x86_64-package-mariadb-13.1.1",
+      "artifact_zip_sha256": "042c01b84c0339797e3ba9d98ce41ed6385f391b3fe9890425f4370c0a5cd768",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057152005"
+      },
+      "package_sha256": "a3d6738e414da626d15855de5c2be7dcb47e039b7dedf32ac056ea11d73fe3aa",
+      "producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057152005"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -4481,16 +4502,7 @@
         "runtime_version": "v2",
         "version": "13.1.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T03:09:52+00:00",
-        "expires_at": "2026-10-24T11:09:52+00:00",
-        "producer": {
-          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
-          "run_attempt": 1,
-          "run_id": "40057152005"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
       "artifact_expires_at": "2026-10-30T17:17:41Z",
