@@ -3421,11 +3421,11 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 1,
+      "consecutive_failures": 2,
       "last_collected_producer": {
-        "commit": "9d8057f8bf441789e024b1860e70bfb0b18eb46c",
+        "commit": "726f6f2d52b63c601f4ce5d3473fc1ddd89b496a",
         "run_attempt": 1,
-        "run_id": "40069565406"
+        "run_id": "40080317598"
       },
       "record": {
         "arch": "arm64",
@@ -3438,12 +3438,12 @@
         "version": "19.beta4"
       },
       "reservation": {
-        "claimed_at": "2026-10-24T08:53:49+00:00",
-        "expires_at": "2026-10-24T16:53:49+00:00",
+        "claimed_at": "2026-10-24T09:08:28+00:00",
+        "expires_at": "2026-10-24T17:08:28+00:00",
         "producer": {
-          "commit": "9f2558fe5e6dd5e0b63bf6f4cada3ed6fe27bf6f",
+          "commit": "2fec0ef88e53c9279a9e4a537bb8b7d349dea89f",
           "run_attempt": 1,
-          "run_id": "40079801910"
+          "run_id": "40080756239"
         }
       },
       "status": "build-failed"
