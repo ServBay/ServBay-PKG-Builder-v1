@@ -4753,7 +4753,9 @@ build_postgresql() {
     local _icu_probe="${SERVBAY_BUILD_DIR}/icu-probe.c"
     printf '#include <unicode/ucol.h>\n#include <unicode/uchar.h>\n#include <stdio.h>\nint main(void){UErrorCode s=U_ZERO_ERROR;UCollator*c=ucol_open("en_US",&s);printf("%%s",u_errorName(s));ucol_close(c);return 0;}\n' > "$_icu_probe"
     log_message "INFO" "[icu-probe] test link with ICU_LIBS: ${ICU_LIBS}"
-    if "${CC:-cc}" ${CFLAGS} ${CPPFLAGS} -I"${SERVBAY_COMMON_INCLUDE_PATH}" "$_icu_probe" -o "${_icu_probe%.c}" ${ICU_LIBS} ${LDFLAGS} 2>&1 | while read -r line; do log_message "INFO" "[icu-probe] $line"; done; [[ -x "${_icu_probe%.c}" ]]; then
+    # 本脚本是 zsh：${VAR} 不分词，必须用 ${=VAR} 模拟 sh 语义（上一轮探针
+    # 的 -isysroot 吞参就是裸 ${LDFLAGS} 未分词所致）。
+    if "${CC:-cc}" ${=CFLAGS} ${=CPPFLAGS} -I"${SERVBAY_COMMON_INCLUDE_PATH}" "$_icu_probe" -o "${_icu_probe%.c}" ${=ICU_LIBS} ${=LDFLAGS} 2>&1 | while read -r line; do log_message "INFO" "[icu-probe] $line"; done; [[ -x "${_icu_probe%.c}" ]]; then
         log_message "INFO" "[icu-probe] test link SUCCEEDED"
         log_message "INFO" "[icu-probe] dyld check: $(("${_icu_probe%.c}" 2>&1 | head -2 | tr '\n' ' '))"
     else
