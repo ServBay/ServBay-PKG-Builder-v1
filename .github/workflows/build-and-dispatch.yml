@@ -139,13 +139,10 @@ jobs:
     # TEMP experiment: if removed
     uses: ./.github/workflows/build-macos.yml
     with:
-      runtime_version: ${{ inputs.runtime_version }}
-      build_revision: ${{ inputs.build_revision }}
-      checkout_ref: ${{ github.sha }}
-      host_request: ${{ inputs.host_request }}
       pkg: ${{ inputs.macos_pkg }}
       version: ${{ inputs.macos_version }}
       arch: ${{ inputs.macos_arch }}
+      runtime_version: ${{ inputs.runtime_version }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
