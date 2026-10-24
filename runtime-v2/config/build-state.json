@@ -2488,6 +2488,15 @@
         "runtime_version": "v2",
         "version": "8.6.0beta3"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:10:01+00:00",
+        "expires_at": "2026-10-24T11:10:01+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057145845"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"phpmyadmin\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.2.3\"}": {
@@ -5836,6 +5845,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.6.0beta3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:10:01+00:00",
+        "expires_at": "2026-10-24T11:10:01+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057145845"
+        }
       },
       "status": "discovered"
     },
