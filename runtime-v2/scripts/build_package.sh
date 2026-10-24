@@ -4740,6 +4740,27 @@ build_postgresql() {
     # 只在 Libs.private 里，configure 的非 static pkg-config 拿不到，链接期
     # ICU 符号全缺（run 40062810115 双架构实测）。v2 静态优先策略下显式给全。
     export ICU_LIBS="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -licui18n -licuuc -licudata -lc++"
+    # 诊断探针（PG19 ICU 链接问题取证，run 39997404749/40062810115/40069565406）：
+    # configure 后立即用真实 ICU_LIBS 试编/试链一个最小 ICU 程序，并打印 runner
+    # 上 ICU 库的架构与导出符号事实；探针完成后 fail-fast 保持 run 廉价。
+    log_message "INFO" "[icu-probe] ICU files on disk:"
+    ls -la "${SERVBAY_COMMON_LIB_PATH}"/libicu* 2>&1 | while read -r line; do log_message "INFO" "[icu-probe] $line"; done
+    for _icu_file in "${SERVBAY_COMMON_LIB_PATH}/libicuuc.a" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.a" "${SERVBAY_COMMON_LIB_PATH}/libicuuc.76.dylib" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.76.dylib"; do
+        [[ -e "$_icu_file" ]] || continue
+        log_message "INFO" "[icu-probe] $(lipo -archs "$_icu_file" 2>&1 | tr '\n' ' ') <- $_icu_file"
+        log_message "INFO" "[icu-probe] nm -gU symbol hits (u_errorName|ucol_open): $(nm -gU "$_icu_file" 2>/dev/null | grep -cE '_u_errorName|_ucol_open')"
+    done
+    local _icu_probe="${SERVBAY_BUILD_DIR}/icu-probe.c"
+    printf '#include <unicode/ucol.h>\n#include <unicode/uchar.h>\n#include <stdio.h>\nint main(void){UErrorCode s=U_ZERO_ERROR;UCollator*c=ucol_open("en_US",&s);printf("%%s",u_errorName(s));ucol_close(c);return 0;}\n' > "$_icu_probe"
+    log_message "INFO" "[icu-probe] test link with ICU_LIBS: ${ICU_LIBS}"
+    if "${CC:-cc}" ${CFLAGS} ${CPPFLAGS} -I"${SERVBAY_COMMON_INCLUDE_PATH}" "$_icu_probe" -o "${_icu_probe%.c}" ${ICU_LIBS} ${LDFLAGS} 2>&1 | while read -r line; do log_message "INFO" "[icu-probe] $line"; done; [[ -x "${_icu_probe%.c}" ]]; then
+        log_message "INFO" "[icu-probe] test link SUCCEEDED"
+        log_message "INFO" "[icu-probe] dyld check: $(("${_icu_probe%.c}" 2>&1 | head -2 | tr '\n' ' '))"
+    else
+        log_message "ERROR" "[icu-probe] test link FAILED — evidence above"
+        cd "$SERVBAY_BUILD_DIR"
+        return 1
+    fi
     local krb5_include="/opt/homebrew/opt/krb5/include /usr/local/opt/krb5/include"
     local krb5_lib="/opt/homebrew/opt/krb5/lib /usr/local/opt/krb5/lib"
     if (( version_major_num >= 19 )); then
