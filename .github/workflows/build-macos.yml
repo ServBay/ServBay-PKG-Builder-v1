@@ -239,7 +239,7 @@ jobs:
           # puts it on PATH itself; keep plain `go` for everything else.
           # Separate command from `go`: brewing both in ONE install deadlocks on
           # the Cellar/go lock (go@1.26 pours into a Cellar/go lock of its own).
-          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool re2c gdbm
+          brew install autoconf automake cmake pkg-config gnu-tar coreutils go boost libtool re2c gdbm bison krb5
           brew install go@1.26
 
       # Caching policy (intentional, do not re-add per-package caches):
@@ -550,7 +550,7 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: /bin/bash runtime-v2/ci/bootstrap_base.sh "$ARCH"
       - name: Install module toolchain
-        run: brew install autoconf automake cmake pkg-config gnu-tar coreutils libtool re2c boost gdbm
+        run: brew install autoconf automake cmake pkg-config gnu-tar coreutils libtool re2c boost gdbm bison krb5
       - name: Download exact candidate core
         if: ${{ matrix.request.candidate_artifact != '' }}
         uses: actions/download-artifact@v4
