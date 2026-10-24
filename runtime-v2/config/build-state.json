@@ -3421,7 +3421,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "9d8057f8bf441789e024b1860e70bfb0b18eb46c",
+        "run_attempt": 1,
+        "run_id": "40069565406"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 2,
@@ -3432,16 +3437,7 @@
         "runtime_version": "v2",
         "version": "19.beta4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T06:16:55+00:00",
-        "expires_at": "2026-10-24T14:16:55+00:00",
-        "producer": {
-          "commit": "9d8057f8bf441789e024b1860e70bfb0b18eb46c",
-          "run_attempt": 1,
-          "run_id": "40069565406"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
       "artifact_expires_at": "2026-10-30T17:02:50Z",
@@ -6901,7 +6897,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "9d8057f8bf441789e024b1860e70bfb0b18eb46c",
+        "run_attempt": 1,
+        "run_id": "40069565406"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -6912,16 +6913,7 @@
         "runtime_version": "v2",
         "version": "19.beta4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T06:16:55+00:00",
-        "expires_at": "2026-10-24T14:16:55+00:00",
-        "producer": {
-          "commit": "9d8057f8bf441789e024b1860e70bfb0b18eb46c",
-          "run_attempt": 1,
-          "run_id": "40069565406"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.15.1\"}": {
       "artifact_expires_at": "2026-10-30T20:53:57Z",
