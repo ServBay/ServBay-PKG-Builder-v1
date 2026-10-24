@@ -3439,6 +3439,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T09:25:58+00:00",
+        "expires_at": "2026-10-24T17:25:58+00:00",
+        "producer": {
+          "commit": "16cff57e07ae324ba4313f8b4f6195375af8c0db",
+          "run_attempt": 1,
+          "run_id": "40081912044"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
       "artifact_expires_at": "2026-10-30T17:02:50Z",
       "artifact_id": "12517633475",
