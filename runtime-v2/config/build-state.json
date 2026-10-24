@@ -2695,7 +2695,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"16.15\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "8acacb3ac370252ce9c58cfb2c5ba3eed66f481a",
+        "run_attempt": 1,
+        "run_id": "40086450122"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2706,16 +2711,7 @@
         "runtime_version": "v2",
         "version": "16.15"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T10:34:40+00:00",
-        "expires_at": "2026-10-24T18:34:40+00:00",
-        "producer": {
-          "commit": "8acacb3ac370252ce9c58cfb2c5ba3eed66f481a",
-          "run_attempt": 1,
-          "run_id": "40086450122"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"17.11\"}": {
       "consecutive_failures": 0,
@@ -6211,7 +6207,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"16.15\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "8acacb3ac370252ce9c58cfb2c5ba3eed66f481a",
+        "run_attempt": 1,
+        "run_id": "40086450122"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -6222,16 +6223,7 @@
         "runtime_version": "v2",
         "version": "16.15"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T10:34:40+00:00",
-        "expires_at": "2026-10-24T18:34:40+00:00",
-        "producer": {
-          "commit": "8acacb3ac370252ce9c58cfb2c5ba3eed66f481a",
-          "run_attempt": 1,
-          "run_id": "40086450122"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"17.11\"}": {
       "consecutive_failures": 0,
