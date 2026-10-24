@@ -145,7 +145,7 @@ jobs:
       version: ${{ inputs.macos_version }}
       arch: ${{ inputs.macos_arch }}
       runtime_version: ${{ inputs.runtime_version }}
-      build_revision: ${{ inputs.build_revision || 0 }}
+      build_revision: ${{ fromJSON(format('{0}', inputs.build_revision || 0)) }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
