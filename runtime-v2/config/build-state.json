@@ -59,6 +59,35 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.0\"}": {
+      "artifact_expires_at": "2026-10-31T18:27:10Z",
+      "artifact_id": "12571182044",
+      "artifact_name": "pkg2-macos-arm64-package-ai-gateway-1.31.0",
+      "artifact_zip_sha256": "e5c3af4de6e7c976c6594678de812e0cce3d535c0b7e820440183f966dc94119",
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+        "run_attempt": 1,
+        "run_id": "40120632778"
+      },
+      "package_sha256": "61bd1691898be91c9bf2068212c04250871ebfd97137803152ce2a413c088838",
+      "producer": {
+        "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+        "run_attempt": 1,
+        "run_id": "40120632778"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.0"
+      },
+      "status": "build-ready"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "consecutive_failures": 3,
       "last_collected_producer": {
@@ -3682,6 +3711,35 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "1.0.0"
+      },
+      "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.0\"}": {
+      "artifact_expires_at": "2026-10-31T18:29:11Z",
+      "artifact_id": "12571222324",
+      "artifact_name": "pkg2-macos-x86_64-package-ai-gateway-1.31.0",
+      "artifact_zip_sha256": "ba9468d040ec3b5b0404536853103fbd90d5788fce3804fec1afae8a687371e2",
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+        "run_attempt": 1,
+        "run_id": "40120632778"
+      },
+      "package_sha256": "b42303507ef2db69d93a0a41d0fd09a2c1cefed8d0ebe904af1207cf5cbd9a29",
+      "producer": {
+        "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+        "run_attempt": 1,
+        "run_id": "40120632778"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.0"
       },
       "status": "build-ready"
     },
