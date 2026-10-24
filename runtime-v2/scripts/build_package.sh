@@ -4732,20 +4732,22 @@ build_postgresql() {
     # PG19 起 configure 默认探测并要求 GSSAPI（gssapi_ext.h），新 macOS SDK 已
     # 移除该头：19+ 用 brew MIT krb5 提供真实 GSSAPI 支持而非砍特性。bison 同理
     # 由工作流工具链提供 3.x（php buildconf/mysql cmake 同样需要）。
+    # PG19 起 configure 默认探测并要求 GSSAPI（gssapi_ext.h），新 macOS SDK 已
+    # 移除该头：19+ 用 brew MIT krb5 提供真实 GSSAPI 支持而非砍特性。krb5 路径
+    # 不能拼进 --with-includes/--with-libraries（含空格的值经 eval 二次解析会被
+    # 当成 host triplet，run 40060165404 实测），改走 CFLAGS/LDFLAGS 的 -I/-L。
     local krb5_include="/opt/homebrew/opt/krb5/include /usr/local/opt/krb5/include"
     local krb5_lib="/opt/homebrew/opt/krb5/lib /usr/local/opt/krb5/lib"
-    local pg_includes="${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}"
-    local pg_libraries="${SERVBAY_COMMON_LIB_PATH}"
     if (( version_major_num >= 19 )); then
-        pg_includes="${pg_includes} ${krb5_include}"
-        pg_libraries="${pg_libraries} ${krb5_lib}"
+        export CFLAGS="${CFLAGS} -I${krb5_include%% *} -I${krb5_include##* }"
+        export LDFLAGS="${LDFLAGS} -L${krb5_lib%% *} -L${krb5_lib##* }"
     fi
 
     # Use eval to correctly handle the extra CFLAGS string if it exists
     eval ./configure \
         --prefix="${prefix}" \
-        --with-includes="${pg_includes}" \
-        --with-libraries="${pg_libraries}" \
+        --with-includes="${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" \
+        --with-libraries="${SERVBAY_COMMON_LIB_PATH}" \
         --enable-thread-safety --with-gssapi --with-icu --with-ldap \
         --with-libxml --with-libxslt --with-lz4 --with-openssl --with-pam \
         --with-bonjour --with-zstd --with-libedit-preferred --with-uuid=e2fs \
