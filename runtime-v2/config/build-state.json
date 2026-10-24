@@ -985,6 +985,15 @@
         "runtime_version": "v2",
         "version": "11.4.13"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T10:35:05+00:00",
+        "expires_at": "2026-10-24T18:35:05+00:00",
+        "producer": {
+          "commit": "653727f98b92b2e53c950052307eb9198dd3ffbf",
+          "run_attempt": 1,
+          "run_id": "40086478235"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.5.2\"}": {
@@ -4495,6 +4504,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "11.4.13"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T10:35:05+00:00",
+        "expires_at": "2026-10-24T18:35:05+00:00",
+        "producer": {
+          "commit": "653727f98b92b2e53c950052307eb9198dd3ffbf",
+          "run_attempt": 1,
+          "run_id": "40086478235"
+        }
       },
       "status": "discovered"
     },
