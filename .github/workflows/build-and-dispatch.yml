@@ -137,7 +137,7 @@ jobs:
     # 都会让 macOS 分支被静默跳过（2026-10-24 v1 ai-gateway 双端发布复现，
     # GitHub API 的 plan-macos.outputs 为 null）。只按 inputs 判定；plan-macos
     # 失败时 `needs` 的默认传播会让本 job skip，不需要在 `if` 里重复判断。
-    if: ${{ inputs.targets == 'both' || inputs.targets == 'macos' }}
+    # TEMP experiment: if removed
     uses: ./.github/workflows/build-macos.yml
     with:
       runtime_version: ${{ inputs.runtime_version }}
