@@ -60,8 +60,13 @@ on:
         required: false
         default: true
 
+# build-macos.yml (the reusable workflow this orchestrator calls) needs to
+# write repository contents and read artifacts. A called workflow can never be
+# granted more than its caller, and GitHub rejects the whole dispatch at
+# startup when it asks for more - so this ceiling has to cover it.
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 jobs:
   build-macos:
@@ -76,10 +81,10 @@ jobs:
     secrets: inherit
 
   build-windows:
-    # EOL PHP branches (7.0-8.1) are compiled from source in
+    # EOL PHP branches (5.3-8.1) are compiled from source in
     # build-windows-php-legacy.yml: the stock pipeline repackages an upstream
     # zip and cannot apply the security backport. Everything else stays here.
-    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && !(inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.') || startsWith(inputs.windows_version, '7.2.') || startsWith(inputs.windows_version, '7.3.') || startsWith(inputs.windows_version, '7.4.') || startsWith(inputs.windows_version, '8.0.') || startsWith(inputs.windows_version, '8.1.'))) }}
+    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && !(inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '5.3.') || startsWith(inputs.windows_version, '5.4.') || startsWith(inputs.windows_version, '5.5.') || startsWith(inputs.windows_version, '5.6.') || startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.') || startsWith(inputs.windows_version, '7.2.') || startsWith(inputs.windows_version, '7.3.') || startsWith(inputs.windows_version, '7.4.') || startsWith(inputs.windows_version, '8.0.') || startsWith(inputs.windows_version, '8.1.'))) }}
     uses: ./.github/workflows/build-windows.yml
     with:
       pkg: ${{ inputs.windows_pkg }}
@@ -91,7 +96,7 @@ jobs:
   build-windows-legacy:
     # Same artifact contract as build-windows.yml, so dispatch-downstream picks
     # the result up without a special case.
-    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.') || startsWith(inputs.windows_version, '7.2.') || startsWith(inputs.windows_version, '7.3.') || startsWith(inputs.windows_version, '7.4.') || startsWith(inputs.windows_version, '8.0.') || startsWith(inputs.windows_version, '8.1.')) && (inputs.windows_arch == 'x64' || inputs.windows_arch == 'x86') }}
+    if: ${{ (inputs.targets == 'both' || inputs.targets == 'windows') && inputs.windows_pkg == 'php' && (startsWith(inputs.windows_version, '5.3.') || startsWith(inputs.windows_version, '5.4.') || startsWith(inputs.windows_version, '5.5.') || startsWith(inputs.windows_version, '5.6.') || startsWith(inputs.windows_version, '7.0.') || startsWith(inputs.windows_version, '7.1.') || startsWith(inputs.windows_version, '7.2.') || startsWith(inputs.windows_version, '7.3.') || startsWith(inputs.windows_version, '7.4.') || startsWith(inputs.windows_version, '8.0.') || startsWith(inputs.windows_version, '8.1.')) && (inputs.windows_arch == 'x64' || inputs.windows_arch == 'x86') }}
     uses: ./.github/workflows/build-windows-php-legacy.yml
     with:
       version: ${{ inputs.windows_version }}

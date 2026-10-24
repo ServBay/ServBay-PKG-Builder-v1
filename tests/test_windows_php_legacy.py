@@ -28,6 +28,10 @@ PATCH_ROOT = ROOT / "runtime/patch"
 # Every EOL branch that ships as a Windows package. 7.0/7.1 have an official
 # VC14 dependency bundle; 7.2+ take the per-library series manifest instead.
 EOL_VERSIONS = [
+    "5.3.29.1",
+    "5.4.45.1",
+    "5.5.38.1",
+    "5.6.40.1",
     "7.0.33.1",
     "7.1.33.1",
     "7.2.34.1",
@@ -42,6 +46,10 @@ VC14_VERSIONS = ["7.0.33.1", "7.1.33.1"]
 # manifest is keyed by it, so getting this wrong downloads the wrong CRT's
 # libraries and links instead of failing outright.
 CRT_BY_BRANCH = {
+    "5.3": "vc9",
+    "5.4": "vc9",
+    "5.5": "vc11",
+    "5.6": "vc11",
     "7.0": "vc14",
     "7.1": "vc14",
     "7.2": "vc15",
@@ -88,7 +96,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
     def test_dependency_archive_follows_requested_arch(self):
         # A hardcoded -x64 archive silently produces a broken x86 build.
         text = PS1.read_text()
-        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
         self.assertNotIn("deps-7.0-vc14-x64.7z", text)
 
     def test_rejects_branches_outside_the_supported_series(self):
@@ -169,7 +177,7 @@ class WindowsPhpLegacyBuildTests(unittest.TestCase):
         # through _exit(1), not longjmp. Vanilla PHP exits 255, so asserting on
         # 1 is what actually proves the patch reached the binary.
         text = PS1.read_text()
-        self.assertIn("-d memory_limit=2M", text)
+        self.assertIn("memory_limit=2M", text)
         self.assertRegex(text, r"\$OomExit\s+-ne\s+1")
 
     def test_intrinsics_shim_is_scoped_to_old_compilers(self):
@@ -207,11 +215,12 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("php-sdk-2.8.4", text)
         self.assertIn("phpsdk_buildtree.bat", text)
 
-    def test_vc14_bundle_stays_single_archive(self):
-        # 7.0/7.1 are the only branches php.net shipped an aggregate bundle
-        # for. Keep that path, it is the one already proven on the runner.
+    def test_aggregate_bundle_stays_single_archive(self):
+        # vc11 (5.5/5.6) and vc14 (7.0/7.1) are the branches php.net shipped
+        # one aggregate bundle for; keep that path, it is the one already
+        # proven on the runner.
         text = PS1.read_text()
-        self.assertIn("deps-$MajorMinor-vc14-$Arch.7z", text)
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
 
     def test_intrinsics_shim_is_vc14_only(self):
         # _mm_loadu_si64 exists from VS2017 on. Injecting the shim into a
@@ -254,7 +263,7 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("main\\config.w32.h", text)
         # Branches that recognise the toolset write a bare identifier, the
         # ones that do not write a quoted version, so both have to match.
-        self.assertIn('("[^"]*"|\\S+)', text)
+        self.assertIn("(?m)^#define\\s+PHP_COMPILER_ID", text)
         # 8.0/8.1 already emit the right identifier; the smoke test is the
         # guard there, so skipping the rewrite must be recorded.
         self.assertIn("keeping the detected value", text)
@@ -268,6 +277,202 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         self.assertIn("get_loaded_extensions", text)
         self.assertIn("Unable to (load dynamic library|initialize module)", text)
         self.assertNotIn("echo 'extensions ok'", text)
+
+
+class WindowsPhp5BuildTests(unittest.TestCase):
+    """PHP 5.6 lost its VS2012 toolset; option B rebuilds it on VS2019."""
+
+    def test_php5_uses_the_aggregate_vc11_bundle(self):
+        # 5.6 predates the per-library series manifests, so its dependencies
+        # come from one archive keyed by the branch's own CRT.
+        text = PS1.read_text()
+        self.assertIn("deps-$MajorMinor-$Crt-$Arch.7z", text)
+        self.assertIn("$Crt -in @('vc9', 'vc11', 'vc14')", text)
+
+    def test_php5_prefers_the_vs2019_toolset(self):
+        # v110 is gone. VS2019's 14.2x rejects less of the 2019-era source
+        # than v143 does, so it is tried first.
+        text = PS1.read_text()
+        self.assertIn("'vc11' { '^14\.2\d*\.' }", text)
+        self.assertIn("falls back to the newest one when absent", text)
+
+    def test_php5_omits_the_flags_only_7_has(self):
+        # PHP 5 always builds the CLI and CGI SAPIs; those configure flags
+        # only exist from 7.0.
+        text = PS1.read_text()
+        self.assertIn("if ($MajorMinor -notin @('5.3', '5.4', '5.5', '5.6'))", text)
+        self.assertIn("--enable-cli", text)
+
+    def test_compiler_id_rewrite_covers_an_empty_value(self):
+        # PHP 5's table stops at VS2013, so configure.js leaves the value
+        # empty; a value-only regex would then skip the line entirely.
+        text = PS1.read_text()
+        self.assertIn(r"(?m)^#define\s+PHP_COMPILER_ID[^\r\n]*", text)
+
+    def test_php5_pins_the_toolset_name_before_configure(self):
+        # Without the clamp configure prints "Detected compiler undefined" and
+        # dies in write_summary ('length' is null or not an object) before it
+        # writes a Makefile, so nmake then finds nothing to build.
+        text = PS1.read_text()
+        self.assertIn("if (!VC_VERSIONS[VCVERS]) { VCVERS = $CrtVersion; }", text)
+        self.assertIn("$CrtVersion = if ($MajorMinor -in @('5.3', '5.4')) { 1500 } else { 1700 }", text)
+        self.assertIn("cannot pin the toolset name", text)
+
+    def test_php5_scopes_the_snprintf_macro(self):
+        # UCRT provides a real snprintf and aborts compilation while the macro
+        # is defined ("Macro definition of snprintf conflicts with Standard
+        # Library function declaration"). PHP 5 defines it unconditionally.
+        text = PS1.read_text()
+        self.assertIn("#define snprintf _snprintf", text)
+        self.assertIn("'#if _MSC_VER < 1900'", text)
+        self.assertIn("does not define the snprintf macro as expected", text)
+        # ext/xmlrpc carries its own copy of the same macro.
+        self.assertIn("xmlrpc_win32.h does not define snprintf as expected", text)
+
+    def test_php5_scopes_the_pre_ucrt_crt_shims(self):
+        # The 5.x source assumes the pre-UCRT CRT: it declares struct timespec
+        # itself, ships a bundled stdint.h, and reaches <signal.h> through a
+        # relative path that only existed inside the SDK build tree. Each one
+        # collides with the modern SDK.
+        text = PS1.read_text()
+        self.assertIn("#ifndef timespec", text)
+        self.assertIn("'#if _MSC_VER < 1900'", text)
+        self.assertIn("#include <../include/signal.h>", text)
+        self.assertIn("typedef int16_t   int_fast16_t;", text)
+        # The bundled header also carried BSD aliases the UCRT lacks.
+        self.assertIn("typedef unsigned __int8 u_char;", text)
+        # Each edit must fail loudly rather than silently skipping.
+        self.assertIn("no longer guards struct timespec", text)
+        self.assertIn("no longer includes the relative signal header", text)
+        self.assertIn("does not look like the bundled stdint", text)
+
+    def test_php5_bridges_the_pre_ucrt_stdio_slot(self):
+        # libxml2_a_dll.lib and libmcrypt_a.lib reference __imp___iob_func,
+        # which UCRT removed; without the bridge the DLL fails to link with
+        # three unresolved externals.
+        text = PS1.read_text()
+        text = PS1.read_text()
+        # The archives need both the printf family and the stdio-array slot.
+        self.assertIn("#pragma comment(lib, \"legacy_stdio_definitions.lib\")", text)
+        self.assertIn("__declspec(dllexport) FILE * __cdecl __iob_func(void)", text)
+        self.assertIn("__acrt_iob_func(0)", text)
+        # Defining the slot in the header as well collides with the export
+        # (php5.lib supplies __imp___iob_func), so it must live in main.c only.
+        # Only the stdio slot must stay out of the header: defining it there
+        # collides with the export. The timezone slots are a different symbol.
+        self.assertNotIn("__declspec(selectany) FILE", text)
+        # UCRT dropped the timezone globals; export stand-ins so the import
+        # library supplies __imp_daylight / __imp_tzname for cclient.
+        # daylight/tzname are macros in UCRT's headers, so the names have to
+        # be exported by the linker rather than declared in C.
+        # UCRT removed the variables; export real ones so the import library
+        # carries the __imp_ entries cclient needs.
+        self.assertIn("__declspec(dllexport) int   daylight = 0;", text)
+        self.assertIn("__declspec(dllexport) char *tzname[2]", text)
+        self.assertIn("_get_daylight(&daylight)", text)
+        # libcurl_a.lib in 5.5 wants the dllimport slots, not the functions.
+        # sscanf goes through an export from php5.dll, like __iob_func.
+        # Export the import slots, not the functions: exporting "sscanf"
+        # collides with the LTCG-merged copy in gd's xbm.obj.
+        # php_stdint.h is not included by every extension (ext/curl's objects
+        # carry no trace of it), so the directives live in main\php.h.
+        self.assertIn("main\\php.h", text)
+        self.assertIn('#pragma comment(linker, "/include:__imp_sscanf")', text)
+        self.assertIn("php_compat_vsnprintf", text)
+        self.assertIn("/alternatename:vsnprintf=php_compat_vsnprintf", text)
+        # Without a guard the shim is redefined on the second inclusion.
+        self.assertIn("#ifndef PHP_PRE_UCRT_SHIM", text)
+        # ext/openssl and ext/soap read the same removed global. It must be a
+        # per-site patch: PHP has struct members named timezone, so a macro
+        # would rewrite those too.
+        self.assertIn("_get_timezone(&tz_seconds)", text)
+        self.assertIn("_get_timezone(&tz)", text)
+        self.assertNotIn("#define timezone", text)
+
+    def test_native_output_is_captured_the_same_way_on_both_hosts(self):
+        # Windows PowerShell 5.1 raises a terminating error when a native
+        # program writes to stderr, so an expected PHP fatal error aborted the
+        # build before the exit code was read. PowerShell 7 (the CI runner)
+        # does not behave that way, which made the divergence invisible there.
+        text = PS1.read_text()
+        self.assertIn("function Invoke-Captured", text)
+        self.assertIn("$ErrorActionPreference = 'Continue'", text)
+        self.assertNotIn("php.exe') -v 2>&1", text)
+        self.assertNotIn("get_loaded_extensions());\" 2>&1", text)
+
+    def test_php5_bundles_the_vc11_runtime(self):
+        # ssleay32/libeay32/icu*57/libpq/libsasl are VC11-built. No hosted
+        # runner image has the VC++ 2012 redistributable, so without it
+        # php_curl, php_intl, php_pgsql and php_ldap fail to start with
+        # "The specified module could not be found". The official 5.x packages
+        # never bundled it, which made them unusable on a clean machine.
+        text = PS1.read_text()
+        self.assertIn("vcredist_x64.exe", text)
+        self.assertIn("F_CENTRAL_msvcr110_$VcArch", text)
+        self.assertIn("Could not extract $runtimeDll", text)
+
+    def test_php53_uses_the_dated_vc9_bundles(self):
+        # php.net published exactly one vc9 bundle per branch, stamped with the
+        # month it was rolled; there is no deps-5.3-vc9-x86.7z.
+        text = PS1.read_text()
+        self.assertIn('deps-5.3-vc9-x86_2014-09.7z', text)
+        self.assertIn('deps-5.4-vc9-x86_2015-05.7z', text)
+
+    def test_php53_bundles_the_vc9_runtime(self):
+        # 5.3/5.4 dependency libraries import MSVCR90, which no runner image
+        # carries. The redistributable ships private copies meant to sit next
+        # to the executable.
+        text = PS1.read_text()
+        self.assertIn('vcredist2008', text)
+        self.assertIn('nosxs_msvcr90.dll', text)
+        self.assertIn("Could not extract $($pair[0])", text)
+
+    def test_php53_patches_the_2014_source(self):
+        # ARG_MAX is not in the modern SDK; link.exe only accepts a two-segment
+        # /version; and 5.3/5.4 write to Release\ rather than <arch>\Release.
+        text = PS1.read_text()
+        self.assertIn('PHP_ARG_MAX_FALLBACK', text)
+        self.assertIn("Trimmed the DLL version to major.minor", text)
+        self.assertIn("PHP 5.3/5.4 write straight to Release", text)
+
+    def test_php53_keeps_the_archives_it_actually_ships(self):
+        # 5.3/5.4 full packages carry no deplister, no extras\ssl and no
+        # lib\enchant, so requiring them would fail a complete archive.
+        text = PS1.read_text()
+        self.assertIn("$RequiredPaths = if ($MajorMinor -in @('5.3', '5.4'))", text)
+
+    def test_php55_ships_the_core_set_only(self):
+        # The published 5.5 package carried no PECL extension at all, and PECL
+        # offers only a handful of VC11 builds for it. An empty manifest is
+        # expected for 5.5 and must not be confused with a broken one.
+        workflow = WORKFLOW.read_text()
+        self.assertIn("$coreOnly = @('5.3', '5.4', '5.5')", workflow)
+        self.assertIn("ships the core extensions only", workflow)
+        # Every other branch still fails loudly when its manifest is empty.
+        self.assertIn("throw \"No PECL extensions defined for PHP $branch", workflow)
+
+    def test_php5_official_archive_is_under_archives(self):
+        text = PS1.read_text()
+        self.assertIn("'vc11' { 'VC11' }", text)
+        self.assertIn("@('5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3')", text)
+
+
+class DispatchPermissionsTests(unittest.TestCase):
+    """A reusable workflow can never be granted more than its caller."""
+
+    def test_caller_grants_what_build_macos_requests(self):
+        # build-macos.yml asks for contents: write + actions: read. When the
+        # orchestrator only granted contents: read, every manual dispatch died
+        # with startup_failure before any job ran - GitHub refuses to start a
+        # run whose called workflow requests more than the caller allows.
+        dispatch = yaml.safe_load(DISPATCH.read_text())
+        caller = dispatch["permissions"]
+        callee = yaml.safe_load((ROOT / ".github/workflows/build-macos.yml").read_text())["permissions"]
+        for scope, level in callee.items():
+            self.assertIn(scope, caller, f"caller does not grant {scope} at all")
+            self.assertEqual(
+                caller[scope], level, f"caller grants {scope}: {caller[scope]}, callee wants {level}"
+            )
 
 
 class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
