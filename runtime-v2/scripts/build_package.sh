@@ -1650,6 +1650,11 @@ _get_mysql_cmake_args() {
     # 内部新增 find_package(OpenSSL) 消费者也不会漂移到 brew。
     if [[ "$version_major" == 8.* || "$version_major" == 9.* ]]; then
         CMAKE_ARGS+=("-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
+        # cmake 的 find_program 只搜 PATH，common/bin 不在 runner 的 PATH 里；
+        # copy_openssl_binary 强制要求可执行文件（2.1.1 基座已补入）。
+        if [[ -x "${SERVBAY_COMMON_PATH}/bin/openssl" ]]; then
+            CMAKE_ARGS+=("-DOPENSSL_EXECUTABLE=${SERVBAY_COMMON_PATH}/bin/openssl")
+        fi
     fi
 
     # MySQL 9.7 引入基于 OpenTelemetry 的 telemetry（client plugin + server component），
@@ -4740,6 +4745,27 @@ build_postgresql() {
     # 只在 Libs.private 里，configure 的非 static pkg-config 拿不到，链接期
     # ICU 符号全缺（run 40062810115 双架构实测）。v2 静态优先策略下显式给全。
     export ICU_LIBS="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -licui18n -licuuc -licudata -lc++"
+    # ICU 取证探针（第 5 轮仍未消，需 runner 实地 nm 实际库文件）
+    log_message "INFO" "[icu2] === ICU library facts on this runner ==="
+    for _f in "${SERVBAY_COMMON_LIB_PATH}/libicuuc.a" "${SERVBAY_COMMON_LIB_PATH}/libicuuc.76.dylib" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.a" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.76.dylib"; do
+        if [[ -e "$_f" ]]; then
+            log_message "INFO" "[icu2] $(basename "$_f"): lipo=$(lipo -archs "$_f" 2>&1 | tr '\n' ' ') nm_u_errorName=$(nm -gU "$_f" 2>/dev/null | grep -c '_u_errorName') nm_ucol_open=$(nm -gU "$_f" 2>/dev/null | grep -c '_ucol_open') size=$(stat -f%z "$_f" 2>/dev/null)"
+        else
+            log_message "INFO" "[icu2] $(basename "$_f"): NOT FOUND"
+        fi
+    done
+    # 检查是否有版本后缀符号（如 u_errorName_76）
+    log_message "INFO" "[icu2] versioned symbols in libicuuc: $(nm -gU "${SERVBAY_COMMON_LIB_PATH}/libicuuc.76.dylib" 2>/dev/null | grep -c '_u_errorName_')"
+    log_message "INFO" "[icu2] versioned symbols in libicuuc.a: $(nm -gU "${SERVBAY_COMMON_LIB_PATH}/libicuuc.a" 2>/dev/null | grep -c '_u_errorName_')"
+    # 实际 test link（分词正确版）
+    printf '#include <unicode/ucol.h>\n#include <unicode/uchar.h>\n#include <stdio.h>\nint main(void){UErrorCode s=U_ZERO_ERROR;UCollator*c=ucol_open("en",&s);printf("%%s",u_errorName(s));ucol_close(c);return 0;}\n' > /tmp/icu2test.c
+    if "${CC:-cc}" ${=CFLAGS} -I"${SERVBAY_COMMON_INCLUDE_PATH}" /tmp/icu2test.c -o /tmp/icu2test ${=ICU_LIBS} ${=LDFLAGS} 2>/tmp/icu2err; then
+        log_message "INFO" "[icu2] TEST LINK: SUCCEEDED"
+        log_message "INFO" "[icu2] dyld: $(/tmp/icu2test 2>&1)"
+    else
+        log_message "INFO" "[icu2] TEST LINK: FAILED"
+        cat /tmp/icu2err | while read -r line; do log_message "INFO" "[icu2] $line"; done
+    fi
     local krb5_include="/opt/homebrew/opt/krb5/include /usr/local/opt/krb5/include"
     local krb5_lib="/opt/homebrew/opt/krb5/lib /usr/local/opt/krb5/lib"
     # PG 全版本都 --with-gssapi：krb5 路径对所有 PG 版本生效（18.6/16.15
