@@ -3437,6 +3437,15 @@
         "runtime_version": "v2",
         "version": "19.beta4"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T09:08:28+00:00",
+        "expires_at": "2026-10-24T17:08:28+00:00",
+        "producer": {
+          "commit": "2fec0ef88e53c9279a9e4a537bb8b7d349dea89f",
+          "run_attempt": 1,
+          "run_id": "40080756239"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
