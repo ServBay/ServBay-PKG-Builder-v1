@@ -135,6 +135,22 @@ class BrewGdbmHeaderCopyTests(unittest.TestCase):
         self.assertIn('cp "$_gdbm_include/gdbm.h" "$_gdbm_include/gdbm-ndbm.h"', joined)
 
 
+class PostgresIcuStaticLinkTests(unittest.TestCase):
+    def test_postgres_overrides_icu_libs_for_the_static_first_policy(self):
+        # ICU 静态归档是 C++ 构建物：-licudata 与 libc++ 只在 .pc 的
+        # Libs.private，configure 的非 static pkg-config 拿不到；静态优先
+        # 策略下必须显式 ICU_LIBS 给全链接集（run 40062810115 双架构实测
+        # ICU 符号全缺）。断言剥掉注释行。
+        recipe = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = recipe.split("build_postgresql() {", 1)[1].split("\n}", 1)[0]
+        code = [line for line in body.splitlines() if line.strip() and not line.strip().startswith("#")]
+        joined = "\n".join(code)
+        self.assertIn("export ICU_LIBS=", joined)
+        self.assertIn("-licudata", joined)
+        self.assertIn("-lc++", joined)
+        self.assertIn("-licui18n", joined)
+
+
 class PhpLegacyMakefileFlagsTests(unittest.TestCase):
     """A7（v1 6b03016）：旧分支 libjpeg 回调签名降级必须写进 configure 生成的
     Makefile 的 CFLAGS_CLEAN——PHP configure 会重建 CFLAGS，环境变量到不了编译行。"""

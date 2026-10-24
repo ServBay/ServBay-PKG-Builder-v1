@@ -4736,6 +4736,10 @@ build_postgresql() {
     # 移除该头：19+ 用 brew MIT krb5 提供真实 GSSAPI 支持而非砍特性。krb5 路径
     # 不能拼进 --with-includes/--with-libraries（含空格的值经 eval 二次解析会被
     # 当成 host triplet，run 40060165404 实测），改走 CFLAGS/LDFLAGS 的 -I/-L。
+    # ICU 静态归档是 C++ 构建物：-licudata（ICU 内部）与 libc++（umutex 等）
+    # 只在 Libs.private 里，configure 的非 static pkg-config 拿不到，链接期
+    # ICU 符号全缺（run 40062810115 双架构实测）。v2 静态优先策略下显式给全。
+    export ICU_LIBS="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -licui18n -licuuc -licudata -lc++"
     local krb5_include="/opt/homebrew/opt/krb5/include /usr/local/opt/krb5/include"
     local krb5_lib="/opt/homebrew/opt/krb5/lib /usr/local/opt/krb5/lib"
     if (( version_major_num >= 19 )); then
