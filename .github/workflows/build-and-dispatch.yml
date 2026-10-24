@@ -131,18 +131,25 @@ jobs:
           /bin/bash runtime/ci/reserve_builds.sh
 
   build-macos:
-    # 这里**不能引用 `needs.*`**：`uses`（reusable workflow）job 的 `if` 实测在
-    # job 求值阶段拿不到 `needs` 上下文 —— `outputs.count` 和 `result` 两种写法
-    # 都会让 macOS 分支被静默跳过（2026-10-24 v1 ai-gateway 双端发布复现，
-    # GitHub API 的 plan-macos.outputs 为 null）。只按 inputs 判定；plan-macos
-    # 失败时 `needs` 的默认传播会让本 job skip，不需要在 `if` 里重复判断。
-    # TEMP experiment: if removed
+    # `uses`（reusable workflow）job 的 `with` 在 job 创建阶段求值：number 类型
+    # 输入拿到空值会让整个 job 创建失败 —— job 根本不出现、run 直接 failure，
+    # 其他 job 照常跑（2026-10-24 v1 双端发布复现，唯一变量就是
+    # `build_revision`；workflow_dispatch 的 number 默认值在 API 触发时不可靠）。
+    # 所以这里显式兜底成 0、`host_request` 兜底成空串。
+    # `if` 只用 inputs：`needs.*` 在 reusable job 的 `if` 里实测取不到。
+    needs: plan-macos
+    if: ${{ inputs.targets == 'both' || inputs.targets == 'macos' }}
     uses: ./.github/workflows/build-macos.yml
     with:
+      runtime_version: ${{ inputs.runtime_version }}
+      build_revision: ${{ inputs.build_revision || 0 }}
+      # plan-macos 的 commit 输出就是本 run 的 HEAD，与 github.sha 等价；
+      # 用 github 上下文可以避开 `needs.*` 在 reusable 调用里的求值风险。
+      checkout_ref: ${{ github.sha }}
+      host_request: ${{ inputs.host_request || '' }}
       pkg: ${{ inputs.macos_pkg }}
       version: ${{ inputs.macos_version }}
       arch: ${{ inputs.macos_arch }}
-      runtime_version: ${{ inputs.runtime_version }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
