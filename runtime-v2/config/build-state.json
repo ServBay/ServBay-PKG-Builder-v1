@@ -3599,6 +3599,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.13"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:48:07+00:00",
+        "expires_at": "2026-10-25T02:48:07+00:00",
+        "producer": {
+          "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+          "run_attempt": 1,
+          "run_id": "40122353568"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
       "last_collected_producer": {
