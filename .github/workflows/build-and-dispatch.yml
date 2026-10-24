@@ -131,15 +131,13 @@ jobs:
           /bin/bash runtime/ci/reserve_builds.sh
 
   build-macos:
-    # 只传这 4 个参数。2026-10-24 实测：往 `with` 里再加
-    # `build_revision` / `checkout_ref` / `host_request`（带不带兜底都一样）会让
-    # 整个 job **静默不生成** —— run 卡在 in_progress，`dispatch-downstream` 等
-    # 一个永远不存在的 need。GitHub 在 job 创建阶段就做 reusable 输入校验，
-    # 失败时既不建 job 也不报错。
+    # 只传已验证的参数。2026-10-24 实测：往 `with` 里再加 `checkout_ref` /
+    # `host_request`（带兜底也一样）会让整个 job **静默不生成** —— run 卡在
+    # in_progress，`dispatch-downstream` 等一个永远不存在的 need。
+    # `build_revision` 单独加回是安全的，并且 v2 强制重建依赖它。
     #
-    # 这三个参数不传是安全的，`build-macos.yml` 的 workflow_call 默认值覆盖：
+    # 不传的两个参数由 `build-macos.yml` 的 workflow_call 默认值覆盖：
     #   checkout_ref 默认 '' → 内部回退 `${{ inputs.checkout_ref || github.sha }}`
-    #   build_revision 默认 0
     #   host_request 默认 ''（独立模块 host 请求走 check-updates.yml，不经本 orchestrator）
     uses: ./.github/workflows/build-macos.yml
     with:
@@ -147,6 +145,7 @@ jobs:
       version: ${{ inputs.macos_version }}
       arch: ${{ inputs.macos_arch }}
       runtime_version: ${{ inputs.runtime_version }}
+      build_revision: ${{ inputs.build_revision || 0 }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
