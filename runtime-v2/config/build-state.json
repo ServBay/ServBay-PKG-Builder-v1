@@ -3398,12 +3398,31 @@
       },
       "status": "build-ready"
     },
-    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "7a4b819051b10c5792bc924e1d8aec5a2186a8c5",
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
         "run_attempt": 1,
-        "run_id": "40060162272"
+        "run_id": "40119104439"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.13"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+      "consecutive_failures": 2,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119111766"
       },
       "record": {
         "arch": "arm64",
@@ -3446,6 +3465,25 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ddeb06419b4c9c461d0ddd60608fb1e43945dc33",
+        "run_attempt": 1,
+        "run_id": "40119119111"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 0,
       "last_collected_producer": {
@@ -3464,6 +3502,25 @@
         "version": "8.6.0beta3"
       },
       "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119089069"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
@@ -3542,6 +3599,25 @@
       "record": {
         "arch": "arm64",
         "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119096509"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 4,
         "build_type": "source",
         "kind": "package",
         "name": "postgresql",
@@ -6937,12 +7013,31 @@
       },
       "status": "build-failed"
     },
-    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "7a4b819051b10c5792bc924e1d8aec5a2186a8c5",
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
         "run_attempt": 1,
-        "run_id": "40060162272"
+        "run_id": "40119104439"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.13"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+      "consecutive_failures": 2,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119111766"
       },
       "record": {
         "arch": "x86_64",
@@ -6985,6 +7080,25 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ddeb06419b4c9c461d0ddd60608fb1e43945dc33",
+        "run_attempt": 1,
+        "run_id": "40119119111"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 0,
       "last_collected_producer": {
@@ -7003,6 +7117,25 @@
         "version": "8.6.0beta3"
       },
       "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119089069"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
@@ -7148,6 +7281,25 @@
         "version": "3.15.1"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+        "run_attempt": 1,
+        "run_id": "40119096509"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 4,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "status": "build-failed"
     }
   }
 }
