@@ -59,6 +59,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:25:41+00:00",
+        "expires_at": "2026-10-25T02:25:41+00:00",
+        "producer": {
+          "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+          "run_attempt": 1,
+          "run_id": "40120632778"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "consecutive_failures": 3,
       "last_collected_producer": {
@@ -3684,6 +3707,29 @@
         "version": "1.0.0"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.31.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:25:41+00:00",
+        "expires_at": "2026-10-25T02:25:41+00:00",
+        "producer": {
+          "commit": "952a01790eef573d1a4ae24a7a57788a5286913b",
+          "run_attempt": 1,
+          "run_id": "40120632778"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "consecutive_failures": 3,
