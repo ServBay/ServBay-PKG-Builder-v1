@@ -4742,10 +4742,10 @@ build_postgresql() {
     export ICU_LIBS="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -licui18n -licuuc -licudata -lc++"
     local krb5_include="/opt/homebrew/opt/krb5/include /usr/local/opt/krb5/include"
     local krb5_lib="/opt/homebrew/opt/krb5/lib /usr/local/opt/krb5/lib"
-    if (( version_major_num >= 19 )); then
-        export CFLAGS="${CFLAGS} -I${krb5_include%% *} -I${krb5_include##* }"
-        export LDFLAGS="${LDFLAGS} -L${krb5_lib%% *} -L${krb5_lib##* }"
-    fi
+    # PG 全版本都 --with-gssapi：krb5 路径对所有 PG 版本生效（18.6/16.15
+    # 曾因条件限定 19+ 而缺 gssapi_ext.h，run 40086443088/40086450122）。
+    export CFLAGS="${CFLAGS} -I${krb5_include%% *} -I${krb5_include##* }"
+    export LDFLAGS="${LDFLAGS} -L${krb5_lib%% *} -L${krb5_lib##* }"
 
     # Use eval to correctly handle the extra CFLAGS string if it exists
     eval ./configure \
