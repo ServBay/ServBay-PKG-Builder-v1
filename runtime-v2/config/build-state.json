@@ -3478,6 +3478,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:05:57+00:00",
+        "expires_at": "2026-10-25T02:05:57+00:00",
+        "producer": {
+          "commit": "ddeb06419b4c9c461d0ddd60608fb1e43945dc33",
+          "run_attempt": 1,
+          "run_id": "40119119111"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 0,
       "last_collected_producer": {
@@ -7094,6 +7117,29 @@
         "version": "1.31.8"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:05:57+00:00",
+        "expires_at": "2026-10-25T02:05:57+00:00",
+        "producer": {
+          "commit": "ddeb06419b4c9c461d0ddd60608fb1e43945dc33",
+          "run_attempt": 1,
+          "run_id": "40119119111"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 0,
