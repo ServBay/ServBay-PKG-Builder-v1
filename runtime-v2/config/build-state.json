@@ -3600,7 +3600,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
+      "artifact_expires_at": "2026-10-31T19:37:44Z",
+      "artifact_id": "12573686455",
+      "artifact_name": "pkg2-macos-arm64-package-mysql-8.4.13-r2",
+      "artifact_zip_sha256": "522c9d5b2f242c06a618392a66658cdd7418f86ea305a40afe04ad7f02b9c8be",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+        "run_attempt": 1,
+        "run_id": "40122353568"
+      },
+      "package_sha256": "4b949ff7848207acc658333c67044cf4695f570b917fca7bbf373d4285edf154",
+      "producer": {
+        "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+        "run_attempt": 1,
+        "run_id": "40122353568"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 2,
@@ -3611,16 +3626,7 @@
         "runtime_version": "v2",
         "version": "8.4.13"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T18:48:07+00:00",
-        "expires_at": "2026-10-25T02:48:07+00:00",
-        "producer": {
-          "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
-          "run_attempt": 1,
-          "run_id": "40122353568"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
