@@ -3415,6 +3415,15 @@
         "runtime_version": "v2",
         "version": "9.7.4"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:05:48+00:00",
+        "expires_at": "2026-10-25T02:05:48+00:00",
+        "producer": {
+          "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+          "run_attempt": 1,
+          "run_id": "40119111766"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
@@ -6999,6 +7008,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "9.7.4"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T18:05:48+00:00",
+        "expires_at": "2026-10-25T02:05:48+00:00",
+        "producer": {
+          "commit": "69cf8c18c3aefef7693a4e41457d6cb9152ab01d",
+          "run_attempt": 1,
+          "run_id": "40119111766"
+        }
       },
       "status": "build-failed"
     },
