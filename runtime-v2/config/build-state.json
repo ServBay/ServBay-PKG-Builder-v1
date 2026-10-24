@@ -1124,6 +1124,15 @@
         "runtime_version": "v2",
         "version": "13.1.1"
       },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:09:52+00:00",
+        "expires_at": "2026-10-24T11:09:52+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057152005"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
@@ -4454,6 +4463,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "13.1.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T03:09:52+00:00",
+        "expires_at": "2026-10-24T11:09:52+00:00",
+        "producer": {
+          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+          "run_attempt": 1,
+          "run_id": "40057152005"
+        }
       },
       "status": "discovered"
     },
