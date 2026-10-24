@@ -3488,6 +3488,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.0.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T16:38:37+00:00",
+        "expires_at": "2026-10-25T00:38:37+00:00",
+        "producer": {
+          "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+          "run_attempt": 1,
+          "run_id": "40112487208"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
       "last_collected_producer": {
@@ -7020,6 +7043,29 @@
         "version": "3.15.1"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 2,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "ai-gateway",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.0.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-24T16:38:37+00:00",
+        "expires_at": "2026-10-25T00:38:37+00:00",
+        "producer": {
+          "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+          "run_attempt": 1,
+          "run_id": "40112487208"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "artifact_expires_at": "2026-10-30T15:45:34Z",
