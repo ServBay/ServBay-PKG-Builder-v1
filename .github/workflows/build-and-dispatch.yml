@@ -131,7 +131,6 @@ jobs:
           /bin/bash runtime/ci/reserve_builds.sh
 
   build-macos:
-    needs: plan-macos
     # 这里**不能引用 `needs.*`**：`uses`（reusable workflow）job 的 `if` 实测在
     # job 求值阶段拿不到 `needs` 上下文 —— `outputs.count` 和 `result` 两种写法
     # 都会让 macOS 分支被静默跳过（2026-10-24 v1 ai-gateway 双端发布复现，
@@ -142,7 +141,7 @@ jobs:
     with:
       runtime_version: ${{ inputs.runtime_version }}
       build_revision: ${{ inputs.build_revision }}
-      checkout_ref: ${{ needs.plan-macos.outputs.commit }}
+      checkout_ref: ${{ github.sha }}
       host_request: ${{ inputs.host_request }}
       pkg: ${{ inputs.macos_pkg }}
       version: ${{ inputs.macos_version }}
