@@ -3751,7 +3751,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":6,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143568914"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 6,
@@ -3762,16 +3767,7 @@
         "runtime_version": "v2",
         "version": "19.beta4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T23:38:51+00:00",
-        "expires_at": "2026-10-25T07:38:51+00:00",
-        "producer": {
-          "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
-          "run_attempt": 1,
-          "run_id": "40143568914"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.2\"}": {
       "artifact_expires_at": "2026-10-30T17:02:50Z",
@@ -7523,7 +7519,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":6,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143568914"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 6,
@@ -7534,16 +7535,7 @@
         "runtime_version": "v2",
         "version": "19.beta4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T23:38:51+00:00",
-        "expires_at": "2026-10-25T07:38:51+00:00",
-        "producer": {
-          "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
-          "run_attempt": 1,
-          "run_id": "40143568914"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     }
   }
 }
