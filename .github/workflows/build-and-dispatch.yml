@@ -132,12 +132,12 @@ jobs:
 
   build-macos:
     needs: plan-macos
-    # `needs.plan-macos.outputs.count` 在 orchestrator run 里实测为空
-    # （job outputs 未被传播，GitHub API 返回 outputs: null），导致 macOS 分支
-    # 恒被跳过、dispatch-downstream 连带 skipped —— 2026-10-24 v1 ai-gateway
-    # 双端发布时复现。v1 的 matrix 固定为 x86_64 + arm64 两行，plan-macos
-    # 成功即代表有活可干；用 result 判定，不再依赖不可靠的 count 透传。
-    if: ${{ (inputs.targets == 'both' || inputs.targets == 'macos') && (needs.plan-macos.result == 'success' || inputs.host_request != '') }}
+    # 这里**不能引用 `needs.*`**：`uses`（reusable workflow）job 的 `if` 实测在
+    # job 求值阶段拿不到 `needs` 上下文 —— `outputs.count` 和 `result` 两种写法
+    # 都会让 macOS 分支被静默跳过（2026-10-24 v1 ai-gateway 双端发布复现，
+    # GitHub API 的 plan-macos.outputs 为 null）。只按 inputs 判定；plan-macos
+    # 失败时 `needs` 的默认传播会让本 job skip，不需要在 `if` 里重复判断。
+    if: ${{ inputs.targets == 'both' || inputs.targets == 'macos' }}
     uses: ./.github/workflows/build-macos.yml
     with:
       runtime_version: ${{ inputs.runtime_version }}
