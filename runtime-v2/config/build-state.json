@@ -1633,7 +1633,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057155261"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1644,16 +1649,7 @@
         "runtime_version": "v2",
         "version": "9.7.4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T03:10:11+00:00",
-        "expires_at": "2026-10-24T11:10:11+00:00",
-        "producer": {
-          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
-          "run_attempt": 1,
-          "run_id": "40057155261"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-29T17:06:34Z",
@@ -4993,7 +4989,12 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
+        "run_attempt": 1,
+        "run_id": "40057155261"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -5004,16 +5005,7 @@
         "runtime_version": "v2",
         "version": "9.7.4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T03:10:11+00:00",
-        "expires_at": "2026-10-24T11:10:11+00:00",
-        "producer": {
-          "commit": "8b49f81779e21a66a3d1bef2b5d5cfe58fbfe120",
-          "run_attempt": 1,
-          "run_id": "40057155261"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
       "artifact_expires_at": "2026-10-29T17:38:30Z",
