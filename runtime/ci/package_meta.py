@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Create the macOS v2 handoff from real package and upstream input bytes."""
+"""Create the v2 handoff from real package and upstream input bytes."""
 
 import argparse
 import hashlib
 import importlib.util
 import ipaddress
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import tarfile
@@ -88,6 +88,11 @@ def minimum_os_from_archive(package_path, baseline="12.0"):
         for member in archive:
             if not member.isfile():
                 continue
+            # go/node 等发行树在 src/**/testdata/ 里带 Mach-O 测试夹具（无
+            # LC_BUILD_VERSION）：夹具不是运行时二进制，minos 门禁不适用
+            # （go 1.27.3 双架构首跑实测误报，run 39997404749）。
+            if any(part == "testdata" for part in PurePosixPath(member.name).parts):
+                continue
             with archive.extractfile(member) as handle:
                 magic = handle.read(4)
                 if magic not in magics:
@@ -117,12 +122,16 @@ def metadata_fields(identity, producer, base, minimum_os, source):
     if row["runtime_version"] != "v2":
         raise ValueError("Schema2 requires an explicit runtime v2 identity")
     producer = _state.validate_producer(producer)
-    if set(base) != {"version", "runtime_sha256", "devlib_sha256"}:
-        raise ValueError("The fixed Runtime/Devlib identity is incomplete")
-    _state._text(base["version"], "base version")
-    for field in ("runtime_sha256", "devlib_sha256"):
-        if not isinstance(base[field], str) or not _state.SHA256.fullmatch(base[field]):
-            raise ValueError(f"Invalid base {field}")
+    if row["os"] == "windows":
+        if base is not None:
+            raise ValueError("Windows v2 metadata must not have a base")
+    else:
+        if not isinstance(base, dict) or set(base) != {"version", "runtime_sha256", "devlib_sha256"}:
+            raise ValueError("The fixed Runtime/Devlib base identity is incomplete")
+        _state._text(base["version"], "base version")
+        for field in ("runtime_sha256", "devlib_sha256"):
+            if not isinstance(base[field], str) or not _state.SHA256.fullmatch(base[field]):
+                raise ValueError(f"Invalid base {field}")
     if not isinstance(minimum_os, str) or not re.fullmatch(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?", minimum_os):
         raise ValueError("An actual minimum_os is required")
     if not isinstance(source, dict) or not source.get("path"):
@@ -147,7 +156,9 @@ def metadata_fields(identity, producer, base, minimum_os, source):
             raise ValueError("Source URL is not public")
         origin["url"] = source["url"]
     meta = {key: row[key] for key in ("runtime_version", "os", "kind", "name", "version", "arch", "build_revision")}
-    meta.update(schema_version=2, producer=producer, base=dict(base), minimum_os=minimum_os, source=origin)
+    meta.update(schema_version=2, producer=producer, minimum_os=minimum_os, source=origin)
+    if row["os"] == "macos":
+        meta["base"] = dict(base)
     if "host" in row:
         meta["host"] = row["host"]
     return meta
@@ -159,6 +170,8 @@ def create_meta(package_path, identity, producer, base, minimum_os, source=None)
         raise ValueError("Schema2 requires an explicit runtime v2 identity")
     package_path = Path(package_path)
     expected = f"{row['name']}-{row['version']}.tar.gz"
+    if row["os"] == "windows":
+        expected = f"{row['name']}-{row['version']}-windows-{row['arch']}.7z"
     if row["kind"] != "package":
         raise ValueError("Module metadata requires its manifest-aware producer")
     if package_path.name != expected:
@@ -168,6 +181,14 @@ def create_meta(package_path, identity, producer, base, minimum_os, source=None)
     meta = metadata_fields(row, producer, base, minimum_os, source)
     meta.update(filename=package_path.name, sha256=sha256(package_path))
     meta.update(package_metadata(row["name"], row["version"]))
+    if row["os"] == "windows":
+        # Layout consumes package_metadata; load it only after this module is initialized.
+        spec = importlib.util.spec_from_file_location("servbay_package_layout", Path(__file__).with_name("package_layout.py"))
+        layout_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(layout_module)
+        layout = layout_module.package_layout(row["name"], row["version"], os=row["os"], arch=row["arch"])
+        meta.update(layout="servbay-v2", layout_version=1)
+        meta.update({key: layout[key] for key in ("package_root", "config_root", "entrypoint")})
     return meta
 
 
@@ -176,13 +197,17 @@ def main():
     parser.add_argument("--package", required=True)
     parser.add_argument("--identity", required=True)
     parser.add_argument("--producer", required=True)
-    parser.add_argument("--base", required=True)
+    parser.add_argument("--base")
     parser.add_argument("--minimum-os", required=True)
     parser.add_argument("--source", required=True)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
-    meta = create_meta(args.package, json.loads(Path(args.identity).read_text()),
-                       json.loads(Path(args.producer).read_text()), json.loads(Path(args.base).read_text()),
+    identity = json.loads(Path(args.identity).read_text())
+    if identity.get("os") == "windows" and args.base is not None:
+        parser.error("Windows v2 metadata must omit --base")
+    meta = create_meta(args.package, identity,
+                       json.loads(Path(args.producer).read_text()),
+                       json.loads(Path(args.base).read_text()) if args.base else None,
                        args.minimum_os, json.loads(Path(args.source).read_text()))
     Path(args.output).write_text(json.dumps(meta, indent=2) + "\n")
     print(artifact_name(meta))
