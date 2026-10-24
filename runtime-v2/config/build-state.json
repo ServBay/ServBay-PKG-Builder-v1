@@ -3485,7 +3485,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "artifact_expires_at": "2026-10-31T16:40:09Z",
+      "artifact_id": "12567076607",
+      "artifact_name": "pkg2-macos-arm64-package-ai-gateway-1.0.0-r2",
+      "artifact_zip_sha256": "7c5923122efb59856fe9f683ec3a0113b9849537d22a5a1caa3ffb0dcfe6da8e",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+        "run_attempt": 1,
+        "run_id": "40112487208"
+      },
+      "package_sha256": "8a788a0e39f82b1267c969323bac65b780c6f76db7cb4b2ff901970da587124e",
+      "producer": {
+        "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+        "run_attempt": 1,
+        "run_id": "40112487208"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 2,
@@ -3496,16 +3511,7 @@
         "runtime_version": "v2",
         "version": "1.0.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T16:38:37+00:00",
-        "expires_at": "2026-10-25T00:38:37+00:00",
-        "producer": {
-          "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
-          "run_attempt": 1,
-          "run_id": "40112487208"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
@@ -7037,7 +7043,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
+      "artifact_expires_at": "2026-10-31T16:41:17Z",
+      "artifact_id": "12567750069",
+      "artifact_name": "pkg2-macos-x86_64-package-ai-gateway-1.0.0-r2",
+      "artifact_zip_sha256": "149fa4eb017e720fb4da514e92c84640d07ca72952a71d14b19608a6eafabecb",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+        "run_attempt": 1,
+        "run_id": "40112487208"
+      },
+      "package_sha256": "6ad7d1144c68eebccef6bec6b3ca068787f49aaa75ff01c047072cd501f31d5e",
+      "producer": {
+        "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
+        "run_attempt": 1,
+        "run_id": "40112487208"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -7048,16 +7069,7 @@
         "runtime_version": "v2",
         "version": "1.0.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-24T16:38:37+00:00",
-        "expires_at": "2026-10-25T00:38:37+00:00",
-        "producer": {
-          "commit": "5d136cc3e8337de2e8ca048e849404224f72033f",
-          "run_attempt": 1,
-          "run_id": "40112487208"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "artifact_expires_at": "2026-10-30T15:45:34Z",
