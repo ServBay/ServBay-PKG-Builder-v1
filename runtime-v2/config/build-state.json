@@ -3402,11 +3402,11 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 1,
+      "consecutive_failures": 2,
       "last_collected_producer": {
-        "commit": "7a4b819051b10c5792bc924e1d8aec5a2186a8c5",
+        "commit": "b28256fe6996786bc0f88168ad25419ca74d8249",
         "run_attempt": 1,
-        "run_id": "40060165404"
+        "run_id": "40061866537"
       },
       "record": {
         "arch": "arm64",
@@ -3417,15 +3417,6 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "19.beta4"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-24T04:19:23+00:00",
-        "expires_at": "2026-10-24T12:19:23+00:00",
-        "producer": {
-          "commit": "b28256fe6996786bc0f88168ad25419ca74d8249",
-          "run_attempt": 1,
-          "run_id": "40061866537"
-        }
       },
       "status": "build-failed"
     },
@@ -6819,11 +6810,11 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
-      "consecutive_failures": 1,
+      "consecutive_failures": 2,
       "last_collected_producer": {
-        "commit": "7a4b819051b10c5792bc924e1d8aec5a2186a8c5",
+        "commit": "b28256fe6996786bc0f88168ad25419ca74d8249",
         "run_attempt": 1,
-        "run_id": "40060165404"
+        "run_id": "40061866537"
       },
       "record": {
         "arch": "x86_64",
@@ -6834,15 +6825,6 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "19.beta4"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-24T04:19:23+00:00",
-        "expires_at": "2026-10-24T12:19:23+00:00",
-        "producer": {
-          "commit": "b28256fe6996786bc0f88168ad25419ca74d8249",
-          "run_attempt": 1,
-          "run_id": "40061866537"
-        }
       },
       "status": "build-failed"
     },
