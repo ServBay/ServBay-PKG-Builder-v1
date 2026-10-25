@@ -214,7 +214,7 @@
 **测试**: Windows VM 运行 PHP repack 与布局 33 项测试；额外的全模块合成集合覆盖 17 个扩展。
 **状态**: 已完成。8.2.35（16 模块）、8.3.36（16）、8.4.27（17）、8.5.12（17）、8.6.0beta3（16）五个 series 均从 PHP-Windows-Portable 的真实 split 产物生成正式 core/module 包，全部模块在 Windows VM 实际加载成功，Uploader 五个 series 均 `validation_complete=true`。逐 series 证据见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
 
-Legacy 分支另行补齐：`build-windows-php-legacy.yml` 现在同时输出 core runtime ZIP、devel pack 与逐扩展 runtime ZIP。5.3、5.4、5.5、5.6、7.0、7.1、7.2、7.3、7.4、8.0、8.1 共 11 个版本完成真实构建、正式包生成、逐模块加载和 Uploader 计划（5.3/5.4 按 x86 身份交付，5.5 为 core-only）。
+Legacy 分支另行补齐：`build-windows-php-legacy.yml` 现在同时输出 core runtime ZIP、devel pack 与逐扩展 runtime ZIP。5.3、5.4、5.5、5.6、7.0、7.1、7.2、7.3、7.4、8.0、8.1 共 11 个版本完成真实构建、正式包生成、逐模块加载和 Uploader 计划（5.3/5.4 为 x86 内容、按 x64 身份发布，5.5 为 core-only）。
 
 ## Windows v2 普通包与扩展阶段 3: PostgreSQL core 与 pgvector 正式候选
 **目标**: 直接将 POC 原生结果绑定到 schema-2 core/module metadata，而不是把诊断归档的 pending 字段当作正式发布包。
@@ -232,8 +232,8 @@ Legacy 分支另行补齐：`build-windows-php-legacy.yml` 现在同时输出 co
 
 补充：Adminer/phpMyAdmin 使用原生 Windows PHP v2 CLI 执行语法检查；Maven 使用精确 v1 OpenJDK 27 运行版本检查。其余可执行包从 v2 产物直接跑版本/帮助命令。经明确授权，`frp` 的 PUA 测试仅在专用目录临时排除 Defender，完成后已删除并回读确认。
 
-全量测试的最终证据回传 `~/Downloads/ServBay-windows-v2-evidence-20261025-full.zip`，148,727 字节，SHA256 `1d19ecdb72ab77f7fc9d3f59221756d56d9969bcdb971a898841f3bd6038f44d`，含 v1 目录快照、35 包 POC、35 包原生/语法结果、153 版本矩阵、PHP 8.2–8.6 与 legacy 5.3–8.1（含 5.3/5.4 x86）的正式 meta/加载结果/finalization/split manifest、PostgreSQL 18.6 + pgvector 正式证据和验证摘要。早先的 28 包版本 `ServBay-windows-v2-evidence-20261025.zip` 仍保留，但已被前者取代。
+全量测试的最终证据回传 `~/Downloads/ServBay-windows-v2-evidence-20261025-full.zip`，149,141 字节，SHA256 `a0efad3896f092f64039391f2cd64d43c2a9d3bd3ba35fe9ca2d31e01cf2659c`，含 v1 目录快照、35 包 POC、35 包原生/语法结果、153 版本矩阵、PHP 8.2–8.6 与 legacy 5.3–8.1（5.3/5.4 为 x86 内容按 x64 身份发布）的正式 meta/加载结果/finalization/split manifest、PostgreSQL 18.6 + pgvector 正式证据和验证摘要。早先的 28 包版本 `ServBay-windows-v2-evidence-20261025.zip` 仍保留，但已被前者取代。
 
-Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资产。5.3–8.1 共 11 个版本生成 11 个 core 包和 107 个模块包，全部模块在 Windows VM 加载成功，Uploader 计划均为 `validation_complete=true`。5.3/5.4 按 x86 身份交付（包内 `php.exe` PE Machine 实测 0x14c），5.5 为 core-only；详见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
+Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资产。5.3–8.1 共 11 个版本生成 11 个 core 包和 107 个模块包，全部模块在 Windows VM 加载成功，Uploader 计划均为 `validation_complete=true`。5.3/5.4 为 x86 内容、按 x64 身份发布（包内 `php.exe` PE Machine 实测 0x14c），5.5 为 core-only；详见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
 
 另新增手工 `build-windows-v2-package.yml`：默认以已核验的 Adminer v1 输入演示完整下载、SHA 校验、`repack_v2.py`、artifact 上传流程；任意已支持包可显式提供公开 URL/SHA/version 复用。该入口默认不调用 Uploader、不建立 Release、不修改公共 catalog，真实运行仍需单独触发。

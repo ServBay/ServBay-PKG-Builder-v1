@@ -54,12 +54,12 @@ PHP Warning: 'C:\WINDOWS\SYSTEM32\VCRUNTIME140.dll' 14.44 is not compatible with
 
 EOL 分支由 Builder 的 `build-windows-php-legacy.yml` / `runtime-windows/ci/build_php_legacy.ps1` 从源码编译。2026-10-25 起该 workflow 在保留原 merged 7z 的同时，额外输出 v2 所需的 core runtime ZIP、devel pack 和逐扩展 runtime ZIP，并以独立 artifact 上传。拆分依据是构建阶段记录的 PECL 文件归属；PECL 文件如果与 core 文件同名但字节不同，构建直接失败，不会用覆盖顺序决定结果。
 
-所有构建均为 `run_attempt=1`，producer 为 `ServBay/ServBay-PKG-Builder-v1`。5.3/5.4 使用 commit `51a8ac27868cf65885f00413585107e4c70d5756`（x86 身份），7.0–8.1 使用 `cebe6fad829ee9c32c2cffaea5d79779a8e09ae0`，5.5 使用 `4cd3d36db2042d087c8543f4008aebf3ba564a89`（允许无扩展的 core-only 分支）。
+所有构建均为 `run_attempt=1`，producer 为 `ServBay/ServBay-PKG-Builder-v1`。5.3/5.4 使用 commit `16765f5ee2871847958024f6b2d0eb5309bb46b7`（x86 内容按 x64 发布），7.0–8.1 使用 `cebe6fad829ee9c32c2cffaea5d79779a8e09ae0`，5.5 使用 `4cd3d36db2042d087c8543f4008aebf3ba564a89`（允许无扩展的 core-only 分支）。
 
 | PHP | Actions run | 工具链 | ABI module/zend | core 7z SHA256 | 模块数 | 正式包数 | 正式加载 | PNG | Uploader |
 |---|---:|---|---|---|---:|---:|---|---|---|
-| 5.3.29 | 40205183059 | msvc-VC9 | 20090626 / 220090626 | `975532df454728636143e6066bc9b9198b51557727848032fd6d17e7678fdfc7` | 0 | 1 | — | — | true |
-| 5.4.45 | 40205190983 | msvc-VC9 | 20100412 / 220100525 | `31e2440fcf0e4e7668369c83356a3154ed209a676025d445f44e75b224c0e393` | 0 | 1 | — | — | true |
+| 5.3.29 | 40210758886 | msvc-VC9 | 20090626 / 220090626 | `68bf2c94648d329880086500468fc27466b051ed5da19d850a2bf1e9c45575cd` | 0 | 1 | — | — | true |
+| 5.4.45 | 40210767799 | msvc-VC9 | 20100412 / 220100525 | `66fd1933a4ad0cd35e05ecef6779d4c00fa78b07d33683f94b19ad85f9106c84` | 0 | 1 | — | — | true |
 | 5.5.38.1 | 40186255646 | msvc-VC11 | 20121113 / 220121212 | `8f3ead4a89fba0f79b3aa668635f03bd5dd5da365082d53edd41233d4492ecad` | 0 | 1 | — | — | true |
 | 5.6.40.1 | 40185343226 | msvc-VC11 | 20131106 / 220131226 | `fa25353b5fea6b1259c5a0585ec5089df04656c7128bd9d99b7bfbab8657c052` | 10 | 11 | 10/10 | 无 coder | true |
 | 7.0.33.1 | 40185370775 | msvc-VC14 | 20151012 / 320151012 | `4279ab30bacb349490bd0787c9d9219ec505849a752d6d4942d938983adf7c7a` | 12 | 13 | 12/12 | 无 coder | true |
@@ -77,18 +77,23 @@ EOL 分支由 Builder 的 `build-windows-php-legacy.yml` / `runtime-windows/ci/b
 - imagick 在 5.6 与 7.0 被钉在 3.4.3，该版本不带 `IM_MOD_RL_*` coder，PNG 转换依赖外部 ImageMagick。原生证据把 `imagick_png` 记为 false，finalize 只有在该模块确实没有 coder 时才接受；不能让缺 coder 的包伪装成通过。
 - 5.6/5.5 的 CRT 为 vc11-runtime，构建会把 `msvcr110.dll`/`msvcp110.dll` 一并打包；7.x/8.x 的 vc14-runtime 依赖系统 VC++ 2015-2022 运行时（ServBay 既有前置条件）。
 
-### 5.3 / 5.4 以 x86 交付
+### 5.3 / 5.4：x86 内容，按 x64 身份发布
 
-这两条分支上游从未提供 x64 构建：`windows.php.net` 只有 x86 官方 archive（x64 路径返回 404），legacy 脚本对 5.3/5.4 也固定使用 x86 依赖包（`deps-5.3-vc9-x86_2014-09.7z`、`deps-5.4-vc9-x86_2015-05.7z`）。v1 挂在 x64 路径下的 5.3/5.4 包实际也是 x86 内容。按产品确认，这两条分支在 v2 中**按 x86 身份交付**，不冒充 x64：
+这两条分支上游从未提供 x64 构建：`windows.php.net` 只有 x86 官方 archive（x64 路径返回 404），legacy 脚本对 5.3/5.4 也固定使用 x86 依赖包（`deps-5.3-vc9-x86_2014-09.7z`、`deps-5.4-vc9-x86_2015-05.7z`）。v1 历来也是把这两条分支的 x86 内容挂在 x64 路径下发布。
 
-- Windows v2 身份规则：仅 `php` 包和 `php-extension` 模块允许 `arch=x86`，其他 Windows 包仍只允许 `x86_64`。
-- core 归档为 `php-5.3.29-windows-x86.7z` / `php-5.4.45-windows-x86.7z`，`windows_compatibility` 为 `distribution=windows-x86`、`toolchain=msvc-VC9`、`crt=vc9-runtime`。
-- 从最终 v2 core 包内提取 `bin/php.exe` 复核 PE Machine 为 `0x14c`（x86），不是只看文件名。
+v2 沿用同一产品契约：**编译仍是 x86，但包身份、文件名和 API 注册都按 x64（x86_64）**。
+
+- 构建以 `arch=x86` 运行，产出 x86 二进制；producer 对 5.3/5.4 使用 `$PackageArch='x64'`，merged 7z、core/devel ZIP、扩展 ZIP 和 split 目录全部按 x64/x86_64 命名。
+- split manifest 同时记录 `arch=x86`（真实内容）与 `package_arch=x64`（发布身份），v2 输入使用 `package_arch`。
+- 最终 v2 core 包为 `php-5.3.29-windows-x86_64.7z` / `php-5.4.45-windows-x86_64.7z`，`windows_compatibility` 为 `distribution=windows-x64`、`toolchain=msvc-VC9`、`crt=vc9-runtime`。
+- 从最终 v2 包内提取 `bin/php.exe` 复核 PE Machine 仍为 `0x14c`（x86）；身份是 x64，内容不是，这一点在文档和证据中明确记录，不宣称是原生 x64 二进制。
 - 两条分支都是 core-only（该分支无 PECL 扩展），Uploader 计划只有 1 个包且 `validation_complete=true`。
-- 5.3/5.4 使用 commit `51a8ac27868cf65885f00413585107e4c70d5756`（包含 x86 身份支持）。
+- 构建使用 commit `16765f5ee2871847958024f6b2d0eb5309bb46b7`。
+
+v2 身份规则本身没有放宽：Windows 的 `package`/`php-extension` 仍只接受 `x86_64`，上传给 API 的 arch 也是 x64。
 
 ## 未覆盖与边界
 
-- v1 API 中 `php` 共 16 个版本：8.2–8.6 由 PHP-Windows-Portable split producer 覆盖；5.3–8.1 由 legacy producer 覆盖，其中 5.3/5.4 是 x86、其余为 x64。
+- v1 API 中 `php` 共 16 个版本：8.2–8.6 由 PHP-Windows-Portable split producer 覆盖；5.3–8.1 由 legacy producer 覆盖。5.3/5.4 的内容是 x86，但按 x64 身份打包和注册（与 v1 一致）；其余为原生 x64。
 - 以上验证是打包与 DLL 加载验证，不等同于客户端安装、Web 站点请求、php.ini 生效或卸载验收；这部分仍属于阶段 4 的客户端原生验收。
 - legacy split artifact 目前只保存在 Actions artifact（30 天），尚未写入 Release 永久资产；生产发布前必须把 core/扩展资产与 SHA 落到 Release。
