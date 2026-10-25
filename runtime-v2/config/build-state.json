@@ -3753,7 +3753,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
+        "run_attempt": 1,
+        "run_id": "40163159033"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 3,
@@ -3764,16 +3769,7 @@
         "runtime_version": "v2",
         "version": "8.4.27"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:47:35+00:00",
-        "expires_at": "2026-10-25T12:47:35+00:00",
-        "producer": {
-          "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
-          "run_attempt": 1,
-          "run_id": "40163159033"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 1,
@@ -7679,7 +7675,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
+        "run_attempt": 1,
+        "run_id": "40163159033"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 3,
@@ -7690,16 +7691,7 @@
         "runtime_version": "v2",
         "version": "8.4.27"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:47:35+00:00",
-        "expires_at": "2026-10-25T12:47:35+00:00",
-        "producer": {
-          "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
-          "run_attempt": 1,
-          "run_id": "40163159033"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 1,
