@@ -174,16 +174,9 @@ class PackageLayoutTests(unittest.TestCase):
                 self.helper.normalize_arch(value)
 
     def test_windows_rejects_unimplemented_architectures(self):
-        # PHP 5.3/5.4 exist only as x86 builds and are carried as x86. Every
-        # other Windows package stays x86_64.
-        php = self.layout("php", "5.3.29.1", arch="x86")
-        self.assertEqual(php["arch"], "x86")
-        self.assertEqual(php["package_root"], "php/5.3")
-        for arch in ("arm64", "amd64"):
+        for arch in ("arm64", "x86", "amd64"):
             with self.subTest(arch=arch), self.assertRaises(ValueError):
                 self.layout("php", "8.3.36", arch=arch)
-        with self.subTest(name="nginx", arch="x86"), self.assertRaises(ValueError):
-            self.layout("nginx", "1.31.8", arch="x86")
 
     def test_os_labels_are_normalized_without_guessing_platforms(self):
         self.assertEqual(self.layout("php", "8.3.36", os="Windows")["os"], "windows")

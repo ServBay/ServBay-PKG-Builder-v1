@@ -200,15 +200,13 @@ def _validate_inventory(manifest, *, expected_os="macos"):
         raise ValueError("A schema 2 module inventory is required")
     os_name = _platform(manifest, expected_os)
     host = _host(manifest.get("host"))
-    if manifest.get("arch") not in ("arm64", "x86_64", "x86"):
+    if manifest.get("arch") not in ("arm64", "x86_64"):
         raise ValueError("Module architecture is required")
     if not isinstance(manifest.get("minimum_os"), str) or not re.fullmatch(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?", manifest["minimum_os"]):
         raise ValueError("Module minimum OS is required")
     if os_name == "windows":
-        # PHP 5.3/5.4 modules are x86; every other Windows module is x86_64.
-        if ("base" in manifest or manifest["arch"] not in ("x86_64", "x86")
-                or (manifest["arch"] == "x86" and host["type"] != "php")):
-            raise ValueError("Windows modules require x86_64 (x86 only for PHP) and no base")
+        if "base" in manifest or manifest["arch"] != "x86_64":
+            raise ValueError("Windows modules require x86_64 and no base")
         if (manifest.get("layout") != "servbay-v2" or type(manifest.get("layout_version")) is not int
                 or manifest["layout_version"] != 1):
             raise ValueError("Windows module layout differs")

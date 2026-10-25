@@ -32,16 +32,9 @@ def clean_record(record):
         raise ValueError("Invalid runtime_version")
     arch = record.get("arch")
     if record.get("os") == "windows":
-        if record["runtime_version"] != "v2":
-            raise ValueError("Windows build identities require runtime v2")
-        arch = {"x64": "x86_64"}.get(arch, arch)
-        # PHP 5.3/5.4 were only ever released as x86 builds. v2 carries those
-        # two branches as x86 instead of relabeling them x64; every other
-        # Windows package stays x86_64.
-        php_x86 = (record.get("kind") == "php-extension"
-                   or (record.get("kind") == "package" and record.get("name") == "php"))
-        if arch not in ("x86_64", "x86") or (arch == "x86" and not php_x86):
-            raise ValueError("Windows build identities require runtime v2 and a supported architecture")
+        if record["runtime_version"] != "v2" or arch not in ("x64", "x86_64"):
+            raise ValueError("Windows build identities require runtime v2 and x86_64")
+        arch = "x86_64"
     elif record.get("os") != "macos" or arch not in ("x86_64", "arm64"):
         raise ValueError("Invalid macOS build platform")
     if record.get("kind") not in KINDS:

@@ -115,11 +115,6 @@ class WindowsModuleTests(unittest.TestCase):
                          helper.archive_hashes(package, SEVEN_ZIP))
         self.assertTrue((self.stage / "-sdel").is_file())
 
-    def test_windows_php_modules_accept_the_x86_architecture(self):
-        # PHP 5.3/5.4 ship as x86 only; their module inventories keep that arch.
-        manifest = self.manifest(arch="x86")
-        self.assertEqual(manifest["arch"], "x86")
-
     def test_archive_compression_level_is_explicitly_bounded(self):
         helper = load("runtime/ci/windows_archive.py")
         stage = self.root / "compression-stage"
@@ -189,7 +184,7 @@ class WindowsModuleTests(unittest.TestCase):
         for base in ({}, {"version": "fake"}, {"version": "v2", "runtime_sha256": "a" * 64, "devlib_sha256": "b" * 64}):
             with self.subTest(base=base), self.assertRaises(ValueError):
                 self.manifest(base=base)
-        for arch in ("arm64", "amd64"):
+        for arch in ("arm64", "x86"):
             with self.subTest(arch=arch), self.assertRaises(ValueError):
                 self.manifest(arch=arch)
         original = self.manifest()
@@ -427,18 +422,6 @@ class WindowsModuleTests(unittest.TestCase):
             bad["files"] = [row for row in bad["files"] if row["archive_path"] != missing]
             with self.subTest(missing=missing), self.assertRaises(ValueError):
                 self.validate(bad)
-
-    def test_postgresql_modules_cannot_claim_the_php_x86_architecture(self):
-        self.stage.rename(self.root / "retained-php-stage-pgx86")
-        self.stage.mkdir()
-        self.host = {"type": "postgresql", "series": "18", "version": "18.6",
-                     "package_sha256": "d" * 64, "abi": {"major": 18}}
-        self.file("lib/vector.dll")
-        with self.assertRaisesRegex(ValueError, "x86 only for PHP"):
-            self.helper.create_manifest(self.host, self.stage, [], ["vector"], [],
-                                        arch="x86", minimum_os="10.0", base=None,
-                                        source_name="pgvector", os_name="windows",
-                                        windows_compatibility=COMPAT)
 
     def test_macos_legacy_requires_macos_context_and_base(self):
         stage = self.root / "macos"

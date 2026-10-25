@@ -272,8 +272,7 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
     root = layout["package_root"]
     series = root.removeprefix("php/")
     context = index.get("build_context")
-    context_arch = {"x64": "x86_64", "x86": "x86"}.get(context.get("arch")) if isinstance(context, dict) else None
-    if (not isinstance(context, dict) or context_arch != core["arch"]
+    if (not isinstance(context, dict) or context.get("arch") != "x64"
             or context.get("thread_safe") not in ("nts", "ts")
             or context.get("display_version") != core["version"] or context.get("build_version") != core["version"]):
         raise ValueError("PHP core identity and original split context differ")
@@ -298,11 +297,9 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
     if _sha(core_evidence["source_sha256"]) != core_asset["sha256"]:
         raise ValueError("Actual ABI evidence is not bound to this original core runtime ZIP")
     thread = "nts-" if context["thread_safe"] == "nts" else ""
-    pattern = r"php-" + re.escape(core["version"]) + "-" + thread + r"Win32-((?:vs|vc)[0-9]+)-(x64|x86)\.zip"
+    pattern = r"php-" + re.escape(core["version"]) + "-" + thread + r"Win32-((?:vs|vc)[0-9]+)-x64\.zip"
     match = re.fullmatch(pattern, core_asset["original_filename"], re.I)
-    expected_zip_arch = "x86" if core["arch"] == "x86" else "x64"
-    if (not match or match.group(2).casefold() != expected_zip_arch
-            or context.get("core_runtime_filename") != core_asset["original_filename"]):
+    if not match or context.get("core_runtime_filename") != core_asset["original_filename"]:
         raise ValueError("Original PHP runtime filename identity differs")
     toolchain = match.group(1)
     if not isinstance(module_identities, list):
@@ -321,8 +318,7 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
         if len(requests) != 1 or requests[0].get("ref") not in (module["version"], "v" + module["version"]):
             raise ValueError("Module version differs from the producer request")
         asset = _asset(index, "extension-runtime", name)
-        filename = (f"php_{name}-{requests[0]['ref']}-{core['version']}-{context['thread_safe']}-"
-                    f"{toolchain}-{'x86' if core['arch'] == 'x86' else 'x86_64'}.zip")
+        filename = f"php_{name}-{requests[0]['ref']}-{core['version']}-{context['thread_safe']}-{toolchain}-x86_64.zip"
         if asset["original_filename"] != filename:
             raise ValueError("Original module runtime ZIP name/version/arch/thread differs")
         modules[name] = {"identity": module, "source": _source_record(asset)}
@@ -355,7 +351,7 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
         stage = temporary / "core-stage"
         stage.mkdir()
         core_files = _stage(inventories["core"], core_targets, temporary / "core-extracted", stage)
-        core_name = f"php-{core['version']}-windows-{core['arch']}.7z"
+        core_name = f"php-{core['version']}-windows-x86_64.7z"
         core_sha = _archive(stage, bundle / core_name, core_files, tool)
         host = {**expected_host, "version": core["version"], "package_sha256": core_sha}
         module_manifest._host(host)
@@ -370,8 +366,7 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
             stage = temporary / (name + "-stage")
             stage.mkdir()
             module["files"] = _stage(inventories[name], targets, temporary / (name + "-extracted"), stage)
-            filename = (f"ext-{name}-{module['identity']['version']}-php{series}-"
-                        f"windows-{module['identity']['arch']}.7z")
+            filename = f"ext-{name}-{module['identity']['version']}-php{series}-windows-x86_64.7z"
             relative = "modules/" + name + "/" + filename
             archive = bundle / relative
             archive.parent.mkdir(parents=True)
@@ -472,7 +467,7 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
                     audit["core"]["identity"]["name"] + "/" + audit["host"]["series"] + "/"),
                     "mode": "0644", "content": candidate["content"]}]
                 manifest = module_manifest.create_manifest(
-                    host, module_stage, configs, [name], [], arch=module["identity"]["arch"],
+                    host, module_stage, configs, [name], [], arch="x86_64",
                     minimum_os=minimum_os, base=None, source_name=name,
                     extension_dir=audit["extension_dir"], os_name="windows",
                     windows_compatibility=windows_compatibility,

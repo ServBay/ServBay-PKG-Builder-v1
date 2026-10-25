@@ -486,8 +486,10 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         pattern = r"name:\s*pkg-windows-\$\{\{ env\.ARCH \}\}-\$\{\{ inputs\.pkg \}\}-\$\{\{ inputs\.version \}\}"
         self.assertRegex(stock, pattern)
         self.assertIn(
-            "name: pkg-windows-${{ env.ARCH }}-php-${{ env.VERSION }}", legacy
+            "name: pkg-windows-${{ steps.meta.outputs.package_arch }}-php-${{ env.VERSION }}", legacy
         )
+        # 5.3/5.4 publish x86 payloads under the x64 identity, matching v1.
+        self.assertIn('"package_arch=$packageArch" >> $env:GITHUB_OUTPUT', legacy)
         self.assertIn(
             "name: log-windows-${{ env.ARCH }}-php-${{ env.VERSION }}", legacy
         )
@@ -569,10 +571,22 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         # ZIP per staged PECL extension; none of them exist in the merged 7z.
         text = PS1.read_text()
         self.assertIn("split-manifest.json", text)
-        self.assertIn('php-build-artifacts-$Arch-nts', text)
-        self.assertIn('extension-$ownerName-$Version-$Arch-nts', text)
+        self.assertIn('php-build-artifacts-$PackageArch-nts', text)
+        self.assertIn('extension-$ownerName-$Version-$PackageArch-nts', text)
         self.assertIn("would replace a $kind file with different bytes", text)
-        self.assertIn("php-devel-pack-$Version-nts-Win32-$CrtTag-$ArchZip.zip", text)
+        self.assertIn("php-devel-pack-$Version-nts-Win32-$CrtTag-$PackageArchZip.zip", text)
+
+    def test_php53_54_compile_x86_but_publish_under_x64(self):
+        # Upstream has no x64 build for these branches and v1 already serves
+        # their x86 payloads under the x64 identity. Keep that contract in the
+        # build, the artifact names and the v2 split manifest.
+        text = PS1.read_text()
+        self.assertIn("$PackageArch = if ($MajorMinor -in @('5.3', '5.4')) { 'x64' } else { $Arch }", text)
+        self.assertIn('php-$Version-windows-$PackageArch.7z', text)
+        self.assertIn('package_arch = $PackageArch', text)
+        workflow = WORKFLOW.read_text()
+        self.assertIn("$packageArch = if ($env:VERSION -match '^5\\.[34]\\.') { 'x64' } else { $env:ARCH }", workflow)
+        self.assertIn('"package_arch=$packageArch" >> $env:GITHUB_OUTPUT', workflow)
 
     def test_extension_archives_contribute_their_config(self):
         # imagick ships ImageMagick's policy/delegates XML and memcached a

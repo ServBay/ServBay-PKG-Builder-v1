@@ -184,7 +184,9 @@ jobs:
         shell: pwsh
         run: |
           $dir = Join-Path $env:REPO_ROOT "dist-windows\php\$env:ARCH"
-          $filename = "php-$env:VERSION-windows-$env:ARCH.7z"
+          # PHP 5.3/5.4 compile x86 but are published under the x64 identity.
+          $packageArch = if ($env:VERSION -match '^5\.[34]\.') { 'x64' } else { $env:ARCH }
+          $filename = "php-$env:VERSION-windows-$packageArch.7z"
           $path = Join-Path $dir $filename
           if (-not (Test-Path $path)) {
             Get-ChildItem -Recurse (Join-Path $env:REPO_ROOT 'dist-windows') | Out-String | Write-Host
@@ -194,7 +196,7 @@ jobs:
           @{
             name = 'php'
             version = $env:VERSION
-            arch = $env:ARCH
+            arch = $packageArch
             os = 'windows'
             sha256 = $sha256
             filename = $filename
@@ -202,11 +204,12 @@ jobs:
           Get-Content (Join-Path $dir 'meta.json')
           "pkg_dir=$dir" >> $env:GITHUB_OUTPUT
           "filename=$filename" >> $env:GITHUB_OUTPUT
+          "package_arch=$packageArch" >> $env:GITHUB_OUTPUT
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pkg-windows-${{ env.ARCH }}-php-${{ env.VERSION }}
+          name: pkg-windows-${{ steps.meta.outputs.package_arch }}-php-${{ env.VERSION }}
           path: |
             ${{ steps.meta.outputs.pkg_dir }}/${{ steps.meta.outputs.filename }}
             ${{ steps.meta.outputs.pkg_dir }}/meta.json
@@ -217,19 +220,20 @@ jobs:
         shell: pwsh
         env:
           PKG_DIR: ${{ steps.meta.outputs.pkg_dir }}
+          PACKAGE_ARCH: ${{ steps.meta.outputs.package_arch }}
         run: |
           $split = Join-Path $env:PKG_DIR 'split'
           $manifestPath = Join-Path $split 'split-manifest.json'
           if (-not (Test-Path $manifestPath)) { throw "Missing split manifest: $manifestPath" }
           $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-          $coreDir = Join-Path $split "php-build-artifacts-$env:ARCH-nts"
+          $coreDir = Join-Path $split "php-build-artifacts-$env:PACKAGE_ARCH-nts"
           foreach ($name in @($manifest.core.filename, $manifest.devel.filename)) {
             $path = Join-Path $coreDir $name
             if (-not (Test-Path $path)) { throw "Missing split core asset: $path" }
           }
           if ($null -eq $manifest.extensions) { throw 'Split manifest has no extensions field' }
           foreach ($extension in @($manifest.extensions)) {
-            $path = Join-Path $split "extensions\extension-$($extension.name)-$env:VERSION-$env:ARCH-nts\$($extension.filename)"
+            $path = Join-Path $split "extensions\extension-$($extension.name)-$env:VERSION-$env:PACKAGE_ARCH-nts\$($extension.filename)"
             if (-not (Test-Path $path)) { throw "Missing split extension asset: $path" }
           }
           Write-Host "Split extensions: $(@($manifest.extensions).Count)"
@@ -238,15 +242,15 @@ jobs:
       - name: Upload v2 core split artifact
         uses: actions/upload-artifact@v4
         with:
-          name: php-build-artifacts-${{ env.ARCH }}-nts
-          path: ${{ steps.meta.outputs.pkg_dir }}/split/php-build-artifacts-${{ env.ARCH }}-nts/*.zip
+          name: php-build-artifacts-${{ steps.meta.outputs.package_arch }}-nts
+          path: ${{ steps.meta.outputs.pkg_dir }}/split/php-build-artifacts-${{ steps.meta.outputs.package_arch }}-nts/*.zip
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload v2 extension split artifact
         uses: actions/upload-artifact@v4
         with:
-          name: php-extensions-${{ env.ARCH }}-nts
+          name: php-extensions-${{ steps.meta.outputs.package_arch }}-nts
           path: ${{ steps.meta.outputs.pkg_dir }}/split/extensions/extension-*
           if-no-files-found: ignore
           retention-days: 30
@@ -254,7 +258,7 @@ jobs:
       - name: Upload v2 split manifest
         uses: actions/upload-artifact@v4
         with:
-          name: php-split-manifest-${{ env.ARCH }}-nts
+          name: php-split-manifest-${{ steps.meta.outputs.package_arch }}-nts
           path: ${{ steps.meta.outputs.pkg_dir }}/split/split-manifest.json
           if-no-files-found: error
           retention-days: 30

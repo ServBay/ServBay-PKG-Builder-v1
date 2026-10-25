@@ -910,6 +910,12 @@ static long php_soap_timezone(void)
     }
 
     $ArchZip = if ($Arch -eq 'x64') { 'x64' } else { 'x86' }
+    # PHP 5.3/5.4 have no upstream x64 build. The product ships their x86
+    # binaries under the x64 identity (v1 does the same), so the build still
+    # compiles x86 with the x86 dependency bundle while every published name
+    # and the v2 identity use x64/x86_64.
+    $PackageArch = if ($MajorMinor -in @('5.3', '5.4')) { 'x64' } else { $Arch }
+    $PackageArchZip = if ($PackageArch -eq 'x64') { 'x64' } else { 'x86' }
     # windows.php.net spells the 7.4 CRT tag in lower case and puts the EOL
     # branches under archives\.
     $CrtTag = switch ($Crt) { 'vc9' { 'VC9' } 'vc11' { 'VC11' } 'vc14' { 'VC14' } 'vc15' { 'VC15' } 'vs16' { 'vs16' } }
@@ -1199,12 +1205,12 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $SplitRoot = Join-Path $OutputDir 'split'
     if (Test-Path $SplitRoot) { Remove-Item -Recurse -Force $SplitRoot }
-    $CoreArtifactDir = Join-Path $SplitRoot "php-build-artifacts-$Arch-nts"
+    $CoreArtifactDir = Join-Path $SplitRoot "php-build-artifacts-$PackageArch-nts"
     $ExtensionRoot = Join-Path $SplitRoot 'extensions'
     New-Item -ItemType Directory -Force -Path $CoreArtifactDir, $ExtensionRoot | Out-Null
 
-    $CoreZipName = "php-$Version-nts-Win32-$CrtTag-$ArchZip.zip"
-    $ModuleArch = if ($Arch -eq 'x64') { 'x86_64' } else { 'x86' }
+    $CoreZipName = "php-$Version-nts-Win32-$CrtTag-$PackageArchZip.zip"
+    $ModuleArch = if ($PackageArch -eq 'x64') { 'x86_64' } else { 'x86' }
     $CoreZip = Join-Path $CoreArtifactDir $CoreZipName
     $CoreStage = Join-Path $SplitRoot 'core-stage'
     & robocopy $Stage $CoreStage /E /NFL /NDL /NJH /NJS /NP /R:1 /W:1 | Out-Null
@@ -1232,7 +1238,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
 
     # The split contract requires a devel pack containing php.h. Upstream
     # publishes one per base version; the security patch does not change it.
-    $DevelName = "php-devel-pack-$Version-nts-Win32-$CrtTag-$ArchZip.zip"
+    $DevelName = "php-devel-pack-$Version-nts-Win32-$CrtTag-$PackageArchZip.zip"
     $UpstreamDevelName = "php-devel-pack-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip"
     $UpstreamDevel = Join-Path $ToolsDir $UpstreamDevelName
     if (-not (Test-Path $UpstreamDevel)) {
@@ -1246,7 +1252,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
     foreach ($ownerName in ($PeclOwned.Keys | Sort-Object)) {
         $ref = $PeclRefs[$ownerName]
         if (-not $ref) { throw "No PECL ref recorded for $ownerName" }
-        $group = "extension-$ownerName-$Version-$Arch-nts"
+        $group = "extension-$ownerName-$Version-$PackageArch-nts"
         $groupDir = Join-Path $ExtensionRoot $group
         New-Item -ItemType Directory -Force -Path $groupDir | Out-Null
         $zipName = "php_$ownerName-$ref-$Version-nts-$CrtTag-$ModuleArch.zip"
@@ -1292,6 +1298,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
         version = $Version
         base_version = $BaseVersion
         arch = $Arch
+        package_arch = $PackageArch
         thread_safe = 'nts'
         toolchain = $CrtTag
         core = [pscustomobject]@{
@@ -1315,7 +1322,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
     Write-Step "Split assets: 1 core, 1 devel and $($ExtensionRecords.Count) extensions"
 
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-    $Archive = Join-Path $OutputDir "php-$Version-windows-$Arch.7z"
+    $Archive = Join-Path $OutputDir "php-$Version-windows-$PackageArch.7z"
     if (Test-Path $Archive) { Remove-Item -Force $Archive }
     Write-Step "Packing $Archive"
     Push-Location $Stage
