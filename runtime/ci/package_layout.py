@@ -63,6 +63,7 @@ _PACKAGES = {
     "apache": (False, "bin/httpd.exe", "sbin/httpd"),
     "caddy": (False, "bin/caddy.exe", "bin/caddy"),
     "rust": (False, "bin/rustc.exe", "bin/rustc"),
+    "simple-acme": (False, "wacs.exe", None),
     "cloudflared": (False, "bin/cloudflared.exe", "bin/cloudflared"),
     "frp": (False, "bin/frpc.exe", "bin/frpc"),
     "ngrok": (False, "bin/ngrok.exe", "bin/ngrok"),

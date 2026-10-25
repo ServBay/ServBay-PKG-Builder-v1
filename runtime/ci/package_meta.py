@@ -33,6 +33,7 @@ def package_metadata(name, version):
               "mongotools": "MongoDB Database Tools", "mongodb": "MongoDB", "ollama": "Ollama",
               "python": "Python", "go": "Go", "openjdk": "OpenJDK", "maven": "Apache Maven",
               "rust": "Rust", "ruby": "Ruby", "dotnetsdk": ".NET SDK", "mono": "Mono",
+              "simple-acme": "Simple ACME",
               "adminer": "Adminer", "phpmyadmin": "phpMyAdmin", "subversion": "Subversion",
               "frp": "frp", "cloudflared": "Cloudflared", "ngrok": "ngrok", "pinggy": "Pinggy",
               "meilisearch": "Meilisearch", "typesense": "Typesense", "minio": "MinIO",

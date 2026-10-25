@@ -29,6 +29,7 @@ package_meta = _load("package_meta", "runtime/ci/package_meta.py")
 package_layout = _load("package_layout", "runtime/ci/package_layout.py")
 windows_archive = _load("windows_archive", "runtime/ci/windows_archive.py")
 module_manifest = _load("module_manifest", "runtime-v2/ci/module_manifest.py")
+core_manifest = _load("core_manifest", "runtime-v2/ci/core_manifest.py")
 IDENTITY_FIELDS = {"runtime_version", "os", "kind", "name", "version", "arch", "build_revision"}
 ABI_FIELDS = {"module_api", "zend_extension_api", "extension_build", "zend_extension_build", "zts", "debug"}
 CORE_DOCS = {"readme.md", "readme", "readme.txt", "license", "license.txt", "news", "news.txt",
@@ -224,7 +225,9 @@ def _stage(files, targets, extracted, staging):
 def _archive(staging, archive, records, tool):
     expected = {row["target_path"]: row["sha256"] for row in records}
     windows_archive.create_archive(staging, archive, expected, tool)
-    if windows_archive.archive_hashes(archive, tool) != expected:
+    with tempfile.TemporaryDirectory(prefix="servbay-php-readback-") as temporary:
+        actual = windows_archive.extract_verified_archive(archive, Path(temporary) / "payload", tool)
+    if actual != expected:
         raise ValueError("PHP 7z readback file set/SHA differs")
     return package_meta.sha256(archive)
 
@@ -387,6 +390,120 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
         pending.write_text(json.dumps(audit, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         os.replace(pending, manifest)
     return {"core_archive": output / core_name, "module_archives": module_paths, "manifest": manifest, "audit": audit}
+
+
+def finalize_php_payloads(payload_dir, split_source, native_result, default_modules,
+                          minimum_os, windows_compatibility, output_dir,
+                          *, core_source_url, module_source_url, seven_zip=None):
+    """Attach native evidence and produce final core/module schema-2 packages."""
+    payload_dir = Path(payload_dir).absolute()
+    split_path = Path(split_source["path"]).absolute()
+    if split_path.is_symlink() or not split_path.is_file() or _hash(split_path.read_bytes()) != _sha(split_source["sha256"]):
+        raise ValueError("PHP split source changed before finalization")
+    split = json.loads(split_path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+    audit = json.loads((payload_dir / "php-repack-manifest.json").read_text(encoding="utf-8"))
+    if (audit.get("publishable_v2") is not False or audit.get("native_validation") != "pending"
+            or audit.get("source_index", {}).get("sha256") != split_source["sha256"]):
+        raise ValueError("PHP source does not match the pending payload audit")
+    if not isinstance(default_modules, list) or len(default_modules) != len(set(default_modules)) or any(
+            name not in audit["modules"] for name in default_modules):
+        raise ValueError("PHP default_modules must be distinct selected module names")
+    native = json.loads(Path(native_result).read_text(encoding="utf-8-sig"))
+    if (not isinstance(native, dict) or set(native) != {"php", "extension_dir", "loaded", "modules", "imagick_png"}
+            or native["php"] != audit["core"]["identity"]["version"]
+            or native["extension_dir"] != audit["extension_dir"] or native["loaded"] != len(audit["modules"])
+            or type(native["loaded"]) is not int or native["imagick_png"] is not True
+            or not isinstance(native["modules"], list)):
+        raise ValueError("Incomplete PHP native evidence")
+    loaded = {row.get("name"): row for row in native["modules"] if isinstance(row, dict)}
+    if set(loaded) != set(audit["modules"]):
+        raise ValueError("PHP native module set differs from the payload")
+    original_producer = audit["producer"]
+    producer = {"commit": original_producer["commit"], "run_id": str(original_producer["run_id"]),
+                "run_attempt": original_producer["run_attempt"]}
+    host = copy.deepcopy(audit["host"])
+    assets = {row["filename"]: row for row in split["assets"]}
+    output = Path(output_dir).absolute()
+    if output.exists() or output.is_symlink() or not output.parent.is_dir():
+        raise ValueError("PHP final output must be a new directory")
+
+    with tempfile.TemporaryDirectory(prefix="servbay-php-final-", dir=output.parent) as temporary:
+        temporary = Path(temporary)
+        staged_output = temporary / "output"
+        staged_output.mkdir()
+        module_metas = []
+        versions = {}
+        recipes = {}
+        for name, module in sorted(audit["modules"].items()):
+            evidence = loaded[name]
+            dlls = [row["target_path"] for row in module["files"]
+                    if row["target_path"].startswith(audit["extension_dir"] + "/")
+                    and row["target_path"].casefold().endswith(".dll")]
+            if (len(dlls) != 1 or evidence.get("dll") != Path(dlls[0]).name
+                    or evidence.get("exit_code") != 0 or evidence.get("loaded") is not True):
+                raise ValueError("PHP native evidence differs for " + name)
+            archive = payload_dir / module["archive"]["filename"]
+            with tempfile.TemporaryDirectory(prefix="php-module-", dir=temporary) as module_temp:
+                module_stage = Path(module_temp) / "payload"
+                actual = windows_archive.extract_verified_archive(archive, module_stage, seven_zip)
+                if actual != {row["target_path"]: row["sha256"] for row in module["files"]}:
+                    raise ValueError("PHP module archive differs from its audit: " + name)
+                candidate = module["configuration_candidate"]
+                configs = [{"scope": "config", "install_path": candidate["etc_relative_path"].removeprefix(
+                    audit["core"]["identity"]["name"] + "/" + audit["host"]["series"] + "/"),
+                    "mode": "0644", "content": candidate["content"]}]
+                manifest = module_manifest.create_manifest(
+                    host, module_stage, configs, [name], [], arch="x86_64",
+                    minimum_os=minimum_os, base=None, source_name=name,
+                    extension_dir=audit["extension_dir"], os_name="windows",
+                    windows_compatibility=windows_compatibility,
+                )
+                source_row = module["source"]
+                source_asset = assets[source_row["filename"]]
+                source = {"path": str(split_path.parent / source_asset["filename"]),
+                          "version": module["identity"]["version"], "sha256": source_asset["sha256"],
+                          "bytes": source_asset["bytes"], "url": module_source_url}
+                result = module_manifest.write_package(
+                    manifest, module_stage, module["identity"], producer, source,
+                    staged_output / name, seven_zip=seven_zip,
+                )
+                module_metas.append(result["meta_path"])
+            versions[name] = module["identity"]["version"]
+            recipes[name] = {"kind": "php-extension", "name": name,
+                             "default": name in default_modules}
+        core_asset = next(row for row in split["assets"] if row["role"] == "core-runtime")
+        core_source = {"path": str(split_path.parent / core_asset["filename"]),
+                       "version": audit["core"]["identity"]["version"],
+                       "sha256": core_asset["sha256"], "bytes": core_asset["bytes"],
+                       "url": core_source_url}
+        profile = temporary / "modules.json"
+        profile.write_text(json.dumps({
+            "schema_version": 1, "os": "windows",
+            "hosts": {"php": {audit["host"]["series"]: versions}},
+            "recipes": recipes,
+        }), encoding="utf-8")
+        core_archive = payload_dir / audit["core"]["archive"]["filename"]
+        candidate = core_manifest.create_candidate(
+            core_archive, audit["core"]["identity"], producer, None, minimum_os,
+            core_source, host, windows_compatibility=windows_compatibility,
+        )
+        core = core_manifest.finalize_core(
+            candidate, core_archive, module_metas, [], producer, staged_output / "core",
+            config=profile, seven_zip=seven_zip,
+        )
+        receipt = {
+            "schema": "servbay.php-v2-finalization.v1",
+            "php_version": audit["core"]["identity"]["version"],
+            "modules": sorted(loaded), "module_count": len(loaded),
+            "native_evidence_sha256": _hash(Path(native_result).read_bytes()),
+            "windows_compatibility": copy.deepcopy(windows_compatibility),
+            "minimum_os": minimum_os, "core": core["meta"],
+        }
+        (staged_output / "php-finalization.json").write_text(
+            json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(staged_output, output)
+    return {"core": output / "core", "modules": {name: output / name for name in loaded},
+            "finalization": output / "php-finalization.json"}
 
 
 def main():
