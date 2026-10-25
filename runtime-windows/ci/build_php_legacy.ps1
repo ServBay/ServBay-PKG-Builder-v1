@@ -998,6 +998,10 @@ static long php_soap_timezone(void)
                 return
             }
         } else {
+            $parent = Split-Path -Parent $destination
+            if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+                New-Item -ItemType Directory -Force -Path $parent | Out-Null
+            }
             Copy-Item -LiteralPath $Source -Destination $destination -Force
         }
         if (-not $script:PeclOwned.ContainsKey($Extension)) { $script:PeclOwned[$Extension] = @() }
