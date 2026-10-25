@@ -1638,7 +1638,7 @@ _get_mysql_cmake_args() {
             CMAKE_ARGS+=("-DWITH_INNODB_MEMCACHED=ON" "-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
             ;;
         "5.7")
-            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON")
+            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON" "-DCMAKE_CXX_FLAGS=-std=c++98")
             ;;
         "8.0"|"8.1"|"8.2"|"9.0"|"9.1"|"9.2"|"9.3")
             CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_77_0" "-DWITH_LIBEVENT=bundled" "-DWITH_INNODB_MEMCACHED=ON")
@@ -4455,11 +4455,6 @@ build_mysql() {
             ;;
         "5.7")
             download_source "https://archives.boost.io/release/1.59.0/source/boost_1_59_0.tar.gz" "../boost_1_59_0.tar.gz" && tar zxf ../boost_1_59_0.tar.gz
-            # boost 1.59 的 MPL integral_wrapper 在新 clang 下报 "non-type template
-            # argument is not a constant expression"（MySQL 5.7 cmake 硬性要求
-            # 1.59.0 不能升级）。用 sed 修复：给 BOOST_MPL_AUX_STATIC_CAST 加
-            # constexpr 限定。
-            sed -i '' 's/# *define BOOST_MPL_AUX_STATIC_CAST(T, E) (T)(E)/#define BOOST_MPL_AUX_STATIC_CAST(T, E) static_cast<T>(E)/' boost_1_59_0/boost/mpl/aux_/static_cast.hpp 2>/dev/null || true
             _apply_single_patch "${PATCH_DIR}/mysql/5.7/zlib.patch" "p0"
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
@@ -6240,8 +6235,10 @@ setup_package_build_environment() {
     # PHP 5.x-7.2 和 7.4、8.0 需要 C++17 来支持 ICU 76+ (std::is_same_v, std::enable_if_t 等)
     if [[ "$packageName" == "php" ]]; then
         # ICU 静态归档的 C++ 符号（icu_76:: 等）在 intl 扩展链接时需要 libc++；
-        # PHP 是 C 项目，其 configure 不会自动链 C++ 标准库。
-        export LDFLAGS="${LDFLAGS} -lc++"
+        # PHP 是 C 项目，其 configure 不会自动链 C++ 标准库。LDFLAGS 里的 -lc++
+        # 出现在对象文件之前，ld64 一次扫描时 ICU 库还没拉入需要 libc++ 的成员；
+        # 用 EXTRA_LIBS 让 -lc++ 排在链接行末尾（ICU 库之后）才能解析。
+        export EXTRA_LIBS="${EXTRA_LIBS:-} -lc++"
         local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
         if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-2])$ ]]; then
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -Wno-implicit-function-declaration"
