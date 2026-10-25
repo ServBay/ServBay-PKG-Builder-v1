@@ -400,6 +400,13 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
         with patch.object(self.module.windows_archive, "extract_verified_archive", return_value={}):
             self.rejected()
 
+    def test_local_security_release_maps_to_its_upstream_source_version(self):
+        # package_meta binds source.version to the upstream release for local
+        # security rebuilds (7.4.33.1 -> 7.4.33); an unpatched version maps to
+        # itself.
+        self.assertEqual(self.module.php_source.source_version("7.4.33.1"), "7.4.33")
+        self.assertEqual(self.module.php_source.source_version("8.2.35"), "8.2.35")
+
     def test_core_only_branch_finalizes_without_modules(self):
         # Legacy PHP 5.5 ships no third-party modules; the split contract must
         # still produce a publishable core package.
