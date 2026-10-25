@@ -33,7 +33,8 @@ core_manifest = _load("core_manifest", "runtime-v2/ci/core_manifest.py")
 IDENTITY_FIELDS = {"runtime_version", "os", "kind", "name", "version", "arch", "build_revision"}
 ABI_FIELDS = {"module_api", "zend_extension_api", "extension_build", "zend_extension_build", "zts", "debug"}
 CORE_DOCS = {"readme.md", "readme", "readme.txt", "license", "license.txt", "news", "news.txt",
-             "snapshot.txt", "readme-redist-bins.txt"}
+             "snapshot.txt", "readme-redist-bins.txt", "install.txt", "install", "php.gif"}
+CORE_CONFIG_SAMPLES = {"pws-php5cgi.reg", "pws-php5isapi.reg"}
 
 
 def _hash(data):
@@ -173,13 +174,15 @@ def _core_target(path, extension_dir):
             return "lib/" + path
         if path in ("php.ini-development", "php.ini-production"):
             return "share/defaults/php/" + path
+        if lower in CORE_CONFIG_SAMPLES:
+            return "share/defaults/php/" + path
         if lower in CORE_DOCS:
             return "share/doc/php/" + path
     if path.startswith("dev/") and "/" not in path[4:] and lower.endswith(".lib"):
         return "lib/" + path[4:]
     if path.startswith("ext/") and "/" not in path[4:] and lower.endswith(".dll"):
         return extension_dir + "/" + path[4:]
-    if path.startswith(("extras/ssl/", "lib/enchant/")):
+    if path.startswith(("extras/ssl/", "lib/enchant/", "sasl2/")):
         return path
     raise ValueError("Unknown PHP core runtime structure: " + path)
 

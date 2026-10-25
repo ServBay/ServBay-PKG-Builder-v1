@@ -967,6 +967,43 @@ static long php_soap_timezone(void)
     # so they are fetched from the same table the stock pipeline uses and
     # dropped into ext\.
     $PeclExts = @{}
+    # The staged tree mixes core files, the bundled CRT and PECL payloads. v2
+    # publishes core and each third-party extension as separate archives, so
+    # every PECL copy is recorded with its exact staged relative path. A PECL
+    # file may only replace an identical core file (then core keeps ownership);
+    # replacing one with different bytes would break either package.
+    $PeclOwned = @{}
+    $PeclRefs = @{}
+    $PeclSharedWithCore = @{}
+    $PeclCoOwned = @{}
+    $CoreOwnedBeforePecl = @{}
+    Get-ChildItem -LiteralPath $Stage -Recurse -File | ForEach-Object {
+        $CoreOwnedBeforePecl[($_.FullName.Substring($Stage.Length).TrimStart('\') -replace '\\', '/')] = $true
+    }
+
+    function Add-PeclFile {
+        param([string] $Extension, [string] $Source, [string] $Relative)
+        $relativePath = $Relative -replace '\\', '/'
+        $destination = Join-Path $Stage ($relativePath -replace '/', '\')
+        $sourceHash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash.ToLowerInvariant()
+        if (Test-Path -LiteralPath $destination) {
+            $destinationHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($destinationHash -ne $sourceHash) {
+                $kind = if ($CoreOwnedBeforePecl.ContainsKey($relativePath)) { 'core' } else { 'another extension' }
+                throw "PECL $Extension would replace a $kind file with different bytes: $relativePath"
+            }
+            if ($CoreOwnedBeforePecl.ContainsKey($relativePath)) {
+                $script:PeclSharedWithCore[$relativePath] = $true
+                return
+            }
+        } else {
+            Copy-Item -LiteralPath $Source -Destination $destination -Force
+        }
+        if (-not $script:PeclOwned.ContainsKey($Extension)) { $script:PeclOwned[$Extension] = @() }
+        if ($script:PeclOwned[$Extension] -notcontains $relativePath) { $script:PeclOwned[$Extension] += $relativePath }
+        if (-not $script:PeclCoOwned.ContainsKey($relativePath)) { $script:PeclCoOwned[$relativePath] = @() }
+        if ($script:PeclCoOwned[$relativePath] -notcontains $Extension) { $script:PeclCoOwned[$relativePath] += $Extension }
+    }
     if ($ExtManifest) {
         if (-not (Test-Path $ExtManifest)) { throw "Missing extension manifest: $ExtManifest" }
         $Manifest = Get-Content -Path $ExtManifest -Raw | ConvertFrom-Json
@@ -984,6 +1021,11 @@ static long php_soap_timezone(void)
                 Write-Host "    downloading $name"
                 Invoke-WebRequest -Uri $url -OutFile $zip
             }
+            # PECL release URLs are .../releases/<package>/<ref>/<file>.zip, so
+            # the parent segment is the ref the v2 module identity must carry.
+            $ref = Split-Path (Split-Path $url -Parent) -Leaf
+            if (-not $ref -or $ref -notmatch '^[A-Za-z0-9]') { $ref = $name }
+            $PeclRefs[$name] = $ref
             $unpack = Join-Path $ExtCache "$name-unpacked"
             if (Test-Path $unpack) { Remove-Item -Recurse -Force $unpack }
             Expand-Archive -Path $zip -DestinationPath $unpack -Force
@@ -1001,10 +1043,10 @@ static long php_soap_timezone(void)
             }
             foreach ($dll in $dlls) {
                 if ($dll.Name -match '^php_') {
-                    Copy-Item $dll.FullName -Destination $StageExt -Force
+                    Add-PeclFile -Extension $name -Source $dll.FullName -Relative ('ext/' + $dll.Name)
                     $PeclExts[$dll.BaseName -replace '^php_', ''] = $true
                 } else {
-                    Copy-Item $dll.FullName -Destination $Stage -Force
+                    Add-PeclFile -Extension $name -Source $dll.FullName -Relative $dll.Name
                 }
             }
             Write-Host "    $name -> $(($dlls | Where-Object { $_.Name -match '^php_' }).BaseName -join ', ')"
@@ -1014,10 +1056,13 @@ static long php_soap_timezone(void)
             # They belong in the package - policy.xml drives ImageMagick's
             # own security limits.
             $extraIni = @(Get-ChildItem $unpack -Filter '*.ini' -File)
-            foreach ($ini in $extraIni) { Copy-Item $ini.FullName -Destination $Stage -Force }
+            foreach ($ini in $extraIni) { Add-PeclFile -Extension $name -Source $ini.FullName -Relative $ini.Name }
             $configDir = Join-Path $unpack 'config'
             if (Test-Path $configDir) {
-                Copy-Item $configDir -Destination $Stage -Recurse -Force
+                Get-ChildItem -LiteralPath $configDir -Recurse -File | ForEach-Object {
+                    $relative = 'config/' + ($_.FullName.Substring($configDir.Length).TrimStart('\') -replace '\\', '/')
+                    Add-PeclFile -Extension $name -Source $_.FullName -Relative $relative
+                }
             }
         }
         Write-Step "Staged $($PeclExts.Count) PECL extensions"
@@ -1139,6 +1184,127 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
             }
         }
     }
+
+    # --- v2 split assets ---------------------------------------------------
+    # v2 publishes core and each third-party extension as separate archives.
+    # The merged package above remains the v1 artifact; this block derives the
+    # split set from the same staged tree and the ownership recorded above.
+    Write-Step 'Exporting v2 split core/extension assets'
+    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+    $SplitRoot = Join-Path $OutputDir 'split'
+    if (Test-Path $SplitRoot) { Remove-Item -Recurse -Force $SplitRoot }
+    $CoreArtifactDir = Join-Path $SplitRoot "php-build-artifacts-$Arch-nts"
+    $ExtensionRoot = Join-Path $SplitRoot 'extensions'
+    New-Item -ItemType Directory -Force -Path $CoreArtifactDir, $ExtensionRoot | Out-Null
+
+    $CoreZipName = "php-$Version-nts-Win32-$CrtTag-$ArchZip.zip"
+    $CoreZip = Join-Path $CoreArtifactDir $CoreZipName
+    $CoreStage = Join-Path $SplitRoot 'core-stage'
+    & robocopy $Stage $CoreStage /E /NFL /NDL /NJH /NJS /NP /R:1 /W:1 | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy failed with $LASTEXITCODE" }
+    $Exclusive = @()
+    foreach ($ownerName in $PeclOwned.Keys) {
+        foreach ($relativePath in $PeclOwned[$ownerName]) {
+            if (-not $CoreOwnedBeforePecl.ContainsKey($relativePath)) { $Exclusive += $relativePath }
+        }
+    }
+    foreach ($relativePath in ($Exclusive | Sort-Object -Unique)) {
+        $target = Join-Path $CoreStage ($relativePath -replace '/', '\')
+        if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
+    }
+    Get-ChildItem -LiteralPath $CoreStage -Recurse -Directory |
+        Sort-Object { $_.FullName.Length } -Descending |
+        Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Force) } |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+    Push-Location $CoreStage
+    try {
+        & $SevenZip a -tzip -mx=6 $CoreZip . | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "core ZIP failed with $LASTEXITCODE" }
+    }
+    finally { Pop-Location }
+
+    # The split contract requires a devel pack containing php.h. Upstream
+    # publishes one per base version; the security patch does not change it.
+    $DevelName = "php-devel-pack-$Version-nts-Win32-$CrtTag-$ArchZip.zip"
+    $UpstreamDevelName = "php-devel-pack-$BaseVersion-nts-Win32-$CrtTag-$ArchZip.zip"
+    $UpstreamDevel = Join-Path $ToolsDir $UpstreamDevelName
+    if (-not (Test-Path $UpstreamDevel)) {
+        Write-Step "Downloading the upstream $BaseVersion devel pack"
+        Invoke-WebRequest -Uri "$OfficialBase$UpstreamDevelName" -OutFile $UpstreamDevel
+    }
+    $DevelZip = Join-Path $CoreArtifactDir $DevelName
+    Copy-Item -LiteralPath $UpstreamDevel -Destination $DevelZip -Force
+
+    $ExtensionRecords = @()
+    foreach ($ownerName in ($PeclOwned.Keys | Sort-Object)) {
+        $ref = $PeclRefs[$ownerName]
+        if (-not $ref) { throw "No PECL ref recorded for $ownerName" }
+        $group = "extension-$ownerName-$Version-$Arch-nts"
+        $groupDir = Join-Path $ExtensionRoot $group
+        New-Item -ItemType Directory -Force -Path $groupDir | Out-Null
+        $zipName = "php_$ownerName-$ref-$Version-nts-$CrtTag-x86_64.zip"
+        $zipPath = Join-Path $groupDir $zipName
+        $packageStage = Join-Path $SplitRoot "package-$ownerName"
+        New-Item -ItemType Directory -Force -Path $packageStage | Out-Null
+        $moduleDlls = @()
+        foreach ($relativePath in $PeclOwned[$ownerName]) {
+            $source = Join-Path $Stage ($relativePath -replace '/', '\')
+            if ($relativePath -match '^ext/php_[^.]+\.dll$') {
+                $moduleDlls += $source
+                continue
+            }
+            $target = Join-Path $packageStage ($relativePath -replace '/', '\')
+            New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
+            Copy-Item -LiteralPath $source -Destination $target -Force
+        }
+        if ($moduleDlls.Count -ne 1) { throw "$ownerName carries $($moduleDlls.Count) module DLLs; exactly one is required" }
+        # PHP-Windows-Portable names the module DLL after its runtime ZIP so the
+        # v2 consumer binds the loaded DLL to the exact artifact.
+        $moduleName = $zipName -replace '\.zip$', '.dll'
+        Copy-Item -LiteralPath $moduleDlls[0] -Destination (Join-Path $packageStage $moduleName) -Force
+        Push-Location $packageStage
+        try {
+            & $SevenZip a -tzip -mx=6 $zipPath . | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "$ownerName ZIP failed with $LASTEXITCODE" }
+        }
+        finally { Pop-Location }
+        $ExtensionRecords += [pscustomobject]@{
+            name = $ownerName
+            ref = $ref
+            filename = $zipName
+            sha256 = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            bytes = (Get-Item -LiteralPath $zipPath).Length
+            module_dll = $moduleName
+            files = @($PeclOwned[$ownerName])
+        }
+    }
+
+    $SplitManifest = [pscustomobject]@{
+        schema = 'servbay.php-legacy-split.v1'
+        version = $Version
+        base_version = $BaseVersion
+        arch = $Arch
+        thread_safe = 'nts'
+        toolchain = $CrtTag
+        core = [pscustomobject]@{
+            filename = $CoreZipName
+            sha256 = (Get-FileHash -LiteralPath $CoreZip -Algorithm SHA256).Hash.ToLowerInvariant()
+            bytes = (Get-Item -LiteralPath $CoreZip).Length
+        }
+        devel = [pscustomobject]@{
+            filename = $DevelName
+            upstream_filename = $UpstreamDevelName
+            sha256 = (Get-FileHash -LiteralPath $DevelZip -Algorithm SHA256).Hash.ToLowerInvariant()
+            bytes = (Get-Item -LiteralPath $DevelZip).Length
+        }
+        extensions = $ExtensionRecords
+        shared_with_core = @($PeclSharedWithCore.Keys | Sort-Object)
+        co_owned = @($PeclCoOwned.Keys | Sort-Object | ForEach-Object {
+            [pscustomobject]@{ path = $_; owners = @($PeclCoOwned[$_] | Sort-Object) }
+        })
+    }
+    $SplitManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $SplitRoot 'split-manifest.json') -Encoding UTF8
+    Write-Step "Split assets: 1 core, 1 devel and $($ExtensionRecords.Count) extensions"
 
     New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
     $Archive = Join-Path $OutputDir "php-$Version-windows-$Arch.7z"
