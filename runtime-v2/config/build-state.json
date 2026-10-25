@@ -317,6 +317,15 @@
         "runtime_version": "v2",
         "version": "5.23.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.3.0\"}": {
@@ -389,6 +398,15 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
@@ -460,6 +478,15 @@
         "recipe_name": "swoole",
         "runtime_version": "v2",
         "version": "6.2.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
       },
       "status": "build-failed"
     },
@@ -5184,6 +5211,15 @@
         "runtime_version": "v2",
         "version": "5.23.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.3.0\"}": {
@@ -5256,6 +5292,15 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
@@ -5327,6 +5372,15 @@
         "recipe_name": "swoole",
         "runtime_version": "v2",
         "version": "6.2.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:40:06+00:00",
+        "expires_at": "2026-10-25T18:40:06+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182769192"
+        }
       },
       "status": "build-failed"
     },
