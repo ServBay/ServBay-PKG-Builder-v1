@@ -134,6 +134,22 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
             self.assertFalse(list(self.output.rglob("meta.json")))
             self.assertFalse(list(self.output.rglob("module-manifest.json")))
 
+    def test_legacy_official_layout_maps_to_the_v2_core_contract(self):
+        # The legacy producer uses windows.php.net archives as its base, which
+        # carry files the split producer never emits (sasl2/, install.txt,
+        # php.gif, the PWS registration samples). They must land in the core
+        # package instead of failing the whole build.
+        target = self.module._core_target
+        self.assertEqual("share/doc/php/install.txt", target("install.txt", EXT))
+        self.assertEqual("share/doc/php/php.gif", target("php.gif", EXT))
+        self.assertEqual("share/defaults/php/pws-php5cgi.reg", target("pws-php5cgi.reg", EXT))
+        self.assertEqual("share/defaults/php/pws-php5isapi.reg", target("pws-php5isapi.reg", EXT))
+        self.assertEqual("sasl2/saslLOGIN.dll", target("sasl2/saslLOGIN.dll", EXT))
+        self.assertEqual("lib/php5.lib", target("dev/php5.lib", EXT))
+        self.assertEqual(EXT + "/php_curl.dll", target("ext/php_curl.dll", EXT))
+        with self.assertRaises(ValueError):
+            target("unknown/asset.bin", EXT)
+
     def expected_core(self):
         result = {}
         for path, data in self.core_payload.items():

@@ -213,6 +213,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Verify v2 split assets
+        shell: pwsh
+        env:
+          PKG_DIR: ${{ steps.meta.outputs.pkg_dir }}
+        run: |
+          $split = Join-Path $env:PKG_DIR 'split'
+          $manifestPath = Join-Path $split 'split-manifest.json'
+          if (-not (Test-Path $manifestPath)) { throw "Missing split manifest: $manifestPath" }
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          $coreDir = Join-Path $split "php-build-artifacts-$env:ARCH-nts"
+          foreach ($name in @($manifest.core.filename, $manifest.devel.filename)) {
+            $path = Join-Path $coreDir $name
+            if (-not (Test-Path $path)) { throw "Missing split core asset: $path" }
+          }
+          if ($manifest.extensions.Count -lt 1) { throw 'Split manifest carries no extensions' }
+          foreach ($extension in $manifest.extensions) {
+            $path = Join-Path $split "extensions\extension-$($extension.name)-$env:VERSION-$env:ARCH-nts\$($extension.filename)"
+            if (-not (Test-Path $path)) { throw "Missing split extension asset: $path" }
+          }
+          $manifest | ConvertTo-Json -Depth 6 | Write-Host
+
+      - name: Upload v2 core split artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-build-artifacts-${{ env.ARCH }}-nts
+          path: ${{ steps.meta.outputs.pkg_dir }}/split/php-build-artifacts-${{ env.ARCH }}-nts/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload v2 extension split artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-extensions-${{ env.ARCH }}-nts
+          path: ${{ steps.meta.outputs.pkg_dir }}/split/extensions/extension-*
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
