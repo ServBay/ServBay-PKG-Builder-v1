@@ -371,11 +371,21 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"scws\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.2.4-pre\"}": {
-      "consecutive_failures": 2,
+      "artifact_expires_at": "2026-11-01T11:34:58Z",
+      "artifact_id": "12597543380",
+      "artifact_name": "pkg2-macos-arm64-php-extension-scws-1.2.4-pre-8.4",
+      "artifact_zip_sha256": "0aa34c19b9000475e9579c50fd4fb25f9cfe621f4109cb99c0e1416115c7967b",
+      "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
         "run_attempt": 1,
-        "run_id": "40182769192"
+        "run_id": "40187664387"
+      },
+      "package_sha256": "608a3f9636626fa0052312ae1038f7bc6d772ee8c32649421778df241598c841",
+      "producer": {
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+        "run_attempt": 1,
+        "run_id": "40187664387"
       },
       "record": {
         "arch": "arm64",
@@ -399,16 +409,7 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T11:34:05+00:00",
-        "expires_at": "2026-10-25T19:34:05+00:00",
-        "producer": {
-          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
-          "run_attempt": 1,
-          "run_id": "40187664387"
-        }
-      },
-      "status": "build-failed"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
       "artifact_expires_at": "2026-11-01T09:06:17Z",
@@ -4302,7 +4303,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+        "run_attempt": 1,
+        "run_id": "40187664387"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 10,
@@ -4313,16 +4319,7 @@
         "runtime_version": "v2",
         "version": "8.4.27"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T11:09:22+00:00",
-        "expires_at": "2026-10-25T19:09:22+00:00",
-        "producer": {
-          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
-          "run_attempt": 1,
-          "run_id": "40187664387"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 0,
@@ -5286,11 +5283,21 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"scws\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.2.4-pre\"}": {
-      "consecutive_failures": 2,
+      "artifact_expires_at": "2026-11-01T11:36:18Z",
+      "artifact_id": "12596898034",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-scws-1.2.4-pre-8.4",
+      "artifact_zip_sha256": "4cd0723647780b810778d1d30c9dc2f0667b46b907f82ccedb83b9564c8563cc",
+      "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
         "run_attempt": 1,
-        "run_id": "40182769192"
+        "run_id": "40187664387"
+      },
+      "package_sha256": "fe3d55aae3ed37bd39498e02de9dd647d44ac862cfc51d8b7837c7e9cb124138",
+      "producer": {
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+        "run_attempt": 1,
+        "run_id": "40187664387"
       },
       "record": {
         "arch": "x86_64",
@@ -5314,16 +5321,7 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T11:34:05+00:00",
-        "expires_at": "2026-10-25T19:34:05+00:00",
-        "producer": {
-          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
-          "run_attempt": 1,
-          "run_id": "40187664387"
-        }
-      },
-      "status": "build-failed"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
       "artifact_expires_at": "2026-11-01T09:07:21Z",
@@ -9225,7 +9223,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+        "run_attempt": 1,
+        "run_id": "40187664387"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 10,
@@ -9236,16 +9239,7 @@
         "runtime_version": "v2",
         "version": "8.4.27"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T11:09:22+00:00",
-        "expires_at": "2026-10-25T19:09:22+00:00",
-        "producer": {
-          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
-          "run_attempt": 1,
-          "run_id": "40187664387"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 0,
