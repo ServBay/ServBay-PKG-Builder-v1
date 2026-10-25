@@ -413,13 +413,17 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
             name not in audit["modules"] for name in default_modules):
         raise ValueError("PHP default_modules must be distinct selected module names")
     native = json.loads(Path(native_result).read_text(encoding="utf-8-sig"))
-    # Core-only branches (legacy PHP 5.5) publish no third-party modules; only
-    # a payload that actually carries imagick must prove its PNG round trip.
-    has_imagick = "imagick" in audit["modules"]
+    # Legacy branches pin imagick 3.4.3, which ships no IM_MOD_RL_* coders, so
+    # PNG conversion needs an external ImageMagick. Require the round trip only
+    # when the payload actually carries coders, and require it to be reported
+    # as untested (false) otherwise instead of silently claiming success.
+    imagick_files = audit["modules"].get("imagick", {}).get("files", [])
+    imagick_coders = any(Path(row["target_path"]).name.upper().startswith("IM_MOD_RL_")
+                         for row in imagick_files)
     if (not isinstance(native, dict) or set(native) != {"php", "extension_dir", "loaded", "modules", "imagick_png"}
             or native["php"] != audit["core"]["identity"]["version"]
             or native["extension_dir"] != audit["extension_dir"] or native["loaded"] != len(audit["modules"])
-            or type(native["loaded"]) is not int or native["imagick_png"] is not has_imagick
+            or type(native["loaded"]) is not int or native["imagick_png"] is not imagick_coders
             or not isinstance(native["modules"], list)):
         raise ValueError("Incomplete PHP native evidence")
     loaded = {row.get("name"): row for row in native["modules"] if isinstance(row, dict)}
