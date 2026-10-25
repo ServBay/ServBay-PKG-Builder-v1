@@ -3599,6 +3599,83 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
+      "artifact_expires_at": "2026-10-31T19:37:44Z",
+      "artifact_id": "12573686455",
+      "artifact_name": "pkg2-macos-arm64-package-mysql-8.4.13-r2",
+      "artifact_zip_sha256": "522c9d5b2f242c06a618392a66658cdd7418f86ea305a40afe04ad7f02b9c8be",
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+        "run_attempt": 1,
+        "run_id": "40122353568"
+      },
+      "package_sha256": "4b949ff7848207acc658333c67044cf4695f570b917fca7bbf373d4285edf154",
+      "producer": {
+        "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+        "run_attempt": 1,
+        "run_id": "40122353568"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.13"
+      },
+      "status": "build-ready"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+      "artifact_expires_at": "2026-11-01T00:18:13Z",
+      "artifact_id": "12580602061",
+      "artifact_name": "pkg2-macos-arm64-package-mysql-9.7.4-r2",
+      "artifact_zip_sha256": "69192fab04ae1dafdb6f6d48521703282243f3d550d741f65ada2357773b8448",
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143574985"
+      },
+      "package_sha256": "a3ed4728eec2acddbf8aa2545296a878d8a6daf95e29c85379bac51b5265c7e9",
+      "producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143574985"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "9.7.4"
+      },
+      "status": "build-ready"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143562737"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 3,
       "last_collected_producer": {
@@ -3647,6 +3724,44 @@
       "record": {
         "arch": "arm64",
         "build_revision": 4,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":5,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "ef642fc085873bcafacba6109fd75c4c1dafa0b2",
+        "run_attempt": 1,
+        "run_id": "40122360948"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 5,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":6,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143568914"
+      },
+      "record": {
+        "arch": "arm64",
+        "build_revision": 6,
         "build_type": "source",
         "kind": "package",
         "name": "postgresql",
@@ -7292,6 +7407,54 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
+      "artifact_expires_at": "2026-11-01T01:07:51Z",
+      "artifact_id": "12581627595",
+      "artifact_name": "pkg2-macos-x86_64-package-mysql-9.7.4-r2",
+      "artifact_zip_sha256": "3907ecbfeafe956a1df7e924fe0970dace54c27e30795ac4bcab7589ae68c7e0",
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143574985"
+      },
+      "package_sha256": "8202e2c4d69de9ae99726ad767fccff5012bc9b150eb5a0a21d58a3681bafa2c",
+      "producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143574985"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "9.7.4"
+      },
+      "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143562737"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
@@ -7350,6 +7513,25 @@
       "record": {
         "arch": "x86_64",
         "build_revision": 4,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":6,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "82c3d7446eef7a8154a7b31393cddc7ddcd4d68a",
+        "run_attempt": 1,
+        "run_id": "40143568914"
+      },
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 6,
         "build_type": "source",
         "kind": "package",
         "name": "postgresql",
