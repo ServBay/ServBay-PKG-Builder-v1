@@ -38,8 +38,16 @@ def read_catalog(url, arch, packages=False):
     query.update({'cpu_arch': arch, 'uid': '00000000-0000-0000-0000-000000000000', 'app_version': '0.0.0'}
                  if packages else {'arch': arch})
     target = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ''))
-    with urllib.request.urlopen(urllib.request.Request(target, headers={'Accept': 'application/json'}), timeout=60) as response:
-        return json.load(response)
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(target, headers={'Accept': 'application/json'}), timeout=60) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            last_error = error
+            if attempt < 2:
+                import time; time.sleep(2 ** attempt)
+    raise last_error
 
 
 def catalog_host_requests(payload, arch, base):
