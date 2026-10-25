@@ -1241,6 +1241,11 @@ core_verify_package() {
     elif [[ "$packageName" == "openjdk" && "$packageVersion" =~ ^([78])\.0\.([0-9]+)$ ]]; then
         versionToMatch="1.${match[1]}.0_${match[2]}"
         log_message "INFO" "⏳ Verifying ${packageName} installation (matching legacy version: ${versionToMatch})..."
+    # PostgreSQL beta releases drop the dot: our config says "19.beta4" but
+    # psql -V reports "19beta4". Strip the dot before the beta suffix.
+    elif [[ "$packageName" == "postgresql" && "$packageVersion" =~ ^(.*?)\.?(beta|rc|alpha) ]]; then
+        versionToMatch="${match[1]}${match[2]}"
+        log_message "INFO" "⏳ Verifying ${packageName} installation (matching pre-release version: ${versionToMatch})..."
     else
         log_message "INFO" "⏳ Verifying ${packageName} installation..."
     fi
@@ -1630,7 +1635,7 @@ _get_mysql_cmake_args() {
             CMAKE_ARGS+=("-DWITH_INNODB_MEMCACHED=ON" "-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
             ;;
         "5.7")
-            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON")
+            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_65_1" "-DWITH_INNODB_MEMCACHED=ON")
             ;;
         "8.0"|"8.1"|"8.2"|"9.0"|"9.1"|"9.2"|"9.3")
             CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_77_0" "-DWITH_LIBEVENT=bundled" "-DWITH_INNODB_MEMCACHED=ON")
@@ -4446,7 +4451,10 @@ build_mysql() {
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
         "5.7")
-            download_source "https://archives.boost.io/release/1.59.0/source/boost_1_59_0.tar.gz" "../boost_1_59_0.tar.gz" && tar zxf ../boost_1_59_0.tar.gz
+            # boost 1.59 的 MPL integral_wrapper 在新 clang 下报 "non-type template
+            # argument is not a constant expression"；1.65.1 修复了此问题且在 MySQL
+            # 5.7 cmake 的接受范围内。
+            download_source "https://archives.boost.io/release/1.65.1/source/boost_1_65_1.tar.gz" "../boost_1_65_1.tar.gz" && tar zxf ../boost_1_65_1.tar.gz
             _apply_single_patch "${PATCH_DIR}/mysql/5.7/zlib.patch" "p0"
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
