@@ -171,6 +171,11 @@ class WindowsV2RepackTests(unittest.TestCase):
             "ai-gateway": {"bin/servbay-ai-gateway.exe": b"gateway", "share/readme": b"readme"},
             "disk-cleaner": {"bin/servbay-diskcleaner.exe": b"cleaner", "share/readme": b"readme"},
             "memcached": {"bin/memcached.exe": b"server", "include/config.h": b"header"},
+            "simple-acme": {"wacs.exe": b"acme", "plugins/provider.dll": b"plugin"},
+            "rust": {"rustc/bin/rustc.exe": b"rustc", "cargo/bin/cargo.exe": b"cargo",
+                     "rustc/manifest.in": b"rustc manifest", "cargo/manifest.in": b"cargo manifest",
+                     "README.md": b"rust readme",
+                     "rust-std-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/libstd.rlib": b"std"},
         }
         versions = {
             "go": "1.27.3", "ruby": "3.4.12", "openjdk": "21.0.13",
@@ -179,6 +184,7 @@ class WindowsV2RepackTests(unittest.TestCase):
             "openssl": "3.6.1", "phpmyadmin": "5.2.3", "mongosh": "2.13.0",
             "mongotools": "100.19.1", "ai-gateway": "1.0.0", "disk-cleaner": "1.0.0",
             "memcached": "1.6.45",
+            "simple-acme": "2.4.1", "rust": "1.99.1",
         }
         binary_payloads = {
             "mailpit": ("mailpit.exe", "1.32.0"),
@@ -213,6 +219,16 @@ class WindowsV2RepackTests(unittest.TestCase):
                 elif name in self.module.ROOT_BINARY:
                     expected = {path: root + "/" + ("bin/" + path if "/" not in path else path)
                                 for path in payload}
+                elif name == "rust":
+                    expected = {}
+                    for path in payload:
+                        if "/" in path:
+                            component, relative = path.split("/", 1)
+                            if relative == "manifest.in":
+                                relative = "share/doc/rust/components/" + component + "/manifest.in"
+                        else:
+                            relative = path
+                        expected[path] = root + "/" + relative
                 else:
                     expected = {"adminer.php": root + "/index.php"}
                 self.assertEqual(mapping, expected)
@@ -376,8 +392,8 @@ class WindowsV2RepackTests(unittest.TestCase):
         args = self.arguments()
         create = self.module.windows_archive.create_archive
 
-        def corrupt(staging, archive, names, seven_zip=None):
-            create(staging, archive, names, seven_zip)
+        def corrupt(staging, archive, names, seven_zip=None, compression_level=7):
+            create(staging, archive, names, seven_zip, compression_level=compression_level)
             Path(archive).write_bytes(b"not a 7z archive")
 
         with patch.object(self.module.windows_archive, "create_archive", side_effect=corrupt):

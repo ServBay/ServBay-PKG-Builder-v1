@@ -1,5 +1,6 @@
 """Strict Windows-relative inventories and real 7z payload verification."""
 
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import os
 from pathlib import Path
@@ -75,7 +76,9 @@ def staging_files(staging):
     return files
 
 
-def create_archive(staging, archive, names, seven_zip=None):
+def create_archive(staging, archive, names, seven_zip=None, compression_level=7):
+    if type(compression_level) is not int or not 0 <= compression_level <= 9:
+        raise ValueError("7z compression level must be an integer from 0 to 9")
     actual_files = staging_files(staging)
     staging, archive = Path(staging).resolve(), Path(archive).absolute()
     names = list(names)
@@ -89,7 +92,7 @@ def create_archive(staging, archive, names, seven_zip=None):
     with tempfile.TemporaryDirectory(prefix="windows-archive-") as temporary:
         listing = Path(temporary) / "files.txt"
         listing.write_text("".join(name + "\n" for name in names), encoding="utf-8")
-        _run([_tool(seven_zip), "a", "-t7z", "-mx=7", "-mtc=off", "-mta=off", "-mtm=off",
+        _run([_tool(seven_zip), "a", "-t7z", f"-mx={compression_level}", "-mtc=off", "-mta=off", "-mtm=off",
               "-spd", "-scsUTF-8", str(archive), "@" + str(listing)], cwd=staging)
 
 
@@ -159,14 +162,16 @@ def extract_verified_archive(archive, destination, seven_zip=None):
     actual = staging_files(destination)
     if set(actual) != set(files):
         raise ValueError("Extracted Windows file set differs from its validated listing")
-    result = {}
-    for name in actual:
+    def hash_member(name):
         value = hashlib.sha256()
         with (destination / name).open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
                 value.update(block)
-        result[name] = value.hexdigest()
-    return result
+        return name, value.hexdigest()
+
+    workers = min(8, max(1, os.cpu_count() or 1))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        return dict(executor.map(hash_member, actual))
 
 
 def archive_hashes(archive, seven_zip=None):

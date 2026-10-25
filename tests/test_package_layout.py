@@ -139,6 +139,11 @@ class PackageLayoutTests(unittest.TestCase):
                     self.assertEqual(result["config_root"], name)
                     self.assertEqual(result["entrypoint"]["path"],
                                      name + "/bin/" + executable + suffix)
+        self.assertEqual(self.layout("simple-acme", "2.4.1")["entrypoint"], {
+            "path": "simple-acme/wacs.exe", "type": "binary",
+        })
+        with self.assertRaises(ValueError):
+            self.layout("simple-acme", "2.4.1", os="macos")
 
     def test_platforms_share_package_and_configuration_roots(self):
         for name, version in [("php", "8.3.36"), ("redis", "7.4.11"),
@@ -181,7 +186,7 @@ class PackageLayoutTests(unittest.TestCase):
                 self.layout("php", "8.3.36", os=os)
 
     def test_unknown_and_unverified_packages_fail_instead_of_guessing_layout(self):
-        for name in ("unknown", "simple-acme", "runtime", "devlib",
+        for name in ("unknown", "runtime", "devlib",
                      "dotnetsdk", "mono", "", None, []):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 self.layout(name, "3.13.17")

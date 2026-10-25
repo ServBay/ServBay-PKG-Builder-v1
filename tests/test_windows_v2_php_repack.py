@@ -381,8 +381,38 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
         self.assertEqual(self.module.windows_archive.archive_hashes(result["module_archives"]["redis"], SEVEN_ZIP), self.expected_module("redis"))
 
     def test_archive_readback_mismatch_never_publishes_audit(self):
-        with patch.object(self.module.windows_archive, "archive_hashes", return_value={}):
+        with patch.object(self.module.windows_archive, "extract_verified_archive", return_value={}):
             self.rejected()
+
+    def test_native_evidence_finalizes_core_and_every_selected_module(self):
+        prepared = self.run_repack()
+        audit = prepared["audit"]
+        modules = []
+        for name, module in sorted(audit["modules"].items()):
+            dlls = [row["target_path"] for row in module["files"]
+                    if row["target_path"].startswith(audit["extension_dir"] + "/")
+                    and row["target_path"].casefold().endswith(".dll")]
+            modules.append({"name": name, "dll": Path(dlls[0]).name, "exit_code": 0, "loaded": True})
+        native = self.base / "native-results.json"
+        native.write_text(json.dumps({
+            "php": self.core["version"], "extension_dir": audit["extension_dir"],
+            "loaded": len(modules), "modules": modules, "imagick_png": True,
+        }), encoding="utf-8")
+        output = self.base / "formal-output"
+        result = self.module.finalize_php_payloads(
+            self.output, self.save(), native, list(VERSIONS), "10.0",
+            {"distribution": "windows-x64", "toolchain": "msvc-vs16", "crt": "vc14-runtime"},
+            output, core_source_url="https://windows.php.net/downloads/releases/",
+            module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+            seven_zip=SEVEN_ZIP,
+        )
+        core_meta = json.loads((output / "core/meta.json").read_text())
+        self.assertEqual(len(core_meta["package_manifest"]["default_modules"]), len(VERSIONS))
+        self.assertEqual(set(result["modules"]), set(VERSIONS))
+        for name in VERSIONS:
+            meta = json.loads((output / name / "meta.json").read_text())
+            self.assertEqual(meta["host"]["abi"], ABI)
+            self.assertNotIn("base", meta)
 
 
 if __name__ == "__main__":

@@ -112,6 +112,7 @@ class PackageArtifactTests(unittest.TestCase):
             ("dotnetsdk", "11.0.100-rc1", "11.0", ".NET SDK 11.0"),
             ("dotnetsdk", "2.1.202", "2.0", ".NET SDK 2.0"),
             ("nginx", "1.31.7", "1", "NGINX"), ("openssl", "3.6.1", "3", "OpenSSL"),
+            ("rust", "1.99.1", "1", "Rust"), ("simple-acme", "2.4.1", "2", "Simple ACME"),
             ("caddy", "2.11.7", "2", "Caddy"),
             ("apache", "2.4.69", "2.4", "Apache 2.4"), ("composer", "2.2.30", "2.2", "Composer 2.2 LTS"),
             ("composer", "2.10.3", "2", "Composer"), ("mongosh", "2.12.0", "2.0", "Mongo Shell"),

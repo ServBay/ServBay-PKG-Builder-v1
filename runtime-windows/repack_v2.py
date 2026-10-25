@@ -4,6 +4,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -31,13 +32,13 @@ SUPPORTED = {
     "go", "ruby", "openjdk", "maven", "mysql", "mariadb", "mongodb",
     "apache", "git", "openssl", "phpmyadmin", "mongosh", "mongotools",
     "ai-gateway", "disk-cleaner", "adminer",
-    "mailpit", "ollama", "minio", "meilisearch", "memcached",
+    "mailpit", "ollama", "minio", "meilisearch", "memcached", "rust", "simple-acme",
     "deno", "bun", "caddy", "cloudflared", "frp", "ngrok", "pinggy",
 }
 TREE_PRESERVING = {
     "go", "ruby", "openjdk", "maven", "mysql", "mariadb", "mongodb",
     "apache", "git", "openssl", "phpmyadmin", "mongosh", "mongotools",
-    "ai-gateway", "disk-cleaner", "memcached",
+    "ai-gateway", "disk-cleaner", "memcached", "simple-acme",
 }
 ROOT_BINARY = {
     "mailpit", "ollama", "minio", "meilisearch",
@@ -50,7 +51,8 @@ def _mapping(files, layout, version):
     required = {"nginx": {"nginx.exe", "conf/nginx.conf", "conf/mime.types"},
                 "redis": {"redis-server.exe", "redis-cli.exe"}, "python": {"python.exe"},
                 "node": {"node.exe"},
-                "composer": {"composer-2.2" if version.startswith("2.2.") else "composer"}}.get(name, set())
+                "composer": {"composer-2.2" if version.startswith("2.2.") else "composer"},
+                "rust": {"rustc/bin/rustc.exe"}}.get(name, set())
     source_required = set(required)
     if name in TREE_PRESERVING:
         source_required = {layout["entrypoint"]["path"].removeprefix(root + "/")}
@@ -73,6 +75,13 @@ def _mapping(files, layout, version):
         elif name == "redis":
             default = "/" not in path and path.casefold().endswith(".conf")
             relative = ("share/defaults/" if default else "bin/") + path
+        elif name == "rust":
+            if "/" in path:
+                component, relative = path.split("/", 1)
+                if relative == "manifest.in":
+                    relative = "share/doc/rust/components/" + component + "/manifest.in"
+            else:
+                relative = path
         elif name == "python" or name in TREE_PRESERVING:
             relative = path
         elif name in ROOT_BINARY:
@@ -96,7 +105,7 @@ def _mapping(files, layout, version):
     return mapping, defaults
 
 
-def repack(source, identity, producer, minimum_os, output_dir, *, seven_zip=None):
+def repack(source, identity, producer, minimum_os, output_dir, *, seven_zip=None, compression_level=7):
     """Produce a new verified bundle from an explicitly pinned local v1 archive.
 
     producer identifies the actual caller's build/run and is validated unchanged
@@ -148,27 +157,47 @@ def repack(source, identity, producer, minimum_os, output_dir, *, seven_zip=None
         stage = temporary / "stage"
         stage.mkdir()
         expected = {}
+        move_verified = row["name"] in TREE_PRESERVING or row["name"] in {"python", "rust"}
         for record in mapping:
             path = extracted / record["source_path"]
             target = stage / record["target_path"]
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, target)
-            record.update(bytes=path.stat().st_size, sha256=inventory[record["source_path"]])
-            if target.stat().st_size != record["bytes"] or package_meta.sha256(target) != record["sha256"]:
+            source_bytes = path.stat().st_size
+            record.update(bytes=source_bytes, sha256=inventory[record["source_path"]])
+            if move_verified:
+                os.replace(path, target)
+            else:
+                shutil.copyfile(path, target)
+            if target.stat().st_size != record["bytes"]:
                 raise ValueError("Mapped Windows file bytes changed")
+            if not move_verified and package_meta.sha256(target) != record["sha256"]:
+                raise ValueError("Mapped Windows file SHA256 changed")
             expected[record["target_path"]] = record["sha256"]
+        if move_verified and set(windows_archive.staging_files(stage)) != set(expected):
+            raise ValueError("Moved staged Windows files differ from the verified inventory")
         for default in defaults:
             default["sha256"] = expected[default["archive_path"]]
         bundle = temporary / "bundle"
         bundle.mkdir()
         filename = f"{row['name']}-{row['version']}-windows-{row['arch']}.7z"
         archive = bundle / filename
-        windows_archive.create_archive(stage, archive, expected, tool)
-        verified = windows_archive.extract_verified_archive(
-            archive, temporary / "verification", tool
-        )
-        if verified != expected:
-            raise ValueError("Repacked archive file set or SHA256 differs")
+        windows_archive.create_archive(stage, archive, expected, tool, compression_level=compression_level)
+        if len(expected) >= 20000:
+            windows_archive._run([tool, "t", "-t7z", "--", str(archive)])
+            records = windows_archive.parse_listing(windows_archive._run([
+                tool, "l", "-t7z", "-slt", "-ba", "-sccUTF-8", "--", str(archive)
+            ]))
+            files = [record["path"] for record in records if not record["directory"]]
+            directories = [record["path"] for record in records if record["directory"]]
+            windows_archive.validate_paths(files, directories)
+            if set(files) != set(expected):
+                raise ValueError("Repacked archive file set differs")
+        else:
+            verified = windows_archive.extract_verified_archive(
+                archive, temporary / "verification", tool
+            )
+            if verified != expected:
+                raise ValueError("Repacked archive file set or SHA256 differs")
         meta = package_meta.create_meta(archive, row, producer, None, minimum_os, frozen_source)
         audit = {"source": {"filename": original.name, "bytes": source["bytes"], "sha256": source["sha256"]},
                  "files": mapping, "configuration_defaults": defaults, "native_validation": "pending"}

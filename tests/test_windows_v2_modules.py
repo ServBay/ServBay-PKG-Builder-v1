@@ -115,6 +115,21 @@ class WindowsModuleTests(unittest.TestCase):
                          helper.archive_hashes(package, SEVEN_ZIP))
         self.assertTrue((self.stage / "-sdel").is_file())
 
+    def test_archive_compression_level_is_explicitly_bounded(self):
+        helper = load("runtime/ci/windows_archive.py")
+        stage = self.root / "compression-stage"
+        stage.mkdir()
+        (stage / "payload").write_bytes(b"fixture")
+        names = ["payload"]
+        for value in (-1, 10, True, "7"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                helper.create_archive(stage, self.root / "invalid.7z", names, SEVEN_ZIP,
+                                      compression_level=value)
+        archive = self.root / "fast.7z"
+        helper.create_archive(stage, archive, names, SEVEN_ZIP, compression_level=1)
+        self.assertEqual({"payload": hashlib.sha256(b"fixture").hexdigest()},
+                         helper.archive_hashes(archive, SEVEN_ZIP))
+
     def test_crlf_and_windows_separator_listing_is_canonicalized_consistently(self):
         helper = load("runtime/ci/windows_archive.py")
         archive = self.root / "crlf-listing.7z"
