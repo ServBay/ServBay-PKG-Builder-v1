@@ -212,7 +212,9 @@
 **目标**: 不再把 PHP 独立模块限制为 Redis、Memcache、Memcached、Xdebug、Imagick 五项，而由 split producer 的 `selected_extensions` 决定。
 **成功标准**: 当前默认/可选 17 个第三方扩展的 ZIP 命名、共享 DLL、配置候选和 core-consumed host ABI 都能生成独立 7z；PHP 内置扩展仍留在 core。
 **测试**: Windows VM 运行 PHP repack 与布局 33 项测试；额外的全模块合成集合覆盖 17 个扩展。
-**状态**: 已完成。8.2.35（16 模块）、8.3.36（16）、8.4.27（17）、8.5.12（17）、8.6.0beta3（16）五个 series 均从 PHP-Windows-Portable 的真实 split 产物生成正式 core/module 包，全部模块在 Windows VM 实际加载成功，Uploader 五个 series 均 `validation_complete=true`。逐 series 证据见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。PHP 5.3–8.1 的 legacy producer 只输出 merged 7z，仍是缺口（需要先改 producer 输出契约）。
+**状态**: 已完成。8.2.35（16 模块）、8.3.36（16）、8.4.27（17）、8.5.12（17）、8.6.0beta3（16）五个 series 均从 PHP-Windows-Portable 的真实 split 产物生成正式 core/module 包，全部模块在 Windows VM 实际加载成功，Uploader 五个 series 均 `validation_complete=true`。逐 series 证据见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
+
+Legacy 分支另行补齐：`build-windows-php-legacy.yml` 现在同时输出 core runtime ZIP、devel pack 与逐扩展 runtime ZIP。5.5、5.6、7.0、7.1、7.2、7.3、7.4、8.0、8.1 共 9 个版本完成真实构建、正式包生成、逐模块加载和 Uploader 计划（5.5 为 core-only）。5.3/5.4 因上游无 x64 官方 archive、且 VC9 回退工具链链接失败，仍不支持。
 
 ## Windows v2 普通包与扩展阶段 3: PostgreSQL core 与 pgvector 正式候选
 **目标**: 直接将 POC 原生结果绑定到 schema-2 core/module metadata，而不是把诊断归档的 pending 字段当作正式发布包。
@@ -230,8 +232,8 @@
 
 补充：Adminer/phpMyAdmin 使用原生 Windows PHP v2 CLI 执行语法检查；Maven 使用精确 v1 OpenJDK 27 运行版本检查。其余可执行包从 v2 产物直接跑版本/帮助命令。经明确授权，`frp` 的 PUA 测试仅在专用目录临时排除 Defender，完成后已删除并回读确认。
 
-全量测试的最终证据回传 `~/Downloads/ServBay-windows-v2-evidence-20261025-full.zip`，86,415 字节，SHA256 `60174d669b7dffe3b88b4c688110c2c4dbe3b68bb9d26685ac681265f2ccc8dc`，含 v1 目录快照、35 包 POC、35 包原生/语法结果、153 版本矩阵、PHP 5 个 series 的正式 meta/加载结果/finalization、PostgreSQL 18.6 + pgvector 正式证据和验证摘要。早先的 28 包版本 `ServBay-windows-v2-evidence-20261025.zip` 仍保留，但已被前者取代。
+全量测试的最终证据回传 `~/Downloads/ServBay-windows-v2-evidence-20261025-full.zip`，142,964 字节，SHA256 `a486cfa28e11e623bd228d4d7ef7e82134b69197b1c521fec0ac2ec9a66a77dc`，含 v1 目录快照、35 包 POC、35 包原生/语法结果、153 版本矩阵、PHP 8.2–8.6 与 legacy 5.5–8.1 的正式 meta/加载结果/finalization/split manifest、5.3/5.4 阻塞证据、PostgreSQL 18.6 + pgvector 正式证据和验证摘要。早先的 28 包版本 `ServBay-windows-v2-evidence-20261025.zip` 仍保留，但已被前者取代。
 
-PHP 5.3–8.1 共 11 个版本仍未做 v2 打包：legacy producer 只输出 merged 7z，缺少 core/逐模块 artifact，必须先改 legacy workflow 输出契约。
+Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资产。5.5、5.6、7.0、7.1、7.2、7.3、7.4、8.0、8.1 九个版本共生成 9 个 core 包和 107 个模块包，全部模块在 Windows VM 加载成功，Uploader 计划均为 `validation_complete=true`。5.3/5.4 因上游没有 x64 官方 archive、VC9 回退工具链链接失败而保持未支持；详见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
 
 另新增手工 `build-windows-v2-package.yml`：默认以已核验的 Adminer v1 输入演示完整下载、SHA 校验、`repack_v2.py`、artifact 上传流程；任意已支持包可显式提供公开 URL/SHA/version 复用。该入口默认不调用 Uploader、不建立 Release、不修改公共 catalog，真实运行仍需单独触发。
