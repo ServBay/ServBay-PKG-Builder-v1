@@ -30,6 +30,7 @@ package_layout = _load("package_layout", "runtime/ci/package_layout.py")
 windows_archive = _load("windows_archive", "runtime/ci/windows_archive.py")
 module_manifest = _load("module_manifest", "runtime-v2/ci/module_manifest.py")
 core_manifest = _load("core_manifest", "runtime-v2/ci/core_manifest.py")
+php_source = _load("php_source", "runtime-v2/ci/php_source.py")
 IDENTITY_FIELDS = {"runtime_version", "os", "kind", "name", "version", "arch", "build_revision"}
 ABI_FIELDS = {"module_api", "zend_extension_api", "extension_build", "zend_extension_build", "zts", "debug"}
 CORE_DOCS = {"readme.md", "readme", "readme.txt", "license", "license.txt", "news", "news.txt",
@@ -479,7 +480,7 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
                              "default": name in default_modules}
         core_asset = next(row for row in split["assets"] if row["role"] == "core-runtime")
         core_source = {"path": str(split_path.parent / core_asset["filename"]),
-                       "version": audit["core"]["identity"]["version"],
+                       "version": php_source.source_version(audit["core"]["identity"]["version"]),
                        "sha256": core_asset["sha256"], "bytes": core_asset["bytes"],
                        "url": core_source_url}
         profile = temporary / "modules.json"
