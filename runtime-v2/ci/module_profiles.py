@@ -18,12 +18,15 @@ _spec.loader.exec_module(_inventory)
 def module_records(host, arch, config=None, revision=0, *, os_name="macos"):
     if os_name not in ("macos", "windows") or (os_name == "windows" and config is None):
         raise ValueError("Windows modules need an explicit Windows profile")
+    host = _inventory._host(copy.deepcopy(host))
     if os_name == "windows":
         arch = {"x64": "x86_64"}.get(arch, arch)
-        if arch != "x86_64":
+        # PHP 5.3/5.4 modules are x86; every other Windows module is x86_64.
+        if arch not in ("x86_64", "x86") or (arch == "x86" and host["type"] != "php"):
             raise ValueError("Unsupported Windows module architecture")
-    host = _inventory._host(copy.deepcopy(host))
-    if arch not in ("x86_64", "arm64") or type(revision) is not int or revision < 0:
+    elif arch not in ("x86_64", "arm64"):
+        raise ValueError("Modules need an explicit supported architecture")
+    if type(revision) is not int or revision < 0:
         raise ValueError("Modules need an explicit supported architecture and revision")
     config = Path(config) if config else Path(__file__).parents[1] / "config/modules.json"
     profile = json.loads(config.read_text())
