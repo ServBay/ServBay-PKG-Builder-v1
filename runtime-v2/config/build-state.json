@@ -564,6 +564,15 @@
         "runtime_version": "v2",
         "version": "3.8.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"major\":19},\"series\":\"19\",\"type\":\"postgresql\"},\"kind\":\"postgresql-extension\",\"name\":\"postgis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.5.7\"}": {
@@ -589,6 +598,15 @@
         "recipe_name": "postgis",
         "runtime_version": "v2",
         "version": "3.5.7"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
       },
       "status": "build-failed"
     },
@@ -651,6 +669,15 @@
         "recipe_name": "zhparser",
         "runtime_version": "v2",
         "version": "2.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
       },
       "status": "build-failed"
     },
@@ -5395,6 +5422,15 @@
         "runtime_version": "v2",
         "version": "3.8.0"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"major\":19},\"series\":\"19\",\"type\":\"postgresql\"},\"kind\":\"postgresql-extension\",\"name\":\"postgis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.5.7\"}": {
@@ -5420,6 +5456,15 @@
         "recipe_name": "postgis",
         "runtime_version": "v2",
         "version": "3.5.7"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
       },
       "status": "build-failed"
     },
@@ -5482,6 +5527,15 @@
         "recipe_name": "zhparser",
         "runtime_version": "v2",
         "version": "2.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T10:12:44+00:00",
+        "expires_at": "2026-10-25T18:12:44+00:00",
+        "producer": {
+          "commit": "44724d93955002a630c5afaeb29e846c8282355e",
+          "run_attempt": 1,
+          "run_id": "40182763450"
+        }
       },
       "status": "build-failed"
     },
