@@ -1204,6 +1204,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
     New-Item -ItemType Directory -Force -Path $CoreArtifactDir, $ExtensionRoot | Out-Null
 
     $CoreZipName = "php-$Version-nts-Win32-$CrtTag-$ArchZip.zip"
+    $ModuleArch = if ($Arch -eq 'x64') { 'x86_64' } else { 'x86' }
     $CoreZip = Join-Path $CoreArtifactDir $CoreZipName
     $CoreStage = Join-Path $SplitRoot 'core-stage'
     & robocopy $Stage $CoreStage /E /NFL /NDL /NJH /NJS /NP /R:1 /W:1 | Out-Null
@@ -1248,7 +1249,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
         $group = "extension-$ownerName-$Version-$Arch-nts"
         $groupDir = Join-Path $ExtensionRoot $group
         New-Item -ItemType Directory -Force -Path $groupDir | Out-Null
-        $zipName = "php_$ownerName-$ref-$Version-nts-$CrtTag-x86_64.zip"
+        $zipName = "php_$ownerName-$ref-$Version-nts-$CrtTag-$ModuleArch.zip"
         $zipPath = Join-Path $groupDir $zipName
         $packageStage = Join-Path $SplitRoot "package-$ownerName"
         New-Item -ItemType Directory -Force -Path $packageStage | Out-Null

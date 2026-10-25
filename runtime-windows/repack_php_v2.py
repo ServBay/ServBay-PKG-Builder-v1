@@ -464,7 +464,7 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
                     audit["core"]["identity"]["name"] + "/" + audit["host"]["series"] + "/"),
                     "mode": "0644", "content": candidate["content"]}]
                 manifest = module_manifest.create_manifest(
-                    host, module_stage, configs, [name], [], arch="x86_64",
+                    host, module_stage, configs, [name], [], arch=module["identity"]["arch"],
                     minimum_os=minimum_os, base=None, source_name=name,
                     extension_dir=audit["extension_dir"], os_name="windows",
                     windows_compatibility=windows_compatibility,
