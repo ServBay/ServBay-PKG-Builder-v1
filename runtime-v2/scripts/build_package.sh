@@ -1903,7 +1903,7 @@ _build_pgsql_mod_postgis() {
                 --datarootdir="${pg_prefix}/share" \
                 --with-pgconfig="${pg_config}" \
                 --disable-nls \
-                --without-protobuf  # TODO: add protobuf to runtime base to enable mvt/geobuf \
+                --with-protobufdir=${SERVBAY_BIN_PATH} \
                 --without-raster \
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
