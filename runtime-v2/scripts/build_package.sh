@@ -1638,7 +1638,7 @@ _get_mysql_cmake_args() {
             CMAKE_ARGS+=("-DWITH_INNODB_MEMCACHED=ON" "-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
             ;;
         "5.7")
-            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON" "-DCMAKE_CXX_FLAGS=-std=c++98")
+            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON" )
             ;;
         "8.0"|"8.1"|"8.2"|"9.0"|"9.1"|"9.2"|"9.3")
             CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_77_0" "-DWITH_LIBEVENT=bundled" "-DWITH_INNODB_MEMCACHED=ON")
@@ -4455,6 +4455,9 @@ build_mysql() {
             ;;
         "5.7")
             download_source "https://archives.boost.io/release/1.59.0/source/boost_1_59_0.tar.gz" "../boost_1_59_0.tar.gz" && tar zxf ../boost_1_59_0.tar.gz
+            # boost 1.59 MPL integral_wrapper: enum 常量在新 clang 下不是 constexpr。
+            # 把 enum 替换为 static const（boost 1.60 的修法）。
+            sed -i '' 's/enum { value = (E) };/static const int value = (E);/' boost_1_59_0/boost/mpl/aux_/integral_wrapper.hpp 2>/dev/null || true
             _apply_single_patch "${PATCH_DIR}/mysql/5.7/zlib.patch" "p0"
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
@@ -6238,7 +6241,7 @@ setup_package_build_environment() {
         # PHP 是 C 项目，其 configure 不会自动链 C++ 标准库。LDFLAGS 里的 -lc++
         # 出现在对象文件之前，ld64 一次扫描时 ICU 库还没拉入需要 libc++ 的成员；
         # 用 EXTRA_LIBS 让 -lc++ 排在链接行末尾（ICU 库之后）才能解析。
-        export EXTRA_LIBS="${EXTRA_LIBS:-} -lc++"
+        export LIBS="${LIBS:-} -lc++"
         local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
         if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-2])$ ]]; then
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -Wno-implicit-function-declaration"
