@@ -6242,6 +6242,10 @@ setup_package_build_environment() {
         # 出现在对象文件之前，ld64 一次扫描时 ICU 库还没拉入需要 libc++ 的成员；
         # 用 EXTRA_LIBS 让 -lc++ 排在链接行末尾（ICU 库之后）才能解析。
         export LIBS="${LIBS:-} -lc++"
+        # 基座 ICU 以 --disable-renaming 构建（导出裸符号 _u_errorName），但
+        # PHP 编译时如果没定义 U_DISABLE_RENAMING，ICU 头文件的 urename.h 会
+        # 把符号改写为带版本后缀（_u_errorName_76），链接时 723 个符号全灭。
+        export CPPFLAGS="${CPPFLAGS} -DU_DISABLE_RENAMING=1"
         local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
         if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-2])$ ]]; then
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -Wno-implicit-function-declaration"
