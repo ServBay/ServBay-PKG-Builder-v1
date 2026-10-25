@@ -1241,10 +1241,13 @@ core_verify_package() {
     elif [[ "$packageName" == "openjdk" && "$packageVersion" =~ ^([78])\.0\.([0-9]+)$ ]]; then
         versionToMatch="1.${match[1]}.0_${match[2]}"
         log_message "INFO" "⏳ Verifying ${packageName} installation (matching legacy version: ${versionToMatch})..."
-    # PostgreSQL beta releases drop the dot: our config says "19.beta4" but
-    # psql -V reports "19beta4". Strip the dot before the beta suffix.
-    elif [[ "$packageName" == "postgresql" && "$packageVersion" =~ ^(.*?)\.?(beta|rc|alpha) ]]; then
-        versionToMatch="${match[1]}${match[2]}"
+    # PostgreSQL pre-releases drop the dot: our config says "19.beta4" but
+    # psql -V reports "19beta4". Strip the dot before the suffix (simple
+    # string replacement, not regex—the ERE match had two independent bugs).
+    elif [[ "$packageName" == "postgresql" && "$packageVersion" == *".beta"* || "$packageVersion" == *".rc"* || "$packageVersion" == *".alpha"* ]]; then
+        versionToMatch="${packageVersion/.beta/beta}"
+        versionToMatch="${versionToMatch/.rc/rc}"
+        versionToMatch="${versionToMatch/.alpha/alpha}"
         log_message "INFO" "⏳ Verifying ${packageName} installation (matching pre-release version: ${versionToMatch})..."
     else
         log_message "INFO" "⏳ Verifying ${packageName} installation..."
@@ -1635,7 +1638,7 @@ _get_mysql_cmake_args() {
             CMAKE_ARGS+=("-DWITH_INNODB_MEMCACHED=ON" "-DOPENSSL_ROOT_DIR=${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}")
             ;;
         "5.7")
-            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_65_1" "-DWITH_INNODB_MEMCACHED=ON")
+            CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_59_0" "-DWITH_INNODB_MEMCACHED=ON")
             ;;
         "8.0"|"8.1"|"8.2"|"9.0"|"9.1"|"9.2"|"9.3")
             CMAKE_ARGS+=("-DWITH_BOOST=./boost_1_77_0" "-DWITH_LIBEVENT=bundled" "-DWITH_INNODB_MEMCACHED=ON")
@@ -4451,10 +4454,12 @@ build_mysql() {
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
         "5.7")
+            download_source "https://archives.boost.io/release/1.59.0/source/boost_1_59_0.tar.gz" "../boost_1_59_0.tar.gz" && tar zxf ../boost_1_59_0.tar.gz
             # boost 1.59 的 MPL integral_wrapper 在新 clang 下报 "non-type template
-            # argument is not a constant expression"；1.65.1 修复了此问题且在 MySQL
-            # 5.7 cmake 的接受范围内。
-            download_source "https://archives.boost.io/release/1.65.1/source/boost_1_65_1.tar.gz" "../boost_1_65_1.tar.gz" && tar zxf ../boost_1_65_1.tar.gz
+            # argument is not a constant expression"（MySQL 5.7 cmake 硬性要求
+            # 1.59.0 不能升级）。用 sed 修复：给 BOOST_MPL_AUX_STATIC_CAST 加
+            # constexpr 限定。
+            sed -i '' 's/# *define BOOST_MPL_AUX_STATIC_CAST(T, E) (T)(E)/#define BOOST_MPL_AUX_STATIC_CAST(T, E) static_cast<T>(E)/' boost_1_59_0/boost/mpl/aux_/static_cast.hpp 2>/dev/null || true
             _apply_single_patch "${PATCH_DIR}/mysql/5.7/zlib.patch" "p0"
             if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
             ;;
@@ -6234,6 +6239,9 @@ setup_package_build_environment() {
     # PHP 版本特定的 C++ 标志（必须在基础 CXXFLAGS 设置之后）
     # PHP 5.x-7.2 和 7.4、8.0 需要 C++17 来支持 ICU 76+ (std::is_same_v, std::enable_if_t 等)
     if [[ "$packageName" == "php" ]]; then
+        # ICU 静态归档的 C++ 符号（icu_76:: 等）在 intl 扩展链接时需要 libc++；
+        # PHP 是 C 项目，其 configure 不会自动链 C++ 标准库。
+        export LDFLAGS="${LDFLAGS} -lc++"
         local version_major=$(echo "$version" | awk -F. '{print $1"."$2}')
         if [[ "$version_major" =~ ^(5\.[3-6]|7\.[0-2])$ ]]; then
             CFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -Wno-implicit-function-declaration"
