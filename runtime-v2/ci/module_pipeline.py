@@ -39,14 +39,14 @@ def read_catalog(url, arch, packages=False):
                  if packages else {'arch': arch})
     target = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ''))
     last_error = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             with urllib.request.urlopen(urllib.request.Request(target, headers={'Accept': 'application/json'}), timeout=60) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
             last_error = error
-            if attempt < 2:
-                import time; time.sleep(2 ** attempt)
+            if attempt < 4:
+                import time; time.sleep(min(10 * (2 ** attempt), 60))
     raise last_error
 
 
