@@ -941,7 +941,7 @@ static long php_soap_timezone(void)
     $StageDev = Join-Path $Stage 'dev'
     if (Test-Path $StageDev) {
         Get-ChildItem $ReleaseDir -File -Filter '*.lib' |
-            Where-Object { $_.Name -match '^php\d+(embed)?\.lib$' } |
+            Where-Object { $_.Name -match '^php\d+\.lib$' } |
             Copy-Item -Destination $StageDev -Force
     }
 
