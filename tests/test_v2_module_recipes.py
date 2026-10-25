@@ -373,6 +373,46 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
         self.text = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
         self.extract = legacy_tests.BuildScriptTests(methodName="runTest")._extract_shell_function
 
+    def test_postgis_configure_uses_common_protobuf_prefix_and_common_generator(self):
+        source = self.root / "postgis-source"
+        source.mkdir()
+        common = self.root / "base/packages/common"
+        (common / "bin").mkdir(parents=True)
+        generator = common / "bin/protoc-c"
+        generator.write_text("#!/bin/sh\nprintf 'common-protobuf-c\\n'\n")
+        generator.chmod(0o755)
+        prefix = self.root / "base/packages/postgresql/18"
+        (prefix / "bin").mkdir(parents=True)
+        config = prefix / "bin/pg_config"
+        config.write_text("#!/bin/sh\nprintf '%s\\n' " + shlex.quote(str(prefix / "bin")) + "\n")
+        config.chmod(0o755)
+        capture = self.root / "configure.args"
+        configure = source / "configure"
+        configure.write_text('#!/bin/sh\nset -eu\nprintf "%s\\n" "$@" > "$CAPTURE"\n'
+                             'command -v protoc-c > "$CAPTURE.generator"\n'
+                             'protoc-c > "$CAPTURE.result"\n')
+        configure.chmod(0o755)
+        script = ["set -e", "SERVBAY_COMMON_PATH=" + shlex.quote(str(common)),
+                  "SERVBAY_COMMON_INCLUDE_PATH=" + shlex.quote(str(common / "include")),
+                  "SERVBAY_COMMON_LIB_PATH=" + shlex.quote(str(common / "lib")),
+                  "SERVBAY_BIN_PATH=" + shlex.quote(str(self.root / "base/packages/bin")),
+                  "SERVBAY_BUILD_DIR=" + shlex.quote(str(self.root)),
+                  "SERVBAY_BUILD_SRC_DIR=" + shlex.quote(str(self.root / "src")),
+                  "SOURCE=" + shlex.quote(str(source)), "PREFIX=" + shlex.quote(str(prefix)),
+                  "export CAPTURE=" + shlex.quote(str(capture)),
+                  'log_message() { :; }', 'download_source() { :; }',
+                  'unpack_package() { builtin cd "$SOURCE"; }',
+                  '_apply_single_patch() { :; }', 'cleanup_source_directory() { :; }',
+                  'make() { if [[ $1 == install ]]; then touch "$PREFIX/bin/postgis"; fi; }',
+                  '_build_pgsql_mod_postgis() {\n' + self.extract(self.text, "_build_pgsql_mod_postgis") + '\n}',
+                  '_build_pgsql_mod_postgis 3.5.7 18.6 18 "$PREFIX"']
+        result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)],
+                                capture_output=True, text=True, env=dict(os.environ, PATH="/usr/bin:/bin"))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("--with-protobufdir=" + str(common), capture.read_text().splitlines())
+        self.assertEqual(str(generator), Path(str(capture) + ".generator").read_text().strip())
+        self.assertEqual("common-protobuf-c\n", Path(str(capture) + ".result").read_text())
+
     def test_pg_core_keeps_official_contrib_without_building_third_party_or_copying_runtime_libpq(self):
         source = self.root / "source"
         (source / "src/include").mkdir(parents=True)

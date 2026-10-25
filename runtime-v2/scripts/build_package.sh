@@ -1897,13 +1897,14 @@ _build_pgsql_mod_postgis() {
     if [[ "$pg_version_major" -ge 19 ]]; then
         _apply_single_patch "${PATCH_DIR}/pgsql/postgis-pg19-compat.patch" "p1" || return 1
     fi
+    PATH="${SERVBAY_COMMON_PATH}/bin:${PATH}" \
     LDFLAGS="${LDFLAGS} -L${SERVBAY_COMMON_LIB_PATH} -lxml2 -lz -lpthread -liconv -licui18n -licuuc -licudata -lm" \
     ./configure --prefix="${pg_prefix}" \
                 --bindir="${pg_prefix}/bin" \
                 --datarootdir="${pg_prefix}/share" \
                 --with-pgconfig="${pg_config}" \
                 --disable-nls \
-                --with-protobufdir=${SERVBAY_BIN_PATH} \
+                --with-protobufdir="${SERVBAY_COMMON_PATH}" \
                 --without-raster \
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
