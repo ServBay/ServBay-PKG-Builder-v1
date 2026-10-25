@@ -1863,7 +1863,7 @@ _build_pgsql_mod_postgis() {
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
-    make -j${CPU_NUMBER} && make install DESTDIR="${DESTDIR}"
+    make -j1 && make install DESTDIR="${DESTDIR}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS make/install failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
     local extension_bindir="${DESTDIR}$($pg_config --bindir)"
@@ -2746,19 +2746,19 @@ build_dnsmasq() {
 
     for file in "${files_to_modify[@]}"; do
         # Use a temporary file for sed on systems that require it
-        sed -i '' "s|/var/lib/misc/dnsmasq.leases|${SERVBAY_TMP_PATH}/dnsmasq.leases|g" "$file"
-        sed -i '' "s|/etc/dnsmasq.conf|${SERVBAY_ETC_PATH}/dnsmasq/dnsmasq.conf|g" "$file"
-        sed -i '' "s|/var/run/dnsmasq.pid|${SERVBAY_TMP_PATH}/dnsmasq.pid|g" "$file"
-        sed -i '' "s|/etc/dnsmasq.d|${SERVBAY_ETC_PATH}/dnsmasq|g" "$file"
-        sed -i '' "s|/etc/ppp/resolv.conf|${SERVBAY_ETC_PATH}/dnsmasq/ppp/resolv.conf|g" "$file"
-        sed -i '' "s|/etc/dhcpc/resolv.conf|${SERVBAY_ETC_PATH}/dnsmasq/dhcpc/resolv.conf|g" "$file"
-        sed -i '' "s|/usr/sbin/dnsmasq|${prefix}/sbin/dnsmasq|g" "$file"
+        LC_ALL=C sed -i '' "s|/var/lib/misc/dnsmasq.leases|${SERVBAY_TMP_PATH}/dnsmasq.leases|g" "$file"
+        LC_ALL=C sed -i '' "s|/etc/dnsmasq.conf|${SERVBAY_ETC_PATH}/dnsmasq/dnsmasq.conf|g" "$file"
+        LC_ALL=C sed -i '' "s|/var/run/dnsmasq.pid|${SERVBAY_TMP_PATH}/dnsmasq.pid|g" "$file"
+        LC_ALL=C sed -i '' "s|/etc/dnsmasq.d|${SERVBAY_ETC_PATH}/dnsmasq|g" "$file"
+        LC_ALL=C sed -i '' "s|/etc/ppp/resolv.conf|${SERVBAY_ETC_PATH}/dnsmasq/ppp/resolv.conf|g" "$file"
+        LC_ALL=C sed -i '' "s|/etc/dhcpc/resolv.conf|${SERVBAY_ETC_PATH}/dnsmasq/dhcpc/resolv.conf|g" "$file"
+        LC_ALL=C sed -i '' "s|/usr/sbin/dnsmasq|${prefix}/sbin/dnsmasq|g" "$file"
     done
 
     # 3. Patch Makefile to include our custom CFLAGS and LDFLAGS.
     log_message "INFO" "Patching Makefile for compilation..."
-    sed -i '' "s|^CFLAGS.*|CFLAGS        = ${CFLAGS} -D__APPLE_USE_RFC_3542|" Makefile
-    sed -i '' "s|^LDFLAGS.*|LDFLAGS       = ${LDFLAGS}|" Makefile
+    LC_ALL=C sed -i '' "s|^CFLAGS.*|CFLAGS        = ${CFLAGS} -D__APPLE_USE_RFC_3542|" Makefile
+    LC_ALL=C sed -i '' "s|^LDFLAGS.*|LDFLAGS       = ${LDFLAGS}|" Makefile
 
     # 4. Compile and Install
     log_message "INFO" "Compiling and installing Dnsmasq..."
@@ -4627,6 +4627,7 @@ build_mariadb() {
     log_message "INFO" "Configuring MariaDB v${version} with CMake..."
     local cmake_args=(
         "-DCMAKE_INSTALL_PREFIX=${prefix}"
+        "-DCURSES_INCLUDE_PATH=${SERVBAY_COMMON_INCLUDE_PATH}/ncursesw"
         "-DMYSQL_DATADIR=${SERVBAY_DB_PATH}/mariadb/${version_major}"
         "-DMYSQL_UNIX_ADDR=${SERVBAY_TMP_PATH}/mariadb-${version_major}.sock"
         "-DDEFAULT_SYSCONFDIR=${SERVBAY_ETC_PATH}/mariadb/${version_major}"
@@ -6261,6 +6262,9 @@ setup_package_build_environment() {
             CXXFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1 -std=c++17 -stdlib=libc++ -Wno-register"
             CPPFLAGS+=" -fstack-protector-strong -fno-strict-aliasing -DUSING_ICU_NAMESPACE=1 -DU_DEFINE_FALSE_AND_TRUE=1"
             export CFLAGS CXXFLAGS CPPFLAGS
+            # v1 portback: PHP 5.6-7.2 需要 BSD iconv stub 规避（macOS 的 libiconv
+            # 与 PHP 的 --with-iconv-dir 探测不兼容），以及 tidy/ldap 的显式链接。
+            export LIBS="${SERVBAY_COMMON_LIB_PATH}/libiconv.dylib ${SERVBAY_COMMON_LIB_PATH}/libtidy.dylib ${SERVBAY_COMMON_LIB_PATH}/libldap.dylib -lresolv"
             export LIBS="-lgssapi_krb5 -llzma -lzstd"
         elif [[ "$version_major" =~ ^(7\.[34]|8\.0)$ ]]; then
             # Match the confirmed v1 Clang workaround for these source lines.
