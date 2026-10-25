@@ -1,0 +1,69 @@
+Description: PostgreSQL 19 compatibility for postgis 3.5.x
+Origin: upstream, commit b2b07453dcfbe5c99c3e9d841adb8fe8ab44971e
+        https://github.com/postgis/postgis/commit/b2b07453dcfbe5c99c3e9d841adb8fe8ab44971e
+        "Build on latest Pg19 master" (Paul Ramsey, 2026-03-16)
+Bug-Upstream: https://www.postgresql.org/message-id/flat/CALdSSPhFyb9qLSHee73XtZm1CBWJNo9+JzFNf-zUEWCRW5yEiQ@mail.gmail.com
+Forwarded: not-needed (already in postgis main branch; not backported to 3.5.x)
+
+Background: PostgreSQL 19 (commit d4a080b8a190c4ba434a390939c995a50da12cf6,
+"Remove Int8GetDatum function") removed the Int8GetDatum(int8) inline helper
+from src/include/postgres.h.  Rationale from upstream: the function had no
+in-tree callers, its inverse (DatumGetInt8) never existed, and the "int8"
+naming clashed with SQL convention (SQL int8 == bigint == int64, while C
+int8 is 1 byte).  The proper helper for a 1-byte signed value is
+CharGetDatum(char), which exists in every supported PG version.
+
+postgis 3.5.7 still calls Int8GetDatum() in exactly one place
+(postgis/flatgeobuf.c, decode_properties() case flatgeobuf_column_type_byte),
+so an extension built against PG 19 beta2 fails with:
+  flatgeobuf.c:318:28: error: call to undeclared function 'Int8GetDatum';
+      ISO C99 and later do not support implicit function declarations
+      [-Wimplicit-function-declaration]
+
+The same upstream commit also adds an explicit __attribute__((fallthrough))
+annotation to raster/rt_pg/rtpg_mapalgebra.c.  PG 19 tightened
+-Wimplicit-fallthrough handling and the lone "/* fall through */" comment
+between ET_FIRST and ET_SECOND no longer satisfies the warning under PG 19's
+default CFLAGS.  Although ServBay's configure passes --without-raster,
+postgis 3.x still builds the raster extension (documented in build_package),
+so this file is compiled and the annotation is required.
+
+Both edits are universally safe: char/CharGetDatum and __attribute__((...))
+are recognized by every PG version and every compiler ServBay targets, so
+the patch could be applied unconditionally.  It is still gated on
+pg_version_major >= 19 in _build_pgsql_mod_postgis to keep the PG <= 18
+build path byte-identical to the upstream 3.5.7 release tarball.
+
+Verified to apply cleanly against the postgis-3.5.7 release tarball
+(https://download.osgeo.org/postgis/source/postgis-3.5.7.tar.gz).
+
+--- a/postgis/flatgeobuf.c
++++ b/postgis/flatgeobuf.c
+@@ -311,12 +311,12 @@ static void decode_properties(struct flatgeobuf_decode_ctx *ctx, Datum *values,
+ 			break;
+ 		}
+ 		case flatgeobuf_column_type_byte: {
+-			int8_t value;
+-			if (offset + sizeof(int8_t) > size)
++			char value;
++			if (offset + sizeof(char) > size)
+ 				elog(ERROR, "flatgeobuf: decode_properties: Invalid size for byte value");
+-			memcpy(&value, data + offset, sizeof(int8_t));
+-			values[ci] = Int8GetDatum(value);
+-			offset += sizeof(int8_t);
++			memcpy(&value, data + offset, sizeof(char));
++			values[ci] = CharGetDatum(value);
++			offset += sizeof(char);
+ 			break;
+ 		}
+ 		case flatgeobuf_column_type_ubyte: {
+--- a/raster/rt_pg/rtpg_mapalgebra.c
++++ b/raster/rt_pg/rtpg_mapalgebra.c
+@@ -6406,6 +6406,7 @@ Datum RASTER_mapAlgebra2(PG_FUNCTION_ARGS)
+ 		case ET_FIRST:
+ 			i = 0;
+ 			/* fall through */
++			__attribute__((fallthrough));
+ 		case ET_SECOND:
+ 			if (i > 1)
+ 				i = 1;
