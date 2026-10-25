@@ -3752,6 +3752,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "5.7.44"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T05:22:00+00:00",
+        "expires_at": "2026-10-25T13:22:00+00:00",
+        "producer": {
+          "commit": "9738cb41a1f3f88e1230033d38ec242fbb1cce29",
+          "run_attempt": 1,
+          "run_id": "40165261622"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
@@ -7696,6 +7719,29 @@
         "version": "3.15.1"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "5.7.44"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T05:22:00+00:00",
+        "expires_at": "2026-10-25T13:22:00+00:00",
+        "producer": {
+          "commit": "9738cb41a1f3f88e1230033d38ec242fbb1cce29",
+          "run_attempt": 1,
+          "run_id": "40165261622"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
