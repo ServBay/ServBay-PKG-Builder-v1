@@ -150,7 +150,7 @@ postgresql	19.beta2
 # git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-ollama	0.40.11
+# ollama	0.40.11
 # memcached	1.6.45
 # mailpit	1.32.0
 ai-gateway	1.0.0
@@ -173,5 +173,5 @@ disk-cleaner	1.0.0
 # mongodb	8.0.34
 # mongodb	8.2.12
 # mongodb	8.3.13
-mongosh	2.14.0
+# mongosh	2.14.0
 # mongotools	100.19.1
