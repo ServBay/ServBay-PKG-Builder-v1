@@ -3619,7 +3619,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
+        "run_attempt": 1,
+        "run_id": "40163153776"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 2,
@@ -3630,16 +3635,7 @@
         "runtime_version": "v2",
         "version": "5.7.44"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:47:31+00:00",
-        "expires_at": "2026-10-25T12:47:31+00:00",
-        "producer": {
-          "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
-          "run_attempt": 1,
-          "run_id": "40163153776"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
       "artifact_expires_at": "2026-10-31T19:37:44Z",
@@ -7553,7 +7549,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
+        "run_attempt": 1,
+        "run_id": "40163153776"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -7564,16 +7565,7 @@
         "runtime_version": "v2",
         "version": "5.7.44"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:47:31+00:00",
-        "expires_at": "2026-10-25T12:47:31+00:00",
-        "producer": {
-          "commit": "1701b2daf31acbf9a5a28407cbd5eb9247bf8a2f",
-          "run_attempt": 1,
-          "run_id": "40163153776"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.7.4\"}": {
       "artifact_expires_at": "2026-11-01T01:07:51Z",
