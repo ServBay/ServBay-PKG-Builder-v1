@@ -412,10 +412,13 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
             name not in audit["modules"] for name in default_modules):
         raise ValueError("PHP default_modules must be distinct selected module names")
     native = json.loads(Path(native_result).read_text(encoding="utf-8-sig"))
+    # Core-only branches (legacy PHP 5.5) publish no third-party modules; only
+    # a payload that actually carries imagick must prove its PNG round trip.
+    has_imagick = "imagick" in audit["modules"]
     if (not isinstance(native, dict) or set(native) != {"php", "extension_dir", "loaded", "modules", "imagick_png"}
             or native["php"] != audit["core"]["identity"]["version"]
             or native["extension_dir"] != audit["extension_dir"] or native["loaded"] != len(audit["modules"])
-            or type(native["loaded"]) is not int or native["imagick_png"] is not True
+            or type(native["loaded"]) is not int or native["imagick_png"] is not has_imagick
             or not isinstance(native["modules"], list)):
         raise ValueError("Incomplete PHP native evidence")
     loaded = {row.get("name"): row for row in native["modules"] if isinstance(row, dict)}
