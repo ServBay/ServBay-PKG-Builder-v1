@@ -2,112 +2,15 @@
   "status_code": 200,
   "message": "Success",
   "data": {
+    "extensions": [],
     "packages": [
       {
         "name": "php",
-        "versions": [
-          {
-            "arch": "arm64",
-            "os": "macOS",
-            "runtimeVersion": "v2",
-            "latestVersion": "8.4.27",
-            "majorVersion": "8.4",
-            "fileName": "php-8.4.27.tar.gz",
-            "hash": "30b4958aa8f048b85bbc5ca343dc5d02c65b9c9860fea8d70be8a83596c0b449",
-            "packageManifest": {
-              "schema_version": 2,
-              "arch": "arm64",
-              "host": {
-                "type": "php",
-                "series": "8.4",
-                "version": "8.4.27"
-              },
-              "base": {
-                "version": "2.1.1",
-                "runtime_sha256": "133b94e5d26df9e9dcfe10af3371df5e2f9db2218cff440babff61ad4bcff2a1",
-                "devlib_sha256": "5b242558805e5d5035028cc7a3730be3c024ebbda1243cac815332f5f23198e9"
-              },
-              "minimum_os": "12.0"
-            }
-          },
-          {
-            "arch": "x86_64",
-            "os": "macOS",
-            "runtimeVersion": "v2",
-            "latestVersion": "8.4.27",
-            "majorVersion": "8.4",
-            "fileName": "php-8.4.27.tar.gz",
-            "hash": "b1766a65e52697f606b9bfbd48468544ee5c30d7b6de2c0ddc787481d76fd9eb",
-            "packageManifest": {
-              "schema_version": 2,
-              "arch": "x86_64",
-              "host": {
-                "type": "php",
-                "series": "8.4",
-                "version": "8.4.27"
-              },
-              "base": {
-                "version": "2.1.1",
-                "runtime_sha256": "b8e9e6b94cef9f85040e7c07b7159e98f530bcd29b6ddaa5e51e92ce80dfb810",
-                "devlib_sha256": "5dcb122da0289223479af1e3d8f602f48c2a0ac0d308fbf80941bf95392533f3"
-              },
-              "minimum_os": "12.0"
-            }
-          }
-        ]
+        "versions": []
       },
       {
         "name": "postgresql",
-        "versions": [
-          {
-            "arch": "arm64",
-            "os": "macOS",
-            "runtimeVersion": "v2",
-            "latestVersion": "18.6",
-            "majorVersion": "18",
-            "fileName": "postgresql-18.6.tar.gz",
-            "hash": "4451f68cd0cec676c4eaf30a305684503bcd1b507b1560ed19d15c3bfe91be58",
-            "packageManifest": {
-              "schema_version": 2,
-              "arch": "arm64",
-              "host": {
-                "type": "postgresql",
-                "series": "18",
-                "version": "18.6"
-              },
-              "base": {
-                "version": "2.1.2",
-                "runtime_sha256": "cd9eafd4ebe5f3c89e019afd157b664501c92e5c56cca3d6dca9680c61ce25ae",
-                "devlib_sha256": "98695e5ee5d12ce78ebcf48cf9c04a0b70665d5066e2ccce4463a7265c5a4824"
-              },
-              "minimum_os": "12.0"
-            }
-          },
-          {
-            "arch": "x86_64",
-            "os": "macOS",
-            "runtimeVersion": "v2",
-            "latestVersion": "18.6",
-            "majorVersion": "18",
-            "fileName": "postgresql-18.6.tar.gz",
-            "hash": "6d0ee0c687b6eed807f23b10c264caba4209cff33c78614823d3384c68d1c598",
-            "packageManifest": {
-              "schema_version": 2,
-              "arch": "x86_64",
-              "host": {
-                "type": "postgresql",
-                "series": "18",
-                "version": "18.6"
-              },
-              "base": {
-                "version": "2.1.2",
-                "runtime_sha256": "2d3f06bb7ecc1280f63b087be1a9d611bfadc7cb2006ef4dd91269943d0eca50",
-                "devlib_sha256": "a6ceae6e16384e33619cbcea7d7599111956aa95ea986f6adddb09040155bebf"
-              },
-              "minimum_os": "12.0"
-            }
-          }
-        ]
+        "versions": []
       }
     ]
   }
