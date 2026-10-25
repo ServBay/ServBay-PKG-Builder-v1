@@ -91,15 +91,12 @@ def package_layout(name, version, *, os, arch):
     if not isinstance(os, str) or os not in _PLATFORMS:
         raise ValueError(f"Unsupported package OS: {os!r}")
     platform = _PLATFORMS[os]
-    architecture = "x86" if platform == "windows" and arch == "x86" else normalize_arch(arch)
+    architecture = normalize_arch(arch)
+    if platform == "windows" and architecture != "x86_64":
+        raise ValueError("Windows v2 layouts currently support only x86_64")
     if not isinstance(name, str):
         raise ValueError(f"Unsupported package name: {name!r}")
     name = _ALIASES.get(name, name)
-    # PHP 5.3/5.4 exist only as x86 builds; carry them as x86 rather than
-    # relabeling them x64. Every other Windows layout stays x86_64.
-    if platform == "windows" and (architecture != "x86_64"
-                                  and not (architecture == "x86" and name == "php")):
-        raise ValueError("Windows v2 layouts support x86_64, and x86 only for PHP")
     if platform == "windows" and name in _WINDOWS_UNSUPPORTED:
         raise ValueError(f"No verified Windows producer for {name}")
     if name not in _PACKAGES:
