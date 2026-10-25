@@ -3809,6 +3809,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 4,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "5.7.44"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T06:25:31+00:00",
+        "expires_at": "2026-10-25T14:25:31+00:00",
+        "producer": {
+          "commit": "b42f2a94410aa444b05d19b49e3da5e83e87a51f",
+          "run_attempt": 1,
+          "run_id": "40169025116"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
@@ -7768,6 +7791,29 @@
         "version": "8.4.27"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 4,
+        "build_type": "source",
+        "kind": "package",
+        "name": "mysql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "5.7.44"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T06:25:31+00:00",
+        "expires_at": "2026-10-25T14:25:31+00:00",
+        "producer": {
+          "commit": "b42f2a94410aa444b05d19b49e3da5e83e87a51f",
+          "run_attempt": 1,
+          "run_id": "40169025116"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
