@@ -399,6 +399,15 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
+      "reservation": {
+        "claimed_at": "2026-10-25T11:34:05+00:00",
+        "expires_at": "2026-10-25T19:34:05+00:00",
+        "producer": {
+          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+          "run_attempt": 1,
+          "run_id": "40187664387"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20240924,NTS\",\"module_api\":20240924,\"zend_extension_api\":420240924,\"zend_extension_build\":\"API420240924,NTS\",\"zts\":false},\"series\":\"8.4\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
@@ -5304,6 +5313,15 @@
         "recipe_name": "scws",
         "runtime_version": "v2",
         "version": "1.2.4-pre"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T11:34:05+00:00",
+        "expires_at": "2026-10-25T19:34:05+00:00",
+        "producer": {
+          "commit": "e17a2e06fda1fe1c11ba226c0815815407f64802",
+          "run_attempt": 1,
+          "run_id": "40187664387"
+        }
       },
       "status": "build-failed"
     },
