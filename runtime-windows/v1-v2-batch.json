@@ -8,13 +8,6 @@
   },
   {
     "pkg": "adminer",
-    "version": "6.0.2",
-    "source_url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.0.2-windows-x64.7z",
-    "source_sha256": "8bb4163b11ef70e50820c84150606687ebd5b53fc1c165b683a865ed0e546bb0",
-    "minimum_os": "10.0"
-  },
-  {
-    "pkg": "adminer",
     "version": "6.2.0",
     "source_url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.2.0-windows-x64.7z",
     "source_sha256": "302f4c55095607e71bd3f7baef5fc1130ed26b9d6b0baea06231aacd571543b8",
@@ -466,13 +459,6 @@
     "version": "2.14.0",
     "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.14.0-windows-x64.7z",
     "source_sha256": "eb9bd05afd57d40718e5ad644517d7f8cda6c1db9b9f8289e59b33eb76bf0746",
-    "minimum_os": "10.0"
-  },
-  {
-    "pkg": "mongosh",
-    "version": "2.9.2",
-    "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.9.2-windows-x64.7z",
-    "source_sha256": "3d3931f3a584e3065ab33a5a8dbb7d970ba74d1584c7a330f4bcec720ea3ded0",
     "minimum_os": "10.0"
   },
   {
