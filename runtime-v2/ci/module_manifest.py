@@ -19,6 +19,32 @@ _spec = importlib.util.spec_from_file_location(
 _metadata = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_metadata)
 _state = _metadata._state
+_spec = importlib.util.spec_from_file_location(
+    "servbay_windows_archive", Path(__file__).parents[2] / "runtime/ci/windows_archive.py")
+_windows = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_windows)
+
+
+def _platform(manifest, expected_os):
+    if expected_os not in ("macos", "windows") or manifest.get("os", "macos") != expected_os:
+        raise ValueError("Module manifest and outer OS differ")
+    return expected_os
+
+
+def _compatibility(value):
+    if (not isinstance(value, dict) or set(value) != {"distribution", "toolchain", "crt"}
+            or any(not isinstance(item, str) or not item.strip() for item in value.values())):
+        raise ValueError("Windows compatibility needs distribution, toolchain and crt")
+    return value
+
+
+def _windows_extension_dir(host, extension_dir):
+    abi = host["abi"]
+    expected = "lib/php/extensions/" + ("debug" if abi["debug"] else "no-debug")
+    expected += "-" + ("zts" if abi["zts"] else "non-zts") + "-" + str(abi["module_api"])
+    if _windows.validate_path(extension_dir) != expected:
+        raise ValueError("Windows PHP extension_dir differs from the actual host ABI")
+    return extension_dir
 
 
 def _relative(value, label):
@@ -94,7 +120,7 @@ def _references(rows, host):
         seen.add(key)
 
 
-def _config(row):
+def _config(row, os_name="macos"):
     if not isinstance(row, dict) or row.get("scope") != "config" or not isinstance(row.get("content"), str):
         raise ValueError("A module config needs its complete actual template")
     _relative(row.get("install_path"), "config install path")
@@ -104,6 +130,9 @@ def _config(row):
     if (re.search(r"(?m)^\s*(?:zend_)?extension\s*=\s*['\"]?/", row["content"])
             or any(path in row["content"] for path in ("/Users/runner/", "/Users/servbay/", "/private/var/"))):
         raise ValueError("Module config contains a build-machine absolute path")
+    if os_name == "windows" and re.search(
+            r"(?im)^\s*(?:zend_)?extension\s*=\s*['\"]?(?:[a-z]:|\\)", row["content"]):
+        raise ValueError("Windows module config contains an absolute extension path")
 
 
 def _link_destination(name, target):
@@ -113,8 +142,16 @@ def _link_destination(name, target):
 
 
 def create_manifest(host, staging, config_files, provides, dependencies, *, arch, minimum_os,
-                    base, source_name, extension_dir=None):
+                    base, source_name, extension_dir=None, os_name="macos", windows_compatibility=None):
     host = _host(copy.deepcopy(host))
+    if os_name not in ("macos", "windows"):
+        raise ValueError("Unsupported module OS")
+    if os_name == "windows":
+        if base is not None:
+            raise ValueError("Windows modules must not have a base")
+        arch = {"x64": "x86_64"}.get(arch, arch)
+        _compatibility(windows_compatibility)
+        _windows.staging_files(staging)
     staging = Path(staging)
     if staging.is_symlink() or not staging.is_dir():
         raise ValueError("The module needs its own real staging directory")
@@ -129,7 +166,7 @@ def create_manifest(host, staging, config_files, provides, dependencies, *, arch
         if mode & ~0o777:
             raise ValueError("Module payload has unsupported set-id mode")
         row = {"scope": "host", "archive_path": name,
-               "install_path": posixpath.join(extension_dir, name) if host["type"] == "php" else name,
+               "install_path": posixpath.join(extension_dir, name) if host["type"] == "php" and os_name == "macos" else name,
                "mode": f"0{mode:03o}"}
         if path.is_symlink():
             target = os.readlink(path)
@@ -148,24 +185,41 @@ def create_manifest(host, staging, config_files, provides, dependencies, *, arch
     value = {"schema_version": 2, "host": host, "arch": arch, "minimum_os": minimum_os,
              "base": copy.deepcopy(base), "source_name": source_name, "files": files,
              "config_files": configs, "provides": list(provides), "dependencies": copy.deepcopy(dependencies)}
-    _validate_inventory(value)
+    if os_name == "windows":
+        value.pop("base")
+        value.update(os="windows", layout="servbay-v2", layout_version=1,
+                     windows_compatibility=copy.deepcopy(windows_compatibility))
+        if host["type"] == "php":
+            value["extension_dir"] = _windows_extension_dir(host, extension_dir)
+    _validate_inventory(value, expected_os=os_name)
     return value
 
 
-def _validate_inventory(manifest):
+def _validate_inventory(manifest, *, expected_os="macos"):
     if not isinstance(manifest, dict) or manifest.get("schema_version") != 2:
         raise ValueError("A schema 2 module inventory is required")
+    os_name = _platform(manifest, expected_os)
     host = _host(manifest.get("host"))
     if manifest.get("arch") not in ("arm64", "x86_64"):
         raise ValueError("Module architecture is required")
     if not isinstance(manifest.get("minimum_os"), str) or not re.fullmatch(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?", manifest["minimum_os"]):
         raise ValueError("Module minimum OS is required")
-    base = manifest.get("base")
-    if not isinstance(base, dict) or set(base) != {"version", "runtime_sha256", "devlib_sha256"}:
-        raise ValueError("The actual fixed module base identity is required")
-    _state._text(base["version"], "base version")
-    _sha(base["runtime_sha256"])
-    _sha(base["devlib_sha256"])
+    if os_name == "windows":
+        if "base" in manifest or manifest["arch"] != "x86_64":
+            raise ValueError("Windows modules require x86_64 and no base")
+        if (manifest.get("layout") != "servbay-v2" or type(manifest.get("layout_version")) is not int
+                or manifest["layout_version"] != 1):
+            raise ValueError("Windows module layout differs")
+        _compatibility(manifest.get("windows_compatibility"))
+        if host["type"] == "php":
+            _windows_extension_dir(host, manifest.get("extension_dir"))
+    else:
+        base = manifest.get("base")
+        if not isinstance(base, dict) or set(base) != {"version", "runtime_sha256", "devlib_sha256"}:
+            raise ValueError("The actual fixed module base identity is required")
+        _state._text(base["version"], "base version")
+        _sha(base["runtime_sha256"])
+        _sha(base["devlib_sha256"])
     _state._text(manifest.get("source_name"), "module source name")
     _references(manifest.get("dependencies"), host)
     provides = manifest.get("provides")
@@ -188,11 +242,16 @@ def _validate_inventory(manifest):
             raise ValueError("Duplicate module archive file or installed destination")
         names[name] = row
         targets.add(target)
+        if os_name == "windows":
+            _windows.validate_path(name)
+            _windows.validate_path(target[1])
+            if row.get("type") != "file" or row["scope"] != "host" or name != target[1]:
+                raise ValueError("Windows module files must retain their host-relative paths")
         if row.get("type") == "symlink":
             _link_destination(name, row.get("target"))
         elif row.get("type") != "file":
             raise ValueError("Unsupported owned module file type")
-        if host["type"] == "php" and (row["scope"] != "host" or "/" in name or not name.endswith(".so")):
+        if os_name == "macos" and host["type"] == "php" and (row["scope"] != "host" or "/" in name or not name.endswith(".so")):
             raise ValueError("PHP modules keep the actual flat SO archive format")
     for name, row in names.items():
         if row["type"] == "symlink":
@@ -205,11 +264,18 @@ def _validate_inventory(manifest):
                     break
                 target = _link_destination(target, names[target]["target"])
     for row in manifest["config_files"]:
-        _config(row)
+        _config(row, os_name)
         target = "config", row["install_path"]
         if target in targets:
             raise ValueError("Duplicate module config destination")
         targets.add(target)
+    if os_name == "windows":
+        _windows.validate_paths(names)
+        for scope in ("host", "config"):
+            _windows.validate_paths([path for row_scope, path in targets if row_scope == scope])
+        if host["type"] == "php" and not any(
+                posixpath.dirname(name) == manifest["extension_dir"] and name.lower().endswith(".dll") for name in names):
+            raise ValueError("Windows PHP module payload is missing its extension DLL")
     if host["type"] == "postgresql":
         for name in provides:
             if not any(PurePosixPath(path).name == name + ".control" for path in names):
@@ -220,8 +286,13 @@ def _validate_inventory(manifest):
     return names
 
 
-def validate_manifest(manifest, package_tar):
-    owned = _validate_inventory(manifest)
+def validate_manifest(manifest, package_tar, *, expected_os="macos", seven_zip=None):
+    owned = _validate_inventory(manifest, expected_os=expected_os)
+    if expected_os == "windows":
+        actual = _windows.archive_hashes(package_tar, seven_zip)
+        if actual != {name: row["sha256"] for name, row in owned.items()}:
+            raise ValueError("Windows archive file set or hash differs from module inventory")
+        return
     with tarfile.open(package_tar, "r:gz") as archive:
         entries = {}
         for member in archive.getmembers():
@@ -251,10 +322,10 @@ def validate_manifest(manifest, package_tar):
                 raise ValueError("Module archive file hash differs")
 
 
-def write_package(manifest, staging, identity, producer, source, output_dir):
+def write_package(manifest, staging, identity, producer, source, output_dir, *, seven_zip=None):
     manifest = copy.deepcopy(manifest)
-    owned = _validate_inventory(manifest)
     row = _state.clean_record(identity)
+    owned = _validate_inventory(manifest, expected_os=row["os"])
     host = manifest["host"]
     if row["kind"] != host["type"] + "-extension" or row.get("host") != {key: host[key] for key in ("type", "series", "abi")}:
         raise ValueError("Module inventory and requested identity differ")
@@ -262,27 +333,35 @@ def write_package(manifest, staging, identity, producer, source, output_dir):
         raise ValueError("Module inventory and requested architecture differ")
     suffix = "php" if host["type"] == "php" else "pgsql"
     filename = f"ext-{row['name']}-{row['version']}-{suffix}{host['series']}-{row['arch']}.tar.gz"
+    if row["os"] == "windows":
+        filename = f"ext-{row['name']}-{row['version']}-{suffix}{host['series']}-windows-{row['arch']}.7z"
     output_dir, staging = Path(output_dir), Path(staging)
     output_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".module-package-", dir=output_dir) as directory:
         directory = Path(directory)
         package = directory / filename
-        with tarfile.open(package, "w:gz") as archive:
-            for name, entry in owned.items():
-                path = staging / name
-                info = tarfile.TarInfo(name)
-                info.mode = stat.S_IMODE(path.lstat().st_mode)
-                if path.is_symlink():
-                    info.type = tarfile.SYMTYPE
-                    info.linkname = os.readlink(path)
-                    archive.addfile(info)
-                else:
-                    info.size = path.stat().st_size
-                    with path.open("rb") as handle:
-                        archive.addfile(info, handle)
-        manifest["minimum_os"] = _metadata.minimum_os_from_archive(package, manifest["minimum_os"])
-        validate_manifest(manifest, package)
-        metadata = _metadata.metadata_fields(row, producer, manifest["base"], manifest["minimum_os"], source)
+        if row["os"] == "windows":
+            _windows.create_archive(staging, package, owned, seven_zip)
+        else:
+            with tarfile.open(package, "w:gz") as archive:
+                for name, entry in owned.items():
+                    path = staging / name
+                    info = tarfile.TarInfo(name)
+                    info.mode = stat.S_IMODE(path.lstat().st_mode)
+                    if path.is_symlink():
+                        info.type = tarfile.SYMTYPE
+                        info.linkname = os.readlink(path)
+                        archive.addfile(info)
+                    else:
+                        info.size = path.stat().st_size
+                        with path.open("rb") as handle:
+                            archive.addfile(info, handle)
+            manifest["minimum_os"] = _metadata.minimum_os_from_archive(package, manifest["minimum_os"])
+        validate_manifest(manifest, package, expected_os=row["os"], seven_zip=seven_zip)
+        metadata = _metadata.metadata_fields(row, producer, manifest.get("base"), manifest["minimum_os"], source)
+        if row["os"] == "windows":
+            metadata.update(layout="servbay-v2", layout_version=1,
+                            windows_compatibility=copy.deepcopy(manifest["windows_compatibility"]))
         attachment = directory / "module-manifest.json"
         attachment.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         metadata.update(filename=filename, sha256=_metadata.sha256(package),

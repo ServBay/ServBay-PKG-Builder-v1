@@ -28,7 +28,7 @@ def package_metadata(name, version):
     """Keep v2 installation series and public labels in one producer-owned mapping."""
     labels = {"php": "PHP", "postgresql": "PostgreSQL", "mariadb": "MariaDB", "mysql": "MySQL",
               "node": "Node.js", "deno": "Deno", "bun": "Bun", "git": "Git", "dnsmasq": "dnsmasq",
-              "caddy": "Caddy", "nginx": "NGINX", "apache": "Apache", "redis": "Redis",
+              "caddy": "Caddy", "nginx": "NGINX", "apache": "Apache", "redis": "Redis", "openssl": "OpenSSL",
               "memcached": "Memcached", "mailpit": "Mailpit", "mongosh": "Mongo Shell",
               "mongotools": "MongoDB Database Tools", "mongodb": "MongoDB", "ollama": "Ollama",
               "python": "Python", "go": "Go", "openjdk": "OpenJDK", "maven": "Apache Maven",

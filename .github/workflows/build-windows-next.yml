@@ -1,0 +1,47 @@
+name: build-windows-next
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install archive tool
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - name: Download and verify all five pinned sources
+        env:
+          SOURCE_DIR: ${{ runner.temp }}/next-bootstrap-sources
+        run: |
+          python - <<'PYTHON'
+          import hashlib, json, os, pathlib, urllib.request
+          manifest = json.loads(pathlib.Path('runtime-windows/next-bootstrap-packages.json').read_text())
+          directory = pathlib.Path(os.environ['SOURCE_DIR'])
+          directory.mkdir()
+          for package in manifest['packages']:
+              source = package['source']
+              destination = directory / source['filename']
+              with urllib.request.urlopen(source['url'], timeout=120) as response, destination.open('xb') as output:
+                  while chunk := response.read(1024 * 1024):
+                      output.write(chunk)
+              if destination.stat().st_size != source['bytes'] or hashlib.sha256(destination.read_bytes()).hexdigest() != source['sha256']:
+                  raise SystemExit('Pinned source hash/size mismatch: ' + package['name'])
+          PYTHON
+      - name: Repack and verify complete member mapping
+        run: |
+          python runtime-windows/repack_for_next.py             --source-manifest runtime-windows/next-bootstrap-packages.json             --source-dir "${RUNNER_TEMP}/next-bootstrap-sources"             --output-dir "${RUNNER_TEMP}/next-bootstrap-output"             --runtime-version v2
+      - name: Retain offline candidate bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg2-windows-x64-bootstrap
+          path: ${{ runner.temp }}/next-bootstrap-output/
+          include-hidden-files: true
+          if-no-files-found: error

@@ -39,10 +39,31 @@ def controls(directory):
     return result
 
 
-def core_provides(archive, host):
+def core_provides(archive, host, *, os_name="macos", seven_zip=None):
     host = _inventory._host(copy.deepcopy(host))
     if host['type'] != 'postgresql':
         raise ValueError('SQL module requirements need their exact PostgreSQL core')
+    if os_name not in ('macos', 'windows'):
+        raise ValueError('Unsupported core OS')
+    if os_name == 'windows':
+        if _meta.sha256(archive) != host['package_sha256']:
+            raise ValueError('Actual core archive SHA256 differs')
+        hashes = _inventory._windows.archive_hashes(archive, seven_zip)
+        prefix = 'postgresql/' + host['series'] + '/'
+        header = prefix + 'include/server/pg_config.h'
+        names = [name for name in hashes if name.startswith(prefix + 'share/extension/') and name.endswith('.control')]
+        content = _inventory._windows.read_members(archive, [header] + names,
+            expected_sha256=host['package_sha256'], seven_zip=seven_zip)
+        text = re.sub(r'/\*.*?\*/|//[^\n]*', '', content[header].decode('utf-8'), flags=re.S)
+        versions = re.findall(r'(?m)^\s*#\s*define\s+PG_VERSION\s+"([^"\n]+)"\s*$', text)
+        if versions != [host['version']]:
+            raise ValueError('Actual Windows PG_VERSION differs from the exact host')
+        with tempfile.TemporaryDirectory(prefix='.module-core-controls-') as directory:
+            for name in names:
+                path = Path(directory) / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(content[name])
+            return set(controls(directory))
     # Reuse the existing safe archive/version contract, without running a host
     # program on the Ubuntu metadata finalizer or trusting a mutable install tree.
     with tempfile.TemporaryDirectory(prefix='.module-core-controls-') as directory:
@@ -51,10 +72,10 @@ def core_provides(archive, host):
         return set(controls(prefix / 'share/extension'))
 
 
-def classify_requirements(payload, host_archive, host):
+def classify_requirements(payload, host_archive, host, *, os_name="macos", seven_zip=None):
     declared = controls(payload)
     required = {name for names in declared.values() for name in names}
-    owned, core = set(declared), core_provides(host_archive, host)
+    owned, core = set(declared), core_provides(host_archive, host, os_name=os_name, seven_zip=seven_zip)
     return {'requires': declared, 'core': sorted(required & core),
             'owned': sorted((required - core) & owned), 'external': sorted(required - core - owned)}
 
@@ -63,7 +84,7 @@ def candidate_artifact_name(record):
     return 'candidate-module-' + _state.artifact_name(record)[len('pkg2-'):]
 
 
-def write_candidate(manifest, payload, record, producer, source, output_dir, requirements):
+def write_candidate(manifest, payload, record, producer, source, output_dir, requirements, *, seven_zip=None):
     required = record.get('required_modules')
     if not isinstance(required, dict) or not required or not isinstance(requirements, dict):
         raise ValueError('A dependency candidate needs actual requirements and exact profile targets')
@@ -73,7 +94,7 @@ def write_candidate(manifest, payload, record, producer, source, output_dir, req
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.module-candidate-', dir=output_dir.parent) as directory:
         staging = Path(directory) / 'artifact'
-        result = _inventory.write_package(manifest, payload, record, producer, source, staging)
+        result = _inventory.write_package(manifest, payload, record, producer, source, staging, seven_zip=seven_zip)
         candidate = {'schema_version': 1, 'publishable': False, 'record': copy.deepcopy(record),
                      'meta': result['meta'], 'requirements': copy.deepcopy(requirements),
                      'artifact_name': candidate_artifact_name(record)}
@@ -85,7 +106,7 @@ def write_candidate(manifest, payload, record, producer, source, output_dir, req
             'meta': result['meta'], 'artifact_name': candidate['artifact_name']}
 
 
-def _read_local(path, producer):
+def _read_local(path, producer, *, seven_zip=None):
     path = Path(path)
     value = json.loads(path.read_text())
     pending = value.get('publishable') is False
@@ -114,8 +135,9 @@ def _read_local(path, producer):
     if _meta.sha256(package) != meta['sha256'] or _meta.sha256(attachment) != meta['manifest_sha256']:
         raise ValueError('Module tar or manifest SHA256 differs')
     manifest = json.loads(attachment.read_text())
-    _inventory.validate_manifest(manifest, package)
-    if (any(meta.get(key) != manifest.get(key) for key in ('arch', 'minimum_os', 'base'))
+    _inventory.validate_manifest(manifest, package, expected_os=record['os'], seven_zip=seven_zip)
+    if ((record['os'] == 'windows' and 'base' in meta)
+            or any(meta.get(key) != manifest.get(key) for key in ('arch', 'minimum_os', 'base', 'windows_compatibility', 'layout', 'layout_version'))
             or meta['host'] != {key: manifest['host'][key] for key in ('type', 'series', 'abi')}):
         raise ValueError('Module metadata and actual inventory context differ')
     return {'meta': meta, 'manifest': manifest, 'candidate': value if pending else None, 'package': package}
@@ -125,34 +147,46 @@ def _reference(meta):
     return {key: copy.deepcopy(meta[key]) for key in ('kind', 'name', 'version', 'build_revision', 'sha256', 'host')}
 
 
-def _archive_controls(item):
+def _archive_controls(item, *, seven_zip=None):
     import tarfile
     with tempfile.TemporaryDirectory(prefix='.module-control-readback-') as directory:
-        with tarfile.open(item['package'], 'r:gz') as archive:
-            for row in item['manifest']['files']:
-                if row['type'] == 'file' and row['archive_path'].endswith('.control'):
-                    path = Path(directory) / row['archive_path']
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_bytes(archive.extractfile(row['archive_path']).read())
+        if item['meta']['os'] == 'windows':
+            names = [row['archive_path'] for row in item['manifest']['files']
+                     if row['type'] == 'file' and row['archive_path'].endswith('.control')]
+            content = _inventory._windows.read_members(item['package'], names,
+                expected_sha256=item['meta']['sha256'], seven_zip=seven_zip)
+            for name, data in content.items():
+                path = Path(directory) / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+        else:
+            with tarfile.open(item['package'], 'r:gz') as archive:
+                for row in item['manifest']['files']:
+                    if row['type'] == 'file' and row['archive_path'].endswith('.control'):
+                        path = Path(directory) / row['archive_path']
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_bytes(archive.extractfile(row['archive_path']).read())
         declared = controls(directory)
     if set(declared) != set(item['manifest']['provides']):
         raise ValueError('Actual control provides differ from the module inventory')
     return declared
 
 
-def finalize_candidate(candidate_path, module_paths, external_candidates, producer, host_archive, output_dir):
+def finalize_candidate(candidate_path, module_paths, external_candidates, producer, host_archive, output_dir, *, seven_zip=None):
     producer = _state.validate_producer(producer)
-    target = _read_local(candidate_path, producer)
+    target = _read_local(candidate_path, producer, seven_zip=seven_zip)
     if not target['candidate']:
         raise ValueError('Only an explicit nonpublishing module can be finalized')
     target_context = target['meta']
-    core = core_provides(host_archive, target['manifest']['host'])
+    os_name = target_context['os']
+    core = core_provides(host_archive, target['manifest']['host'], os_name=os_name, seven_zip=seven_zip)
     available, pending, active, resolved = {}, [], set(), {}
 
     def add(item, external=False):
         meta, manifest = item['meta'], item['manifest']
         if (meta['host'] != target_context['host'] or meta['arch'] != target_context['arch']
-                or meta['base'] != target_context['base']):
+                or meta['os'] != os_name or meta.get('base') != target_context.get('base')
+                or (os_name == 'windows' and meta['windows_compatibility'] != target_context['windows_compatibility'])):
             raise ValueError('Required module host ABI/architecture/base differs')
         key = _state.identity(meta)
         if key in available:
@@ -163,15 +197,19 @@ def finalize_candidate(candidate_path, module_paths, external_candidates, produc
     add(target)
     for path in module_paths:
         if Path(path).resolve() != Path(candidate_path).resolve():
-            add(_read_local(path, producer))
+            add(_read_local(path, producer, seven_zip=seven_zip))
     for value in external_candidates:
         if value.get('publication_status') != 'requires_uploader_confirmation' or 'published' in value:
             raise ValueError('External compatibility does not prove protected publication')
         reference, manifest = value['reference'], copy.deepcopy(value['module_manifest'])
-        _inventory._validate_inventory(manifest)
+        _inventory._validate_inventory(manifest, expected_os=os_name)
         _inventory._references([reference], manifest['host'])
-        meta = {**reference, 'runtime_version': 'v2', 'os': 'macos', 'arch': manifest['arch'],
-                'base': manifest['base'], 'minimum_os': manifest['minimum_os']}
+        meta = {**reference, 'runtime_version': 'v2', 'os': os_name, 'arch': manifest['arch'],
+                'minimum_os': manifest['minimum_os']}
+        if os_name == 'windows':
+            meta['windows_compatibility'] = copy.deepcopy(manifest['windows_compatibility'])
+        else:
+            meta['base'] = manifest['base']
         add({'meta': meta, 'manifest': manifest, 'candidate': None}, True)
 
     def visit(key):
@@ -185,7 +223,7 @@ def finalize_candidate(candidate_path, module_paths, external_candidates, produc
         active.add(key)
         manifest, meta = copy.deepcopy(item['manifest']), copy.deepcopy(item['meta'])
         references = []
-        declared = None if item['external'] else _archive_controls(item)
+        declared = None if item['external'] else _archive_controls(item, seven_zip=seven_zip)
         required = ({name for names in declared.values() for name in names} - set(manifest['provides']) - core
                     if declared is not None else None)
         if item['candidate']:
@@ -207,7 +245,7 @@ def finalize_candidate(candidate_path, module_paths, external_candidates, produc
         else:
             supplied = set()
             for reference in manifest['dependencies']:
-                identity = {**reference, 'runtime_version': 'v2', 'os': 'macos', 'arch': meta['arch']}
+                identity = {**reference, 'runtime_version': 'v2', 'os': os_name, 'arch': meta['arch']}
                 dependency = visit(_state.identity(identity))
                 if _reference(dependency['meta']) != reference:
                     raise ValueError('Actual dependency content differs from its frozen reference')
@@ -221,12 +259,12 @@ def finalize_candidate(candidate_path, module_paths, external_candidates, produc
                 raise ValueError('Unbound actual independent control requirement: ' + ','.join(sorted(required - supplied)))
         floors = [meta['minimum_os']]
         for reference in references:
-            identity = {**reference, 'runtime_version': 'v2', 'os': 'macos', 'arch': meta['arch']}
+            identity = {**reference, 'runtime_version': 'v2', 'os': os_name, 'arch': meta['arch']}
             floors.append(resolved[_state.identity(identity)]['meta']['minimum_os'])
         floor = max(floors, key=_profiles._os_version)
         manifest['dependencies'], manifest['minimum_os'] = references, floor
         meta['minimum_os'] = floor
-        _inventory._validate_inventory(manifest)
+        _inventory._validate_inventory(manifest, expected_os=os_name)
         if item['external']:
             pending.append(_reference(meta))
         active.remove(key)

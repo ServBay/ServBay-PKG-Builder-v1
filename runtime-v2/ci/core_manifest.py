@@ -21,15 +21,18 @@ _inventory, _profiles, _hosts = _load('module_manifest'), _load('module_profiles
 _meta, _state = _inventory._metadata, _inventory._state
 
 
-def create_candidate(package, record, producer, base, minimum_os, source, host):
+def create_candidate(package, record, producer, base, minimum_os, source, host, *, windows_compatibility=None):
     meta = _meta.create_meta(package, record, producer, base, minimum_os, source)
+    if meta["os"] == "windows":
+        _inventory._compatibility(windows_compatibility)
+        meta["windows_compatibility"] = copy.deepcopy(windows_compatibility)
     host = _inventory._host(copy.deepcopy(host))
     version = _hosts.pg_release_version(meta['version']) if meta['name'] == 'postgresql' else meta['version']
     if host['type'] != meta['name'] or host['version'] != version or host['package_sha256'] != meta['sha256']:
         raise ValueError('The actual core host differs from its candidate archive identity')
     suffix = '-r' + str(meta['build_revision']) if meta['build_revision'] else ''
     return {'schema_version': 1, 'publishable': False, 'record': _state.clean_record(record), 'meta': meta,
-            'host': host, 'artifact_name': 'candidate-core-macos-' + meta['arch'] + '-' + meta['name'] + '-' + meta['version'] + suffix}
+            'host': host, 'artifact_name': 'candidate-core-' + meta['os'] + '-' + meta['arch'] + '-' + meta['name'] + '-' + meta['version'] + suffix}
 
 
 def _reference(meta):
@@ -40,7 +43,7 @@ def _ref_key(row):
     return row['kind'], row['name'], row['version'], row['build_revision']
 
 
-def finalize_core(candidate, package, module_meta_paths, external_candidates, producer, output_dir, config=None):
+def finalize_core(candidate, package, module_meta_paths, external_candidates, producer, output_dir, config=None, *, seven_zip=None):
     if candidate.get('schema_version') != 1 or candidate.get('publishable') is not False:
         raise ValueError('A frozen nonpublishing core candidate is required')
     meta, host = copy.deepcopy(candidate['meta']), _inventory._host(copy.deepcopy(candidate['host']))
@@ -55,14 +58,28 @@ def finalize_core(candidate, package, module_meta_paths, external_candidates, pr
     if meta.get('source', {}).get('version') != source_version:
         raise ValueError('Final core source version differs from its actual supported source mapping')
     _inventory._sha(meta['source']['sha256'])
-    rows = _profiles.module_records(host, meta['arch'], config)
+    os_name = record['os']
+    if os_name == 'windows':
+        if 'base' in meta or meta.get('layout') != 'servbay-v2' or type(meta.get('layout_version')) is not int or meta['layout_version'] != 1:
+            raise ValueError('Windows core requires its explicit layout and no base')
+        _inventory._compatibility(meta.get('windows_compatibility'))
+    else:
+        base = meta.get('base')
+        if not isinstance(base, dict) or set(base) != {'version', 'runtime_sha256', 'devlib_sha256'}:
+            raise ValueError('The actual fixed core base is required')
+        _state._text(base['version'], 'base version')
+        _inventory._sha(base['runtime_sha256'])
+        _inventory._sha(base['devlib_sha256'])
+    _profiles._os_version(meta['minimum_os'])
+    rows = _profiles.module_records(host, meta['arch'], config, os_name=os_name)
     defaults = [row for row in rows if row['default']]
     available, pending = {}, []
     def add(reference, manifest, external=False):
-        _inventory._validate_inventory(manifest)
+        _inventory._validate_inventory(manifest, expected_os=os_name)
         _inventory._references([reference], host)
         context = {key: manifest['host'][key] for key in ('type', 'series', 'abi')}
-        if (context != reference['host'] or manifest['arch'] != meta['arch'] or manifest['base'] != meta['base']):
+        if (context != reference['host'] or manifest['arch'] != meta['arch'] or manifest.get('base') != meta.get('base')
+                or (os_name == 'windows' and manifest['windows_compatibility'] != meta['windows_compatibility'])):
             raise ValueError('Module architecture, base or actual host ABI differs from the core')
         key = _ref_key(reference)
         if key in available:
@@ -82,9 +99,13 @@ def finalize_core(candidate, package, module_meta_paths, external_candidates, pr
         package_path = path.parent / item['filename']
         if _meta.sha256(package_path) != item['sha256']:
             raise ValueError('Local module archive changed')
-        if any(item.get(key) != manifest.get(key) for key in ('arch', 'minimum_os', 'base')):
+        if (item.get('os') != os_name or (os_name == 'windows' and 'base' in item)
+                or any(item.get(key) != manifest.get(key) for key in ('arch', 'minimum_os', 'base', 'windows_compatibility', 'layout', 'layout_version'))
+                or item.get('host') != {key: manifest['host'][key] for key in ('type', 'series', 'abi')}
+                or item.get('source', {}).get('version') != item.get('version')):
             raise ValueError('Local module metadata/context differs from its actual manifest')
-        _inventory.validate_manifest(manifest, package_path)
+        _inventory._sha(item.get('source', {}).get('sha256'))
+        _inventory.validate_manifest(manifest, package_path, expected_os=os_name, seven_zip=seven_zip)
         add(_reference(item), manifest)
     for item in external_candidates:
         if item.get('publication_status') != 'requires_uploader_confirmation' or 'published' in item:
@@ -118,8 +139,12 @@ def finalize_core(candidate, package, module_meta_paths, external_candidates, pr
     core_host = {key: copy.deepcopy(host[key]) for key in ('type', 'series', 'version', 'abi')}
     meta['minimum_os'] = minimum_os
     meta['package_manifest'] = {'schema_version': 2, 'arch': meta['arch'], 'minimum_os': minimum_os,
-                                'base': copy.deepcopy(meta['base']), 'host': core_host,
+                                'host': core_host,
                                 'default_modules': roots, 'dependencies': []}
+    if os_name == 'windows':
+        meta['package_manifest'].update(os=os_name, layout='servbay-v2', layout_version=1, windows_compatibility=copy.deepcopy(meta['windows_compatibility']))
+    else:
+        meta['package_manifest']['base'] = copy.deepcopy(meta['base'])
     output_dir = Path(output_dir)
     if output_dir.exists():
         raise ValueError('Refusing to overwrite an existing final core Artifact')
