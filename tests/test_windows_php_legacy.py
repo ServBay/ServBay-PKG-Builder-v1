@@ -241,12 +241,13 @@ class WindowsPhpEolBranchTests(unittest.TestCase):
         # A PECL archive bundles what the module links against: ImageMagick's
         # CORE_RL_*/IM_MOD_RL_*, libyaml's yaml.dll. Dropping those left
         # php_imagick and php_yaml unable to load ("The specified module could
-        # not be found"). An official build keeps them under ext\ beside the
-        # module that loads them.
-        # Windows resolves an extension's imports against php.exe's
-        # directory, not ext\, so the runtime goes to the package root.
+        # not be found"). Windows resolves an extension's imports against
+        # php.exe's directory, not ext\, so the runtime goes to the package
+        # root. Add-PeclFile records that placement so the v2 split can put the
+        # same files in the module package.
         text = PS1.read_text()
-        self.assertRegex(text, r"Copy-Item \$dll\.FullName -Destination \$Stage -Force")
+        self.assertRegex(text, r"Add-PeclFile -Extension \$name -Source \$dll\.FullName -Relative \$dll\.Name")
+        self.assertIn("Copy-Item -LiteralPath $Source -Destination $destination -Force", text)
 
     def test_pecl_extensions_are_smoke_tested(self):
         text = PS1.read_text()
@@ -555,12 +556,23 @@ class WindowsPhpLegacyWorkflowTests(unittest.TestCase):
         self.assertIn("not where it looks", text)
 
     def test_only_core_import_libraries_go_to_dev(self):
-        # Release\ holds one .lib per extension plus object-layout mirrors;
-        # the official package ships only php<major>.lib. Copying them all
-        # grew the package by ~40 files per branch.
+        # Release\ holds one .lib per extension plus object-layout mirrors and
+        # a php*embed.lib copy of the root import library. The official package
+        # ships only php<major>.lib in dev\, and copying the embed copy made
+        # the v2 core mapping collide with the root file.
         text = PS1.read_text()
         self.assertIn("Get-ChildItem $ReleaseDir -File -Filter '*.lib'", text)
-        self.assertIn("$_.Name -match '^php\d+(embed)?\.lib$'", text)
+        self.assertIn("$_.Name -match '^php\\d+\\.lib$'", text)
+
+    def test_v2_split_assets_are_exported(self):
+        # v2 needs a core runtime ZIP, the upstream devel pack and one runtime
+        # ZIP per staged PECL extension; none of them exist in the merged 7z.
+        text = PS1.read_text()
+        self.assertIn("split-manifest.json", text)
+        self.assertIn('php-build-artifacts-$Arch-nts', text)
+        self.assertIn('extension-$ownerName-$Version-$Arch-nts', text)
+        self.assertIn("would replace a $kind file with different bytes", text)
+        self.assertIn("php-devel-pack-$Version-nts-Win32-$CrtTag-$ArchZip.zip", text)
 
     def test_extension_archives_contribute_their_config(self):
         # imagick ships ImageMagick's policy/delegates XML and memcached a
