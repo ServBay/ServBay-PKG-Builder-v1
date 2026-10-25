@@ -1279,6 +1279,50 @@ core_verify_package() {
     unsetopt pipefail
 }
 
+check_deployment_target() {
+    # v1 portback: 扫描产物目录的 Mach-O 部署目标版本，超出基线的报 WARN/ERROR
+    local check_path="$1"
+    local baseline="$2"
+    local strict_mode="${3:-}"
+    local found_issues=0
+    local files_checked=0
+
+    if [[ -z "$baseline" ]]; then
+        log_message "ERROR" "check_deployment_target: baseline not provided"
+        return 1
+    fi
+
+    local files_to_check=()
+    if [[ -f "$check_path" ]]; then
+        files_to_check+=("$check_path")
+    elif [[ -d "$check_path" ]]; then
+        while IFS= read -r -d '' file; do
+            files_to_check+=("$file")
+        done < <(find "$check_path" \( -type f \( -perm +111 -o -name "*.dylib" -o -name "*.so" \) \) -print0 2>/dev/null)
+    else
+        return 0
+    fi
+
+    for file in "${files_to_check[@]}"; do
+        file "$file" 2>/dev/null | grep -q "Mach-O" || continue
+        files_checked=$((files_checked + 1))
+        local minos
+        minos=$(otool -l "$file" 2>/dev/null | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
+        [[ -z "$minos" ]] && continue
+        if (( ${minos%%.*} > ${baseline%%.*} )); then
+            log_message "WARN" "  Deployment target drift: ${file} minos ${minos} > baseline ${baseline}"
+            found_issues=1
+        fi
+    done
+
+    if [[ $found_issues -eq 1 && "$strict_mode" == "strict" ]]; then
+        log_message "ERROR" "Strict mode: deployment target drift is an error"
+        return 1
+    fi
+    return 0
+}
+
+
 ###
 # @description Core "doer" function for packaging.
 # Creates a .tar.gz archive based on global PACK_* variables.
@@ -1394,6 +1438,7 @@ post_build_process() {
         return 1
     fi
 
+    check_deployment_target "${prefix}" "${BUILD_OS_MIN_VERSION}" ""
     core_pack_package "$packageName" "$packageVersion"
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "--- Post-build process FAILED for ${packageName}-${packageVersion} ---"
@@ -1858,7 +1903,7 @@ _build_pgsql_mod_postgis() {
                 --datarootdir="${pg_prefix}/share" \
                 --with-pgconfig="${pg_config}" \
                 --disable-nls \
-                --without-protobuf \
+                --without-protobuf  # TODO: add protobuf to runtime base to enable mvt/geobuf \
                 --without-raster \
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
@@ -2416,7 +2461,8 @@ build_caddy() {
         --with github.com/mholt/caddy-webdav \
         --with github.com/greenpau/caddy-security \
         --with github.com/mholt/caddy-dynamicdns \
-        --with github.com/caddyserver/nginx-adapter; then
+        --with github.com/caddyserver/nginx-adapter \
+        --with github.com/caddy-dns/namesilo; then
         log_message "ERROR" "xcaddy build failed."
         return 1
     fi
@@ -2703,7 +2749,21 @@ build_httpd() {
     fi
 
     # Return to the original build directory
-    cd "$SERVBAY_BUILD_DIR"
+    
+    # v1 portback: 创建全局命令链接（ab/apxs/htpasswd 等到全局 bin/sbin）
+    if [[ -z "$installDir" ]]; then
+        mkdir -p "${SERVBAY_BIN_PATH}" "${SERVBAY_SBIN_PATH}"
+        local bin_links=(ab apxs htdbm htdigest htpasswd httxt2dbdb logresolve rotatelogs)
+        for link in "${bin_links[@]}"; do
+            [[ -f "${prefix}/bin/${link}" ]] && ln -sf "${prefix}/bin/${link}" "${SERVBAY_BIN_PATH}/${link}"
+        done
+        local sbin_links=(apachectl checkgid envvars envvars-std fcgistarter htcacheclean httpd rotatelogs)
+        for link in "${sbin_links[@]}"; do
+            [[ -f "${prefix}/sbin/${link}" ]] && ln -sf "${prefix}/sbin/${link}" "${SERVBAY_SBIN_PATH}/${link}"
+        done
+    fi
+
+cd "$SERVBAY_BUILD_DIR"
     log_message "INFO" "Apache HTTPD build process completed successfully."
 }
 
