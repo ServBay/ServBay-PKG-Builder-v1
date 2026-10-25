@@ -400,6 +400,31 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
         with patch.object(self.module.windows_archive, "extract_verified_archive", return_value={}):
             self.rejected()
 
+    def test_core_only_branch_finalizes_without_modules(self):
+        # Legacy PHP 5.5 ships no third-party modules; the split contract must
+        # still produce a publishable core package.
+        self.index = copy.deepcopy(self.index)
+        self.index["assets"] = [row for row in self.index["assets"] if row["role"].startswith("core-")]
+        self.index["selected_extensions"] = []
+        self.identities = []
+        prepared = self.run_repack()
+        native = self.base / "core-only-native.json"
+        native.write_text(json.dumps({
+            "php": self.core["version"], "extension_dir": prepared["audit"]["extension_dir"],
+            "loaded": 0, "modules": [], "imagick_png": False,
+        }), encoding="utf-8")
+        output = self.base / "core-only-output"
+        result = self.module.finalize_php_payloads(
+            self.output, self.save(), native, [], "10.0",
+            {"distribution": "windows-x64", "toolchain": "msvc-vs16", "crt": "vc14-runtime"},
+            output, core_source_url="https://windows.php.net/downloads/releases/",
+            module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+            seven_zip=SEVEN_ZIP,
+        )
+        core_meta = json.loads((output / "core/meta.json").read_text())
+        self.assertEqual(core_meta["package_manifest"]["default_modules"], [])
+        self.assertEqual(result["modules"], {})
+
     def test_native_evidence_finalizes_core_and_every_selected_module(self):
         prepared = self.run_repack()
         audit = prepared["audit"]

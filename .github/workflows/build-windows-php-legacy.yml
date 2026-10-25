@@ -227,11 +227,12 @@ jobs:
             $path = Join-Path $coreDir $name
             if (-not (Test-Path $path)) { throw "Missing split core asset: $path" }
           }
-          if ($manifest.extensions.Count -lt 1) { throw 'Split manifest carries no extensions' }
-          foreach ($extension in $manifest.extensions) {
+          if ($null -eq $manifest.extensions) { throw 'Split manifest has no extensions field' }
+          foreach ($extension in @($manifest.extensions)) {
             $path = Join-Path $split "extensions\extension-$($extension.name)-$env:VERSION-$env:ARCH-nts\$($extension.filename)"
             if (-not (Test-Path $path)) { throw "Missing split extension asset: $path" }
           }
+          Write-Host "Split extensions: $(@($manifest.extensions).Count)"
           $manifest | ConvertTo-Json -Depth 6 | Write-Host
 
       - name: Upload v2 core split artifact
@@ -247,7 +248,7 @@ jobs:
         with:
           name: php-extensions-${{ env.ARCH }}-nts
           path: ${{ steps.meta.outputs.pkg_dir }}/split/extensions/extension-*
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload v2 split manifest
