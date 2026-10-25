@@ -3428,7 +3428,12 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "afef73365a41ffab933ad6cf8b7eb2ead838fc49",
+        "run_attempt": 1,
+        "run_id": "40160644980"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -3439,16 +3444,7 @@
         "runtime_version": "v2",
         "version": "5.7.44"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:06:30+00:00",
-        "expires_at": "2026-10-25T12:06:30+00:00",
-        "producer": {
-          "commit": "afef73365a41ffab933ad6cf8b7eb2ead838fc49",
-          "run_attempt": 1,
-          "run_id": "40160644980"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
       "consecutive_failures": 1,
@@ -7256,7 +7252,12 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "afef73365a41ffab933ad6cf8b7eb2ead838fc49",
+        "run_attempt": 1,
+        "run_id": "40160644980"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -7267,16 +7268,7 @@
         "runtime_version": "v2",
         "version": "5.7.44"
       },
-      "reservation": {
-        "claimed_at": "2026-10-25T04:06:30+00:00",
-        "expires_at": "2026-10-25T12:06:30+00:00",
-        "producer": {
-          "commit": "afef73365a41ffab933ad6cf8b7eb2ead838fc49",
-          "run_attempt": 1,
-          "run_id": "40160644980"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.13\"}": {
       "consecutive_failures": 1,
