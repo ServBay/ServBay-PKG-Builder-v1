@@ -407,6 +407,40 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
         self.assertEqual(self.module.php_source.source_version("7.4.33.1"), "7.4.33")
         self.assertEqual(self.module.php_source.source_version("8.2.35"), "8.2.35")
 
+    def test_imagick_without_coders_cannot_claim_a_png_round_trip(self):
+        # Legacy 5.6/7.0 pin imagick 3.4.3, which ships no IM_MOD_RL_* coders.
+        payload = {name: data for name, data in self.payloads["imagick"].items()
+                   if not Path(name).name.upper().startswith("IM_MOD_RL_")}
+        old = next(row for row in self.index["assets"] if row.get("extension") == "imagick")
+        self.index["assets"].remove(old)
+        self.add_asset("extension-runtime", "imagick", old["original_filename"], payload)
+        self.payloads["imagick"] = payload
+        prepared = self.run_repack()
+        audit = prepared["audit"]
+        modules = []
+        for name, module in sorted(audit["modules"].items()):
+            dlls = [row["target_path"] for row in module["files"]
+                    if row["target_path"].startswith(audit["extension_dir"] + "/")
+                    and row["target_path"].casefold().endswith(".dll")]
+            modules.append({"name": name, "dll": Path(dlls[0]).name, "exit_code": 0, "loaded": True})
+        compat = {"distribution": "windows-x64", "toolchain": "msvc-vs16", "crt": "vc14-runtime"}
+        def finalize(png, label):
+            native = self.base / (label + "-native.json")
+            native.write_text(json.dumps({
+                "php": self.core["version"], "extension_dir": audit["extension_dir"],
+                "loaded": len(modules), "modules": modules, "imagick_png": png,
+            }), encoding="utf-8")
+            return self.module.finalize_php_payloads(
+                self.output, self.save(), native, list(VERSIONS), "10.0", compat,
+                self.base / (label + "-output"),
+                core_source_url="https://windows.php.net/downloads/releases/",
+                module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+                seven_zip=SEVEN_ZIP,
+            )
+        finalize(False, "no-coders")
+        with self.assertRaises(ValueError):
+            finalize(True, "false-claim")
+
     def test_core_only_branch_finalizes_without_modules(self):
         # Legacy PHP 5.5 ships no third-party modules; the split contract must
         # still produce a publishable core package.
