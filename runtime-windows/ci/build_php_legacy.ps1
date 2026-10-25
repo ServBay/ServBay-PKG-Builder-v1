@@ -974,6 +974,7 @@ static long php_soap_timezone(void)
     # replacing one with different bytes would break either package.
     $PeclOwned = @{}
     $PeclRefs = @{}
+    $PeclUrls = @{}
     $PeclSharedWithCore = @{}
     $PeclCoOwned = @{}
     $CoreOwnedBeforePecl = @{}
@@ -1026,6 +1027,7 @@ static long php_soap_timezone(void)
             $ref = Split-Path (Split-Path $url -Parent) -Leaf
             if (-not $ref -or $ref -notmatch '^[A-Za-z0-9]') { $ref = $name }
             $PeclRefs[$name] = $ref
+            $PeclUrls[$name] = $url
             $unpack = Join-Path $ExtCache "$name-unpacked"
             if (Test-Path $unpack) { Remove-Item -Recurse -Force $unpack }
             Expand-Archive -Path $zip -DestinationPath $unpack -Force
@@ -1271,6 +1273,7 @@ echo $back->getImageWidth() . 'x' . $back->getImageHeight();
         $ExtensionRecords += [pscustomobject]@{
             name = $ownerName
             ref = $ref
+            url = $PeclUrls[$ownerName]
             filename = $zipName
             sha256 = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
             bytes = (Get-Item -LiteralPath $zipPath).Length

@@ -250,6 +250,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Upload v2 split manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-split-manifest-${{ env.ARCH }}-nts
+          path: ${{ steps.meta.outputs.pkg_dir }}/split/split-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
