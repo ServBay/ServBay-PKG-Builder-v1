@@ -50,8 +50,42 @@ PHP Warning: 'C:\WINDOWS\SYSTEM32\VCRUNTIME140.dll' 14.44 is not compatible with
 
 安装 Microsoft `VC_redist.x64.exe`（VS2026 通道，`14.51.36247`）后正常启动并完成全部验证。**这是 8.6 包在客户端上的前置条件**：只安装 2015-2022 运行时的机器无法运行该 core。8.2-8.5 不受影响（vs16/vs17 构建）。
 
+## Legacy 分支（5.5–8.1）
+
+EOL 分支由 Builder 的 `build-windows-php-legacy.yml` / `runtime-windows/ci/build_php_legacy.ps1` 从源码编译。2026-10-25 起该 workflow 在保留原 merged 7z 的同时，额外输出 v2 所需的 core runtime ZIP、devel pack 和逐扩展 runtime ZIP，并以独立 artifact 上传。拆分依据是构建阶段记录的 PECL 文件归属；PECL 文件如果与 core 文件同名但字节不同，构建直接失败，不会用覆盖顺序决定结果。
+
+所有构建均为 `run_attempt=1`，producer 为 `ServBay/ServBay-PKG-Builder-v1`。除 5.5 外均使用 commit `cebe6fad829ee9c32c2cffaea5d79779a8e09ae0`；5.5 使用 `4cd3d36db2042d087c8543f4008aebf3ba564a89`（允许无扩展的 core-only 分支）。
+
+| PHP | Actions run | 工具链 | ABI module/zend | core 7z SHA256 | 模块数 | 正式包数 | 正式加载 | PNG | Uploader |
+|---|---:|---|---|---|---:|---:|---|---|---|
+| 5.5.38.1 | 40186255646 | msvc-VC11 | 20121113 / 220121212 | `8f3ead4a89fba0f79b3aa668635f03bd5dd5da365082d53edd41233d4492ecad` | 0 | 1 | — | — | true |
+| 5.6.40.1 | 40185343226 | msvc-VC11 | 20131106 / 220131226 | `fa25353b5fea6b1259c5a0585ec5089df04656c7128bd9d99b7bfbab8657c052` | 10 | 11 | 10/10 | 无 coder | true |
+| 7.0.33.1 | 40185370775 | msvc-VC14 | 20151012 / 320151012 | `4279ab30bacb349490bd0787c9d9219ec505849a752d6d4942d938983adf7c7a` | 12 | 13 | 12/12 | 无 coder | true |
+| 7.1.33.1 | 40185365668 | msvc-VC14 | 20160303 / 320160303 | `be8829355e80f208672e19a09bf6e584e7377238c5b1ffc36f078624bcee91a7` | 12 | 13 | 12/12 | OK | true |
+| 7.2.34.1 | 40185360220 | msvc-VC15 | 20170718 / 320170718 | `c78bfb03c1c345706b14c4e5ef902ebe285e2102e2f5753f51aba5e3d2f438d1` | 15 | 16 | 15/15 | OK | true |
+| 7.3.33.1 | 40185353934 | msvc-VC15 | 20180731 / 320180731 | `b2a23bd8f2026ab8915166597da1847ed62e0ae802055eb243ee071c45b964f0` | 15 | 16 | 15/15 | OK | true |
+| 7.4.33.1 | 40185332609 | msvc-vc15 | 20190902 / 320190902 | `daa5fab61b395f71daf2f91a4d46ddc63d6f45731a7aa24692552e16bd9441bf` | 15 | 16 | 15/15 | OK | true |
+| 8.0.30.1 | 40185348582 | msvc-vs16 | 20200930 / 420200930 | `31844a9bc4a519ba741a6e46cd61e3111f3e4b9ee7f3bdbb0a9a392e5a9d4d1a` | 15 | 16 | 15/15 | OK | true |
+| 8.1.34.1 | 40185337982 | msvc-vs16 | 20210902 / 420210902 | `0dcc218c60e5d00d7fbe4303dde54d3e8f9e9eabf086dd0f3ea3a1d0d27efb39` | 13 | 14 | 13/13 | OK | true |
+
+说明：
+
+- 每个版本的第三方扩展集合由该分支的 `php-exts.json` 过滤结果决定，不跨版本推断。5.5 从未发布 PECL 扩展，因此是 core-only 包（1 个正式包，Uploader 只排 core）。
+- devel pack 使用上游对应 base 版本的官方包（例如 7.4.33.1 使用 7.4.33 的 devel pack），重命名后绑定到本地安全版本；安全补丁不改变用于编译扩展的头文件。`split-manifest.json` 同时记录上游文件名和实际 SHA。
+- imagick 在 5.6 与 7.0 被钉在 3.4.3，该版本不带 `IM_MOD_RL_*` coder，PNG 转换依赖外部 ImageMagick。原生证据把 `imagick_png` 记为 false，finalize 只有在该模块确实没有 coder 时才接受；不能让缺 coder 的包伪装成通过。
+- 5.6/5.5 的 CRT 为 vc11-runtime，构建会把 `msvcr110.dll`/`msvcp110.dll` 一并打包；7.x/8.x 的 vc14-runtime 依赖系统 VC++ 2015-2022 运行时（ServBay 既有前置条件）。
+
+### 无法构建的两个分支
+
+`5.3.29`（run `40185387711`）和 `5.4.45`（run `40185382316`）在本轮 CI 中失败，证据如下：
+
+- 上游 `windows.php.net` 从未提供 5.3/5.4 的 x64 官方包（本次 HEAD 返回 404），而 legacy 脚本以官方 archive 为基底。
+- 即使忽略基底，VC9 回退工具链（MSVC 14.29）在链接 `php5.dll` 时产生 1601 个未解析符号（`UTF8ToHtml`、`__xmlDefaultSAXHandler`、`zError`、`zlibVersion` 等），说明 vc9 x64 依赖库与当前工具链不可用。
+
+因此 5.3/5.4 的 v2 打包仍保持未支持；v1 包继续由既有流程提供。没有用当前无法验证的二进制冒充新构建。
+
 ## 未覆盖与边界
 
-- **PHP 5.3-8.1（11 个 v1 版本）未做 v2 打包。** 这些版本由 Builder 的 `build-windows-php-legacy.yml` / `runtime-windows/ci/build_php_legacy.ps1` 自行编译，workflow 只上传 merged `php-<version>-windows-<arch>.7z` 与 `meta.json`，没有 core/逐模块 artifact。v2 要求 core 与第三方扩展独立打包，因此当前 producer 输出无法作为 v2 输入；不能从 merged 包按 `php_*.dll` 猜分第三方扩展。要覆盖这些版本，legacy workflow 必须像 PHP-Windows-Portable 一样输出 core runtime 与逐扩展产物（构建脚本已维护 `$PeclExts` 名单，具备拆分信息）。
-- v1 API 中 `php` 共 16 个版本；本次覆盖其中 8.2-8.6 共 5 个版本，均由 split producer 产出。其余 11 个版本的缺口即上一条。
+- v1 API 中 `php` 共 16 个版本：8.2–8.6 由 PHP-Windows-Portable split producer 覆盖，5.5–8.1 由 legacy producer 覆盖；5.3/5.4 因上游 x64 基底缺失与 VC9 链接失败保持未支持。
 - 以上验证是打包与 DLL 加载验证，不等同于客户端安装、Web 站点请求、php.ini 生效或卸载验收；这部分仍属于阶段 4 的客户端原生验收。
+- legacy split artifact 目前只保存在 Actions artifact（30 天），尚未写入 Release 永久资产；生产发布前必须把 core/扩展资产与 SHA 落到 Release。

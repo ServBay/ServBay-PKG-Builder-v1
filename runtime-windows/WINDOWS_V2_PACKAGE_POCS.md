@@ -55,7 +55,7 @@ Windows VM 对 153/153 个普通包版本逐一执行了：API/catalog SHA 校�
 ## 覆盖边界与配套结果
 
 - PHP：8.2.35、8.3.36、8.4.27、8.5.12、8.6.0beta3 五个 series 已完成真实 split 打包、正式 meta、逐模块加载和 Uploader 消费；每个 series 的 core SHA、ABI、工具链、模块集合与结果见 [`WINDOWS_V2_PHP_MODULES.md`](WINDOWS_V2_PHP_MODULES.md)。
-- PHP 5.3–8.1 共 11 个 v1 版本未做 v2 打包：legacy producer 只输出 merged 7z，没有 core/逐模块 artifact，无法满足 v2 的独立扩展契约。该缺口需要先修改 legacy workflow 的输出，不是在 repacker 侧放宽即可解决。
+- Legacy PHP：5.5、5.6、7.0、7.1、7.2、7.3、7.4、8.0、8.1 九个版本已由 legacy workflow 输出 core/逐扩展 split 资产并完成 v2 打包、逐模块加载与 Uploader 计划（5.5 为 core-only）。5.3/5.4 因上游没有 x64 官方 archive 且 VC9 回退工具链链接失败，仍不支持。详见 [`WINDOWS_V2_PHP_MODULES.md`](WINDOWS_V2_PHP_MODULES.md)。
 - PostgreSQL：core 18.6 与 pgvector 的正式候选、原生证据与 Uploader 顺序见 [`WINDOWS_V2_POSTGRESQL_PGVECTOR.md`](WINDOWS_V2_POSTGRESQL_PGVECTOR.md)。
 - Next 引导包：`next-bootstrap-packages.json` 固定五包的 v1 输入已重新下载核对，SHA256 与字节数 5/5 完全一致；`adminer.php → index.php` 的转换由 `repack_for_next.py` 的既有规则和测试覆盖。该路径是固定 bootstrap 契约，不由本次 v2 普通包/PHP producer 生成。
 
