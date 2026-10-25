@@ -142,11 +142,14 @@ def build_module(record, host_archive, host_sha256, host_version, base_root, wor
             if any(dict(loaded).get(name) != version for name, version in bundled.items()):
                 raise ValueError("The actual bundled PHP module version differs from its explicit source")
             actual_version = next((version for name, version in loaded if name.lower() == record["name"].lower()), None)
-            # Pre-release suffixes like "-pre" are dropped by the module's own
-            # version reporting (scws 1.2.4-pre reports "1.2.4").
-            expected_version = record["version"].removesuffix("-pre")
+            # Some PHP modules report their own binding version instead of the
+            # library release version: scws's phpext reports "0.2.4" while the
+            # library is "1.2.4-pre". An explicit mapping bridges the two.
+            MODULE_VERSION_OVERRIDES = {"scws": "0.2.4"}
+            expected_version = MODULE_VERSION_OVERRIDES.get(record["name"], record["version"])
+            expected_version = expected_version.removesuffix("-pre")
             if actual_version != expected_version and actual_version != record["version"]:
-                raise ValueError("The actual PHP module version differs from its source/release identity")
+                raise ValueError(f"The actual PHP module version {actual_version!r} differs from its expected {expected_version!r}")
         else:
             payload, provides = collect_postgresql(stage, Path(probe["install_prefix"]), Path(directory) / "payload")
             configs = []
