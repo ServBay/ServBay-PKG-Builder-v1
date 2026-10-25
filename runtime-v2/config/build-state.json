@@ -3589,6 +3589,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 10,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T06:25:35+00:00",
+        "expires_at": "2026-10-25T14:25:35+00:00",
+        "producer": {
+          "commit": "b42f2a94410aa444b05d19b49e3da5e83e87a51f",
+          "run_attempt": 1,
+          "run_id": "40169019827"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "artifact_expires_at": "2026-10-31T16:40:09Z",
       "artifact_id": "12567076607",
@@ -7560,6 +7583,29 @@
         "version": "3.15.1"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 10,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "19.beta4"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T06:25:35+00:00",
+        "expires_at": "2026-10-25T14:25:35+00:00",
+        "producer": {
+          "commit": "b42f2a94410aa444b05d19b49e3da5e83e87a51f",
+          "run_attempt": 1,
+          "run_id": "40169019827"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "artifact_expires_at": "2026-10-31T16:41:17Z",
