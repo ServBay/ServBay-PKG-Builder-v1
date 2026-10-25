@@ -1,0 +1,117 @@
+{
+  "runtime_version": "v2",
+  "os": "windows",
+  "arch": "x64",
+  "layout": "windows-next-bootstrap",
+  "layout_version": 1,
+  "packages": [
+    {
+      "name": "nginx",
+      "major": "1",
+      "version": "1.31.7",
+      "display_name": "NGINX",
+      "can_uninstall": true,
+      "archive_root": "nginx/",
+      "required_entries": [
+        "nginx/nginx.exe"
+      ],
+      "source": {
+        "url": "https://dl.servbay.com/windows-packages/x64/nginx/nginx-1.31.7-windows-x64.7z",
+        "sha256": "cdc20ff877506875eb5f979b625245da8aadda6022e1d1b0c43e9fb70e6aea81",
+        "bytes": 1935301,
+        "filename": "nginx-1.31.7-windows-x64.7z",
+        "runtime_version": "v1",
+        "catalog_sha256": "b3691dc94e0b4a043b59da4750c251abed770de9e0293cff520c88bd417716a6",
+        "original_build_revision": null,
+        "original_build_run": null
+      }
+    },
+    {
+      "name": "php",
+      "major": "8.3",
+      "version": "8.3.35",
+      "display_name": "PHP 8.3",
+      "can_uninstall": true,
+      "archive_root": "php/8.3/",
+      "required_entries": [
+        "php/8.3/php.exe",
+        "php/8.3/php-cgi.exe",
+        "php/8.3/php-win.exe"
+      ],
+      "source": {
+        "url": "https://dl.servbay.com/windows-packages/x64/php/php-8.3.35-windows-x64.7z",
+        "sha256": "fceea59123beb9bb97a018ea16aa6c1d107a755b7a218b8c82c67cc346638ced",
+        "bytes": 33592812,
+        "filename": "php-8.3.35-windows-x64.7z",
+        "runtime_version": "v1",
+        "catalog_sha256": "b3691dc94e0b4a043b59da4750c251abed770de9e0293cff520c88bd417716a6",
+        "original_build_revision": null,
+        "original_build_run": null
+      }
+    },
+    {
+      "name": "redis",
+      "major": "7",
+      "version": "7.4.11",
+      "display_name": "Redis",
+      "can_uninstall": false,
+      "archive_root": "redis/",
+      "required_entries": [
+        "redis/redis-server.exe",
+        "redis/redis-cli.exe"
+      ],
+      "source": {
+        "url": "https://dl.servbay.com/windows-packages/x64/redis/redis-7.4.11-windows-x64.7z",
+        "sha256": "2c9b1a59283c3974980e24d79248378213b23e2c6658d5e27d01b7610ef3b793",
+        "bytes": 4725521,
+        "filename": "redis-7.4.11-windows-x64.7z",
+        "runtime_version": "v1",
+        "catalog_sha256": "b3691dc94e0b4a043b59da4750c251abed770de9e0293cff520c88bd417716a6",
+        "original_build_revision": null,
+        "original_build_run": null
+      }
+    },
+    {
+      "name": "phpmyadmin",
+      "major": "5",
+      "version": "5.2.3",
+      "display_name": "phpMyAdmin",
+      "can_uninstall": true,
+      "archive_root": "phpmyadmin/",
+      "required_entries": [
+        "phpmyadmin/index.php"
+      ],
+      "source": {
+        "url": "https://dl.servbay.com/windows-packages/x64/phpmyadmin/phpmyadmin-5.2.3-windows-x64.7z",
+        "sha256": "45f53a0ddea870b9d41675686a37907575866120e346afa09ece539518278928",
+        "bytes": 7708703,
+        "filename": "phpmyadmin-5.2.3-windows-x64.7z",
+        "runtime_version": "v1",
+        "catalog_sha256": "b3691dc94e0b4a043b59da4750c251abed770de9e0293cff520c88bd417716a6",
+        "original_build_revision": null,
+        "original_build_run": null
+      }
+    },
+    {
+      "name": "adminer",
+      "major": "0",
+      "version": "6.1.2",
+      "display_name": "Adminer",
+      "can_uninstall": false,
+      "archive_root": "adminer/",
+      "required_entries": [
+        "adminer/index.php"
+      ],
+      "source": {
+        "url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.1.2-windows-x64.7z",
+        "sha256": "74f2fc8b042a56ef29c1758969c3eb5c500246fe83e3447150a3c7d3a8aeed30",
+        "bytes": 110756,
+        "filename": "adminer-6.1.2-windows-x64.7z",
+        "runtime_version": "v1",
+        "catalog_sha256": "b3691dc94e0b4a043b59da4750c251abed770de9e0293cff520c88bd417716a6",
+        "original_build_revision": null,
+        "original_build_run": null
+      }
+    }
+  ]
+}

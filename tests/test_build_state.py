@@ -1,8 +1,11 @@
+import base64
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,6 +115,72 @@ class BuildStateTests(unittest.TestCase):
         self.assertEqual([self.record], result["include"])
         self.assertEqual("current-sha", saved[0][0])
         self.assertEqual("discovered", saved[0][1]["units"][self.module.identity(self.record)]["status"])
+
+
+class GithubStateStoreTests(unittest.TestCase):
+    def setUp(self):
+        path = ROOT / "runtime/ci/build_state.py"
+        self.assertTrue(path.is_file(), "The persistent build-state implementation is missing")
+        spec = importlib.util.spec_from_file_location("build_state", path)
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        ledger = json.dumps({"schema_version": 1, "units": {}})
+        self.contents = {"sha": "ledger-sha",
+                         "content": base64.b64encode(ledger.encode()).decode()}
+        self.endpoint = ("repos/ServBay/ServBay-PKG-Builder-v1/contents/"
+                         "runtime-v2/config/build-state.json")
+
+    def _store_interactions(self, store_arguments, environment):
+        calls = []
+
+        def fake_run(command, **kwargs):
+            calls.append((command, kwargs))
+            if "--method" not in command:
+                return mock.Mock(returncode=0, stdout=json.dumps(self.contents), stderr="")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+
+        with mock.patch.object(self.module.subprocess, "run", fake_run), \
+                mock.patch.dict(os.environ, environment, clear=True):
+            read_state, write_state = self.module.github_state_store(
+                "ServBay/ServBay-PKG-Builder-v1", "runtime-v2/config/build-state.json",
+                **store_arguments)
+            sha, state = read_state()
+            self.assertEqual("ledger-sha", sha)
+            write_state(sha, state)
+        return calls
+
+    def test_store_targets_the_triggered_branch_from_the_environment(self):
+        calls = self._store_interactions({}, {"GITHUB_REF_NAME": "feature/first-run"})
+        self.assertEqual("gh api " + self.endpoint + "?ref=feature/first-run",
+                         " ".join(calls[0][0][:2]) + " " + calls[0][0][2])
+        payload = json.loads(calls[1][1]["input"])
+        self.assertEqual("feature/first-run", payload["branch"])
+
+    def test_store_explicit_ref_overrides_the_triggered_branch(self):
+        calls = self._store_interactions({"ref": "release/r2"}, {"GITHUB_REF_NAME": "feature/first-run"})
+        self.assertEqual(self.endpoint + "?ref=release/r2", calls[0][0][-1])
+        payload = json.loads(calls[1][1]["input"])
+        self.assertEqual("release/r2", payload["branch"])
+
+    def test_store_falls_back_to_main_outside_actions(self):
+        calls = self._store_interactions({}, {})
+        self.assertEqual(self.endpoint + "?ref=main", calls[0][0][-1])
+        payload = json.loads(calls[1][1]["input"])
+        self.assertEqual("main", payload["branch"])
+
+    def test_store_raises_state_conflict_on_concurrent_write(self):
+        def fake_run(command, **kwargs):
+            if "--method" not in command:
+                return mock.Mock(returncode=0, stdout=json.dumps(self.contents), stderr="")
+            return mock.Mock(returncode=1, stdout="", stderr="gh: HTTP 409: conflict")
+
+        with mock.patch.object(self.module.subprocess, "run", fake_run), \
+                mock.patch.dict(os.environ, {}, clear=True):
+            read_state, write_state = self.module.github_state_store(
+                "ServBay/ServBay-PKG-Builder-v1", "runtime-v2/config/build-state.json")
+            sha, _ = read_state()
+            with self.assertRaises(self.module.StateConflict):
+                write_state(sha, {"schema_version": 1, "units": {}})
 
 
 if __name__ == "__main__":

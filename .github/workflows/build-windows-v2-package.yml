@@ -1,0 +1,103 @@
+name: build-windows-v2-package
+
+on:
+  workflow_dispatch:
+    inputs:
+      pkg:
+        description: Supported Windows v2 package name
+        required: true
+        type: string
+        default: adminer
+      version:
+        description: Exact v1 source package version
+        required: true
+        type: string
+        default: 6.2.0
+      source_url:
+        description: Public HTTPS Windows v1 7z URL
+        required: true
+        type: string
+        default: https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.2.0-windows-x64.7z
+      source_sha256:
+        description: Reviewed source 7z SHA256
+        required: true
+        type: string
+        default: 302f4c55095607e71bd3f7baef5fc1130ed26b9d6b0baea06231aacd571543b8
+      minimum_os:
+        description: Explicit Windows v2 minimum OS
+        required: true
+        type: string
+        default: "10.0"
+
+permissions:
+  contents: read
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install archive tools
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full jq
+      - name: Download and verify public v1 input
+        env:
+          SOURCE_URL: ${{ inputs.source_url }}
+          SOURCE_SHA256: ${{ inputs.source_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir input
+          source_filename="$(basename "${SOURCE_URL}")"
+          [[ "${source_filename}" != "-" && "${source_filename}" != */* ]] || { echo "::error::Invalid source basename"; exit 1; }
+          curl --fail --location --retry 3 --output "input/${source_filename}" "${SOURCE_URL}"
+          actual="$(sha256sum "input/${source_filename}" | awk '{print $1}')"
+          [[ "${actual}" == "${SOURCE_SHA256}" ]] || { echo "::error::Source SHA256 mismatch"; exit 1; }
+      - name: Repack Windows v2 payload
+        env:
+          PKG: ${{ inputs.pkg }}
+          VERSION: ${{ inputs.version }}
+          SOURCE_URL: ${{ inputs.source_url }}
+          SOURCE_SHA256: ${{ inputs.source_sha256 }}
+          MINIMUM_OS: ${{ inputs.minimum_os }}
+          PRODUCER_COMMIT: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          source_filename="$(basename "${SOURCE_URL}")"
+          source_bytes="$(wc -c < "input/${source_filename}")"
+          jq -n \
+            --arg path "input/${source_filename}" \
+            --arg version "${VERSION}" \
+            --arg sha256 "${SOURCE_SHA256}" \
+            --arg url "${SOURCE_URL}" \
+            --argjson bytes "${source_bytes}" \
+            '{path:$path,version:$version,sha256:$sha256,bytes:$bytes,url:$url}' > source.json
+          jq -n \
+            --arg name "${PKG}" \
+            --arg version "${VERSION}" \
+            '{runtime_version:"v2",os:"windows",kind:"package",name:$name,version:$version,arch:"x64",build_revision:0}' > identity.json
+          jq -n \
+            --arg commit "${PRODUCER_COMMIT}" \
+            --arg run_id "${RUN_ID}" \
+            --argjson run_attempt "${RUN_ATTEMPT}" \
+            '{commit:$commit,run_id:$run_id,run_attempt:$run_attempt}' > producer.json
+          python runtime-windows/repack_v2.py \
+            --source source.json \
+            --identity identity.json \
+            --producer producer.json \
+            --minimum-os "${MINIMUM_OS}" \
+            --output-dir v2-output \
+            --seven-zip /usr/bin/7z
+          test -s v2-output/meta.json
+          test -s v2-output/repack-manifest.json
+          test -n "$(find v2-output -maxdepth 1 -type f -name '*.7z' -print -quit)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg2-windows-x86_64-package-${{ inputs.pkg }}-${{ inputs.version }}
+          if-no-files-found: error
+          path: v2-output/**
+          retention-days: 14

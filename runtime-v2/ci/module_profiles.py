@@ -15,13 +15,19 @@ _inventory = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_inventory)
 
 
-def module_records(host, arch, config=None, revision=0):
+def module_records(host, arch, config=None, revision=0, *, os_name="macos"):
+    if os_name not in ("macos", "windows") or (os_name == "windows" and config is None):
+        raise ValueError("Windows modules need an explicit Windows profile")
+    if os_name == "windows":
+        arch = {"x64": "x86_64"}.get(arch, arch)
+        if arch != "x86_64":
+            raise ValueError("Unsupported Windows module architecture")
     host = _inventory._host(copy.deepcopy(host))
     if arch not in ("x86_64", "arm64") or type(revision) is not int or revision < 0:
         raise ValueError("Modules need an explicit supported architecture and revision")
     config = Path(config) if config else Path(__file__).parents[1] / "config/modules.json"
     profile = json.loads(config.read_text())
-    if profile.get("schema_version") != 1:
+    if profile.get("schema_version") != 1 or profile.get("os", "macos") != os_name:
         raise ValueError("Unsupported module profile schema")
     selected = profile.get("hosts", {}).get(host["type"], {}).get(host["series"])
     if not isinstance(selected, dict):
@@ -36,7 +42,7 @@ def module_records(host, arch, config=None, revision=0):
         bundled = bundles.get(recipe, {})
         if not isinstance(bundled, dict) or any(selected.get(name) != value for name, value in bundled.items()):
             raise ValueError("Bundled module versions must use the same actual host profile")
-        row = {"runtime_version": "v2", "os": "macos", "kind": description["kind"],
+        row = {"runtime_version": "v2", "os": os_name, "kind": description["kind"],
                "name": description["name"], "recipe_name": recipe, "version": version,
                "build_revision": revision, "arch": arch,
                "host": {key: copy.deepcopy(host[key]) for key in ("type", "series", "abi")},
@@ -65,12 +71,14 @@ def catalog_rows(payload):
     return rows
 
 
-def read_catalog(url, arch):
+def read_catalog(url, arch, *, os_name="macos"):
+    if os_name not in ("macos", "windows"):
+        raise ValueError("Unsupported module catalog OS")
     parsed = urlsplit(url)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError("Configure the public HTTPS module catalog URL explicitly")
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    query.update(runtime_version="v2", os="macos", arch=arch)
+    query.update(runtime_version="v2", os=os_name, arch=arch)
     target = urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ""))
     request = urllib.request.Request(target, headers={"Accept": "application/json"})
     with urllib.request.urlopen(request, timeout=60) as response:
@@ -84,11 +92,20 @@ def _os_version(value):
     return fields + (0,) * (3 - len(fields))
 
 
-def select_modules(records, catalog, base, minimum_os):
+def select_modules(records, catalog, base, minimum_os, *, os_name="macos", windows_compatibility=None):
+    if os_name not in ("macos", "windows"):
+        raise ValueError("Unsupported module catalog OS")
+    _os_version(minimum_os)
+    if os_name == "windows":
+        if base is not None:
+            raise ValueError("Windows modules must not have a base")
+        _inventory._compatibility(windows_compatibility)
     if not isinstance(catalog, list):
         raise ValueError("Catalog failure is not an empty successful result")
     builds, candidates, references = [], [], []
     for record in records:
+        if _inventory._state.clean_record(record)["os"] != os_name:
+            raise ValueError("Module record OS differs from catalog context")
         selected = []
         for row in catalog:
             if not isinstance(row, dict):
@@ -97,18 +114,19 @@ def select_modules(records, catalog, base, minimum_os):
                     row.get("os"), row.get("runtimeVersion"), row.get("buildRevision")) != (
                     {"php": "php-ext", "postgresql": "pgsql-ext"}[record["host"]["type"]],
                     record["name"], record["version"], record["host"]["series"], record["arch"],
-                    "macOS", "v2", record["build_revision"]):
+                    {"macos": "macOS", "windows": "Windows"}[os_name], "v2", record["build_revision"]):
                 continue
             manifest = row.get("config", {}).get("module_manifest") if isinstance(row.get("config"), dict) else None
             if not isinstance(manifest, dict):
                 continue
             try:
-                _inventory._validate_inventory(manifest)
+                _inventory._validate_inventory(manifest, expected_os=os_name)
                 _inventory._sha(row.get("hash"))
             except ValueError:
                 continue
             compatibility = {key: manifest["host"][key] for key in ("type", "series", "abi")}
-            if (compatibility != record["host"] or manifest["arch"] != record["arch"] or manifest["base"] != base
+            if (compatibility != record["host"] or manifest["arch"] != record["arch"] or manifest.get("base") != base
+                    or (os_name == "windows" and manifest["windows_compatibility"] != windows_compatibility)
                     or _os_version(manifest["minimum_os"]) > _os_version(minimum_os)):
                 continue
             url = urlsplit(row.get("downloadUrl", ""))
