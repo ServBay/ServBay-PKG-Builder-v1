@@ -1,0 +1,1073 @@
+[
+  {
+    "pkg": "adminer",
+    "version": "5.5.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-5.5.1-windows-x64.7z",
+    "source_sha256": "bbcec9ceb77b09b17d1c49f958d1cc4103eb57e09eaf077bd464e67d768cbd66",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "adminer",
+    "version": "6.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.0.2-windows-x64.7z",
+    "source_sha256": "8bb4163b11ef70e50820c84150606687ebd5b53fc1c165b683a865ed0e546bb0",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "adminer",
+    "version": "6.2.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/adminer/adminer-6.2.0-windows-x64.7z",
+    "source_sha256": "302f4c55095607e71bd3f7baef5fc1130ed26b9d6b0baea06231aacd571543b8",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ai-gateway",
+    "version": "1.31.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ai-gateway/ai-gateway-1.31.0-windows-x64.7z",
+    "source_sha256": "1ad6d23b842d691480ca57f1eb8ca4c887e8444e7880b182ceccc8ae127bdff3",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "apache",
+    "version": "2.4.69",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/apache/apache-2.4.69-windows-x64.7z",
+    "source_sha256": "0bf06825a4e1350f90be43ca6e2c4d2d89eeb47d2c87551a227c0ecf56cecf51",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "bun",
+    "version": "1.4.4",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/bun/bun-1.4.4-windows-x64.7z",
+    "source_sha256": "e09d88a9072bee64d438ab7f8602caec8410dd38f517072615a9e31dab293147",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "caddy",
+    "version": "2.11.7",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/caddy/caddy-2.11.7-windows-x64.7z",
+    "source_sha256": "bc84a02007554a546720729f04cece565216038e7744544c8c7c82ae5e1bbce9",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "cloudflared",
+    "version": "2026.10.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/cloudflared/cloudflared-2026.10.3-windows-x64.7z",
+    "source_sha256": "a892c7f644a1d695d6ffa932e7bee5ace7af97a24ba1dfa9acf0ffaa446f80e6",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "cloudflared",
+    "version": "2026.6.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/cloudflared/cloudflared-2026.6.1-windows-x64.7z",
+    "source_sha256": "05af6f6ed965a5ac2a55afc33fb7577212db4c782dc49d01c6a4df227a294358",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "composer",
+    "version": "2.10.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/composer/composer-2.10.3-windows-x64.7z",
+    "source_sha256": "1607e3207b993398f66407020a972856aff984ab9d2d69ec7adb069cecfd76d2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "composer",
+    "version": "2.2.30",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/composer/composer-2.2.30-windows-x64.7z",
+    "source_sha256": "bc9c078c66f5824eb206d6b6cc6ac649c7a34ef2dfc0191e1f584eb5ea65569f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "deno",
+    "version": "2.9.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/deno/deno-2.9.8-windows-x64.7z",
+    "source_sha256": "8d052192ce1372aa0a3f4511e477903c7c78d72d1412328a50d16b35b3bc1a77",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "disk-cleaner",
+    "version": "1.1.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/disk-cleaner/disk-cleaner-1.1.0-windows-x64.7z",
+    "source_sha256": "5dff783fc681732c479297651993c3d70f7c7efa42ebe27c3d7e407651bde889",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "frp",
+    "version": "0.71.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/frp/frp-0.71.1-windows-x64.7z",
+    "source_sha256": "db8407ccc310b6c662b41e7fc1b0e2e7542d19df7b45f7e397b5418d2eca4937",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "git",
+    "version": "2.56.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/git/git-2.56.0-windows-x64.7z",
+    "source_sha256": "112960e5d76c9b1482bea26a31d4d0a19f64800e2f0cd7809587f00ecd0317e3",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.11.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.11.13-windows-x64.7z",
+    "source_sha256": "08cd666525a1b343b624e2f8e90e806c492deb0024fdb6a5ce6a55713951865f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.12.17",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.12.17-windows-x64.7z",
+    "source_sha256": "70f6c696b5e481cc1bc8a6e7ff0f48502b5ee78f6d6d6fa02ae13ef0c2ef6548",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.13.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.13.15-windows-x64.7z",
+    "source_sha256": "54c010e44091527dd1cea192562137f8272f910a523da540e8abf93948979128",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.14.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.14.15-windows-x64.7z",
+    "source_sha256": "55a2217c1c162a3815d16c72c82a71d78455dae706340eaa5cf96a4eb2eca322",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.15.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.15.15-windows-x64.7z",
+    "source_sha256": "75d88ae435e093797524bb02837fe397f8bd6a50a762af4088ad4479d1febc10",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.16.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.16.15-windows-x64.7z",
+    "source_sha256": "fafa22993e04b56a80a42b2454f7365cab6b8815200ad3613aad525fa9cd8f9a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.17.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.17.13-windows-x64.7z",
+    "source_sha256": "d803c8304f8c2f69882f0e1084ebda91c04dd584cb66d90a8d354135e0ee29bb",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.18.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.18.10-windows-x64.7z",
+    "source_sha256": "e0c6e52023297073d83fb2fcbc04c40c647fbf97186e4c9684822eaa165d753f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.19.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.19.13-windows-x64.7z",
+    "source_sha256": "e1e65669fe38a197e4427585cf417b35df2b744228be0274f49164321619c46f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.20.14",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.20.14-windows-x64.7z",
+    "source_sha256": "1891d78c4f5a9643ae834572a498ad8ef1e1711fd49b1356a66c920982d873b2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.21.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.21.13-windows-x64.7z",
+    "source_sha256": "c57e37e5c00e2042a513e65f64fe972219ee7baf9761f02e98b6fe82bc543f05",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.22.12",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.22.12-windows-x64.7z",
+    "source_sha256": "7a1bb0aa8e41b5d9ecb00a2c717b9eef816d99863ac8d377646c6243f4c94352",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.23.12",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.23.12-windows-x64.7z",
+    "source_sha256": "6e0e519be58a087806faeaa72fbf20d68388f9bada4df169363c5a6bbf2730f2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.24.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.24.13-windows-x64.7z",
+    "source_sha256": "518596f624f669dd8a211a00a3598a26df2a33e295f7c728bc5ffe51a96cffa7",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.25.14",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.25.14-windows-x64.7z",
+    "source_sha256": "8f58657bebbfdb0b433dea8aab0795f3115ab18a2ba206288b44fad77e919a2f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.26.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.26.10-windows-x64.7z",
+    "source_sha256": "c284563d603654ae3577eb318494661bffe426afb15fb78c307137073bc5c158",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "go",
+    "version": "1.27.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/go/go-1.27.3-windows-x64.7z",
+    "source_sha256": "337c4cfed61a6f1b7f613647dfd53ddd655b69edc608c7153c14347bedac3841",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mailpit",
+    "version": "1.32.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mailpit/mailpit-1.32.0-windows-x64.7z",
+    "source_sha256": "6a5c1a4ac5e590c5ce8ceeff460bc0a092f11aeb4c421d7a52fe0a02151999ac",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.10.7",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.10.7-windows-x64.7z",
+    "source_sha256": "bb1b127273bbb600fed7a98ad220b410c78364e42be0c29db3e613f3f275d63f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.11.19",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.11.19-windows-x64.7z",
+    "source_sha256": "e7e89d4a0711cf9cdc183e7ffaa0f5862dda8e79f03568bb76584d8f9ad7b6b5",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.4.34",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.4.34-windows-x64.7z",
+    "source_sha256": "0ce065d3b690c68645b39d1a8d25ca5dea02fe73ac8495228f6eff21241c5e20",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.5.29",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.5.29-windows-x64.7z",
+    "source_sha256": "e8f1f22a7ef2a60d36efce35d089f28cb4ac7cbb3525a97ba517d7afed6655cc",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.6.28",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.6.28-windows-x64.7z",
+    "source_sha256": "047b4378025824a97012cf1957d9dc688d768dd323f4bceabbe99ae234c957ff",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.7.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.7.8-windows-x64.7z",
+    "source_sha256": "38262d0b17d5f30e0089f2015201355dbf21a750c2a890d894e4975f81e0bfbc",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.8.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.8.8-windows-x64.7z",
+    "source_sha256": "ee9577b69b9096d9aa1e99d9377ade24e4695955b12786bc6a04659e83ca71aa",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "10.9.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-10.9.8-windows-x64.7z",
+    "source_sha256": "e061efa995377ed22fa0e180125ee42e945a16d2f14edf266d6bd7efd28ac9fb",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.0.6",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.0.6-windows-x64.7z",
+    "source_sha256": "d716cede1af641c4dc76be121840afc8c46ec3c48fa07baf7868f79dbd45ec96",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.1.6",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.1.6-windows-x64.7z",
+    "source_sha256": "3e1e05e87c6a145dbb8fe341b9b06f9e956b65771a0bdab842f18b66c2e5afe5",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.2.6",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.2.6-windows-x64.7z",
+    "source_sha256": "d662780df6707571e66aef86c4063ac54d303c185d10146741fe042f30b5396d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.3.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.3.2-windows-x64.7z",
+    "source_sha256": "5b73f33cea4a4e7895fcf0b9b0d0f252f5fa3685a80750732de4c2e8a0ce630a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.4.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.4.13-windows-x64.7z",
+    "source_sha256": "37264400125601f435d4e8d7959c24888f80e6d45eabfc1fa8ec4d65eb368573",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.5.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.5.2-windows-x64.7z",
+    "source_sha256": "7758254552ea7856d30c14b4195e340c9196da11512a52e2efdbf53e0c83f707",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.6.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.6.2-windows-x64.7z",
+    "source_sha256": "3a51d66ef1ab17685a43c5c92176d369b01995cced106e3fc8f7ba955af97f77",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.7.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.7.2-windows-x64.7z",
+    "source_sha256": "54c93b53929b72913cd2f8b4f8592bf4147477a6203339132aa15e3ea2cd36d6",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "11.8.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-11.8.9-windows-x64.7z",
+    "source_sha256": "c1c41304250364db1e9953eb219daddf10ceba749fa09688293f4652136eef11",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "12.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-12.0.2-windows-x64.7z",
+    "source_sha256": "42b7f22085c6fe6dc29c6e8eb70dc93f839a657ca2e6fedf7c8bf94366fec47d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "12.1.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-12.1.2-windows-x64.7z",
+    "source_sha256": "905257b2fd66ab44cf645d3cd04d27eb32bc5b78a3495d91d6a97ad292b7dd27",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "12.2.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-12.2.2-windows-x64.7z",
+    "source_sha256": "ff42f0319aba84cd1dc343ccacfe9e20bb24173b569c38d0cb2274471163be14",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "12.3.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-12.3.3-windows-x64.7z",
+    "source_sha256": "60bf538dd9fb4a540500932041c309ef73e10f2eb77850c628020a2eecef2349",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "13.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-13.0.2-windows-x64.7z",
+    "source_sha256": "75d1e28bd61cb8079bcdbaaa0c0544109ea7e00b396d6d673dd682331e4178ba",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mariadb",
+    "version": "13.1.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mariadb/mariadb-13.1.1-windows-x64.7z",
+    "source_sha256": "087571b255d5c6b9a4030bace637d2eec46a78814ab824e1fa7aabdb33d19d7f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "maven",
+    "version": "3.9.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/maven/maven-3.9.15-windows-x64.7z",
+    "source_sha256": "9790b9a0e6de7236254aafae5e2ac1fd3572d947812c67e642b6c8867fd905eb",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "meilisearch",
+    "version": "1.55.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/meilisearch/meilisearch-1.55.0-windows-x64.7z",
+    "source_sha256": "984f1963fcc8545a28d1db638740d3eedf8a120464d37a50dc9de62106cae0eb",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "memcached",
+    "version": "1.6.45",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/memcached/memcached-1.6.45-windows-x64.7z",
+    "source_sha256": "f005cebbaeb6a989b610a8318c6c9136503d48bab5c86c14ab82dab9c2af1d0a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "minio",
+    "version": "2025.10.15",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/minio/minio-2025.10.15-windows-x64.7z",
+    "source_sha256": "dab0fd433849d735d1bc20864b5381759d0a323a7018b480db21a915e2a03de6",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "4.4.31",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-4.4.31-windows-x64.7z",
+    "source_sha256": "3656a909392c91903debac7c8629aecb4a220533f09521d7f39ef7599dd788db",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "5.0.34",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-5.0.34-windows-x64.7z",
+    "source_sha256": "e616a94ce98108a80007093ad9e31ca1a98c152f3b9b43105203d699c12745f3",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "6.0.29",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-6.0.29-windows-x64.7z",
+    "source_sha256": "d18a6363363ad215e9bcae9bb85d4b1de9a1979c1e04adf840e25c07f180b102",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "7.0.45",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-7.0.45-windows-x64.7z",
+    "source_sha256": "ce6ee024ee1e760ee1e1f7c555ba533dc015b08824948fe050913a86d122382b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "8.0.34",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-8.0.34-windows-x64.7z",
+    "source_sha256": "7b843800b53448ea2d17659c0297d8c7178e3027a19f4ec1901e956a8e90dd7c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "8.2.12",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-8.2.12-windows-x64.7z",
+    "source_sha256": "efad796659de7e9f2b9da326b524983abc14736fa1cffef8688681e22e77f5f7",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongodb",
+    "version": "8.3.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongodb/mongodb-8.3.13-windows-x64.7z",
+    "source_sha256": "4e2d99c17d3ee5e148b44179ea9339edde56fb451cb2826cedf147ed3201240b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongosh",
+    "version": "2.13.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.13.0-windows-x64.7z",
+    "source_sha256": "1448f7aac5cbbe3df71545f502655f925d059a5824ec9ef74edb10a438469018",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongosh",
+    "version": "2.9.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.9.2-windows-x64.7z",
+    "source_sha256": "3d3931f3a584e3065ab33a5a8dbb7d970ba74d1584c7a330f4bcec720ea3ded0",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mongotools",
+    "version": "100.19.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongotools/mongotools-100.19.1-windows-x64.7z",
+    "source_sha256": "9fc3bf8e2bf4144e7d31ba5a90c0ac01c55f6684fad141ee1e587f55021690ac",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "5.1.73",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-5.1.73-windows-x64.7z",
+    "source_sha256": "a13c465e5489d04f31e2564711525e403e7674f04b73bb6b27a22fc44af49267",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "5.5.62",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-5.5.62-windows-x64.7z",
+    "source_sha256": "a06e0d8dcf6689c013466a6f05c1de99303772c4288c3971a0ddf8faaec10af2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "5.6.51",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-5.6.51-windows-x64.7z",
+    "source_sha256": "01e6771d347ee86df6455e5bf5b58f12940ba06ddfe942ded67b189099290656",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "5.7.44",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-5.7.44-windows-x64.7z",
+    "source_sha256": "4c7254e778ebae9678bf797f2bac33d2584f2939bdbec568eff979c7fa0aaa1c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "8.0.46",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-8.0.46-windows-x64.7z",
+    "source_sha256": "0d6cc2a2ca03ffcad179d28ebd1a99cecc0e5864941379c850624c36015db45c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "8.1.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-8.1.0-windows-x64.7z",
+    "source_sha256": "1be18250aa1ebcebfcb2951afe8567b36a30b3b5cd6315fdcf158e305816ef3d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "8.2.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-8.2.0-windows-x64.7z",
+    "source_sha256": "caff1cbe562be632320482643941de2649a3ecf6c08045ba8cf9ea56f5f7239a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "8.3.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-8.3.0-windows-x64.7z",
+    "source_sha256": "76364f9212bcb0ecaf077e81f128d8a1cc1dc0d34e0b96f08089b3496bd809a7",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "8.4.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-8.4.13-windows-x64.7z",
+    "source_sha256": "46d80db77c09be93a989b2ede0ca3210d171564c100dffe16d084fba1d6ad745",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.0.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.0.1-windows-x64.7z",
+    "source_sha256": "adfd41f3582acddf3f3c40d215a9d9a90c6eaa517c88dba51b7933a69e994001",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.1.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.1.0-windows-x64.7z",
+    "source_sha256": "6a172e655f16d34fbf480939b656cc631afb8b377aea24af3fca683e55fc7645",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.2.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.2.0-windows-x64.7z",
+    "source_sha256": "d3c9014c88bc55ef3639ffa47b4ad5eac0237936793b4ef3a9a2b6a5bc41c83b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.3.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.3.0-windows-x64.7z",
+    "source_sha256": "d61215ec69705dfc2735b3137416d09e1f47a9ef8ea4cbb8dfdc3ad6813e2f9f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.5.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.5.0-windows-x64.7z",
+    "source_sha256": "be21da006a77c154b5227f39d1f13b4f1640c943a760185e880c3f14ebbafd3b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.6.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.6.0-windows-x64.7z",
+    "source_sha256": "ae24db0f0747c8aeba78f94e9c1cf8cd00f2e1db50ae3c9d0cfd15e919a344c6",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "mysql",
+    "version": "9.7.4",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mysql/mysql-9.7.4-windows-x64.7z",
+    "source_sha256": "6b34c9dc76f17103d5334f20f42eb2dac963f70c4ab9c1668c654e5f4f3a0b27",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "nginx",
+    "version": "1.31.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/nginx/nginx-1.31.8-windows-x64.7z",
+    "source_sha256": "e90ecac46539786240feb86308d295fba8cd263ad51c8deff2e9d943ab591e2d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ngrok",
+    "version": "3.39.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ngrok/ngrok-3.39.13-windows-x64.7z",
+    "source_sha256": "29ba70060572eaec576949cbf1e59f2e91479a0bdb4a458a144714ba7cf96a5b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "12.22.12",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-12.22.12-windows-x64.7z",
+    "source_sha256": "144f700d34e3a7bd941ce2b32afc87c762e72e2549a48de11801d048be6181ba",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "13.14.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-13.14.0-windows-x64.7z",
+    "source_sha256": "893e38a7ffd71c9c16ddf06cf5cd689880f739f7e163d1efce4bf57ecacf7f5c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "14.21.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-14.21.3-windows-x64.7z",
+    "source_sha256": "96db72c944c6ee0da427a012032a753b9df7dc45b1a9044a0468b43ec7c6e73d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "15.14.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-15.14.0-windows-x64.7z",
+    "source_sha256": "579fdc419a3bd51a6274891ca639307b610b631900977fce4ee11a19a594a4f5",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "16.20.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-16.20.2-windows-x64.7z",
+    "source_sha256": "1cd33bb5e979f82836b4dd12cc724bb37676c635983f30df53e8c9b2542747f9",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "17.9.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-17.9.1-windows-x64.7z",
+    "source_sha256": "400aaf6a0975c36b128436e82c785bae2a4be297119aa1b5ddb6d8d5e036f37e",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "18.20.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-18.20.8-windows-x64.7z",
+    "source_sha256": "0f046873a7d4483a3dc096b66c045d85a1dd04d6f2616af1ec27d15fd8ea0405",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "19.9.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-19.9.0-windows-x64.7z",
+    "source_sha256": "6d9f654165c9138a8d2e1bf5c154b84a756c2b65eaf789686c22c3c3f8d4f07b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "20.20.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-20.20.2-windows-x64.7z",
+    "source_sha256": "175bcb9d047ab685009103cb0b7b154f507223d6c64149d3a50bbfed8d37ba49",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "21.7.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-21.7.3-windows-x64.7z",
+    "source_sha256": "ec3f9b45545542e8b85d2bffb394058a583c6b7c14e584fcd0222421ef54f34e",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "22.23.4",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-22.23.4-windows-x64.7z",
+    "source_sha256": "d66fc5e40a7e85768c93047a8e5412419c38f9710caf2f0e09eea4338b004b89",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "23.11.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-23.11.1-windows-x64.7z",
+    "source_sha256": "5af1dd55f6d949657e2c485be82a581ec90850dc5fce6099cda5ea1e2607baa6",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "24.22.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-24.22.1-windows-x64.7z",
+    "source_sha256": "656f5b171d349ceff29b7f31ca23c531ea19c5dceef0a7a923f98a67a587227b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "25.9.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-25.9.0-windows-x64.7z",
+    "source_sha256": "cad0411c864d0adc4b4c66d6f50e5f81e897eaaed5ed839267da670c84eadf77",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "node",
+    "version": "26.12.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/node/node-26.12.1-windows-x64.7z",
+    "source_sha256": "c05ba1fa2284404a2f1e4399750a4023ed27feae551e04df6ed78f87ab283082",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ollama",
+    "version": "0.40.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ollama/ollama-0.40.10-windows-x64.7z",
+    "source_sha256": "3fd2f679ad421bd722cc4ce629c490013b52f80f9b5d4f85d1d3bd53d7697eec",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "10.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-10.0.2-windows-x64.7z",
+    "source_sha256": "075d3bf2486aa41ef9e8b83971b49913031653845b9e16e1ffd2e893e0bc80a3",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "11.0.33",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-11.0.33-windows-x64.7z",
+    "source_sha256": "07b62c71efabdcdbb8ba1466ef5b72f273a5b55098c49059ed9cefebf747793f",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "12.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-12.0.2-windows-x64.7z",
+    "source_sha256": "2430be6fab88ac7997d419e86e36a91c8f37775f6d8e226184342ac4da431ba7",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "13.0.14",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-13.0.14-windows-x64.7z",
+    "source_sha256": "de8d1ae2d74b06f309a5eed4ee06fda369385030f223bdabeff47e9ca243586b",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "14.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-14.0.2-windows-x64.7z",
+    "source_sha256": "d5f1d8c6df4470187fe30f00bf16df020c9aa1eb5ac65cf1a1d4546bcef2e418",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "15.0.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-15.0.10-windows-x64.7z",
+    "source_sha256": "e619c8b1ed2965ec8aa791bf16eafbb01461aef425227012182885df56d237dc",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "16.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-16.0.2-windows-x64.7z",
+    "source_sha256": "7bc4c1420f6ac173b02b7538db6581b7c8ce4c04654ac6ec49ccb6afeacf4504",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "17.0.21",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-17.0.21-windows-x64.7z",
+    "source_sha256": "9ad15d8835d01135e321df91a2ff6db1b929d597ca4513e61c08655222ca1743",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "18.0.2.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-18.0.2.1-windows-x64.7z",
+    "source_sha256": "ffbcabaabae2e4b739fad66ac08eea8c800698f20145b91e6827ec9a4f8ffe8a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "19.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-19.0.2-windows-x64.7z",
+    "source_sha256": "77ce7fa562458233edac1c3b2b90fe3728bc5fbcc3d2ddccbd1f33d9067525df",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "20.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-20.0.2-windows-x64.7z",
+    "source_sha256": "3d58cc2d9516681998c135c8b8727f71ecb1696cfb6d563a0f9aea732701d05c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "21.0.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-21.0.13-windows-x64.7z",
+    "source_sha256": "2a2cb708a8e560834e75387d61964c9b9e27680e76e77011669577074c70fde2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "22.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-22.0.2-windows-x64.7z",
+    "source_sha256": "0ffc92731b49c0913f277e8df450d2ed70032083e55ee690658e64338a519754",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "23.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-23.0.2-windows-x64.7z",
+    "source_sha256": "2661a6dce749d9fcae442c784c062f52160bb2221024629bfa0bb2b2bd1c17f1",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "24.0.2",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-24.0.2-windows-x64.7z",
+    "source_sha256": "bf5730027aeb2654a8a88070e945990ceda108865a96531393d8ba9945eb1c37",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "25.0.5",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-25.0.5-windows-x64.7z",
+    "source_sha256": "5a5b13a667bc5d586daec1efcf016b11233a1c67eb2d1ff91135e9c3011266c3",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "26.0.2.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-26.0.2.1-windows-x64.7z",
+    "source_sha256": "78ec0e50e68224d6ea50c32037428ac7bc3b915f2620d21ccc0bbe28229c5cbe",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "27.0.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-27.0.1-windows-x64.7z",
+    "source_sha256": "6ed2c83187c8926f4bb80ed81435ed5613070ccb679b7aa0f8506432b3f1a890",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "7.0.352",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-7.0.352-windows-x64.7z",
+    "source_sha256": "4b80f2b773f0c1cb78a828799f80dbb816a81f4b23023895302a873392020b68",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "8.0.512",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-8.0.512-windows-x64.7z",
+    "source_sha256": "0d9de67776948afa6fd55390d064667beef580e50b095af6a77b60c24bbf1dae",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openjdk",
+    "version": "9.0.7",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openjdk/openjdk-9.0.7-windows-x64.7z",
+    "source_sha256": "f370a8689dde437f3444fca0a6f1cb82425c6f7b8f897a2a6e94cb14de116381",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "openssl",
+    "version": "3.5.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/openssl/openssl-3.5.0-windows-x64.7z",
+    "source_sha256": "02dae1e148528818e560d119fb1599f0318c55ae366178f01528cc3f194ad4e8",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "phpmyadmin",
+    "version": "5.2.3",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/phpmyadmin/phpmyadmin-5.2.3-windows-x64.7z",
+    "source_sha256": "45f53a0ddea870b9d41675686a37907575866120e346afa09ece539518278928",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "pinggy",
+    "version": "0.6.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/pinggy/pinggy-0.6.1-windows-x64.7z",
+    "source_sha256": "e0da063a3e601b394218d935397b2b1c35226d1dbbfdff1393038d663f5d747c",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "2.7.18",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-2.7.18-1-windows-x64.7z",
+    "source_sha256": "6b85103563e4adeca46879fbf7290f5005940d1c0ee839fb65d5b7762c001aa8",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.10.11",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.10.11-windows-x64.7z",
+    "source_sha256": "c1ee30b453804b0a237249c49753f41c157f24d7b2e5022a05dbcf5e736ea306",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.11.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.11.9-windows-x64.7z",
+    "source_sha256": "ba8d74f0c612b0e6c096770559622dcb3d0008bd7168e3783f5b2e7807078b76",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.12.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.12.10-windows-x64.7z",
+    "source_sha256": "a226527d74d066eb950257a0939ac6921b65d38f2c6436ea8c14d50630250f5d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.13.17",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.13.17-windows-x64.7z",
+    "source_sha256": "dbc83ae9f2a6c71b2083865c0cc4ec35e5b3df1ae9b71a43cfe7472db7cee636",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.14.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.14.9-windows-x64.7z",
+    "source_sha256": "fed4891261f8e36a71c550bb1949c5bcf889ab15557d312a9602addacb4e8fb1",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.15.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.15.1-windows-x64.7z",
+    "source_sha256": "112a37c1a4ca8b4ca0a698208decdfbf995b7b38491c75912d83374febe1fb96",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.5.4",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.5.4-windows-x64.7z",
+    "source_sha256": "fa8ea50671c45e62abb4073ad145a4de109816f72b0beac5427d230d3684f65d",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.6.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.6.8-windows-x64.7z",
+    "source_sha256": "358ea08c834d0c9a3c0ef1c52267c443a62e47685c8b69bd2a312a5de67227cd",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.7.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.7.9-windows-x64.7z",
+    "source_sha256": "38f5e5517af0773ac3538e017ef5d6ff304711b51a78d1621902845b3a71b483",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.8.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.8.10-windows-x64.7z",
+    "source_sha256": "9fb5a037897aa864ae52ce3882e70767a2bf8436547f5c001b967f83a0b001ec",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "python",
+    "version": "3.9.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/python/python-3.9.13-windows-x64.7z",
+    "source_sha256": "62eed3742eda2eeb95441fb527218a2f57fee40a21f119813a1ffe5ff2cf11d7",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "redis",
+    "version": "7.4.11",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/redis/redis-7.4.11-windows-x64.7z",
+    "source_sha256": "2c9b1a59283c3974980e24d79248378213b23e2c6658d5e27d01b7610ef3b793",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "2.4.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-2.4.10-windows-x64.7z",
+    "source_sha256": "d3046d01c787957a87b7a711845bc799bfe9b1a4ddc8284ab083752c9f6f44fa",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "2.5.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-2.5.9-windows-x64.7z",
+    "source_sha256": "7a84480d3004e92d9597c593277c505fc243485d6600d7b4ae10de48132c3c48",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "2.6.10",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-2.6.10-windows-x64.7z",
+    "source_sha256": "d2b701dea9604da18eb4d5d6136359fb2461a841d441a87a58b161102dfcfc13",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "2.7.8",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-2.7.8-windows-x64.7z",
+    "source_sha256": "769088dea54c0cc76eb2f42ed4626731cba02d4c821d3ef06c0cef41fd4f7a1a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "3.0.7",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-3.0.7-windows-x64.7z",
+    "source_sha256": "b50689a18e21752c31c7d5b769fb4c45ac85cba74e7225c2bc00bf989cd9806a",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "3.1.7",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-3.1.7-windows-x64.7z",
+    "source_sha256": "23843bdc4ceff9c4c770ffab839b213c984774a3623fbe597c4e329cc0d6fbe0",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "3.2.11",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-3.2.11-windows-x64.7z",
+    "source_sha256": "bc326e0f988e128b70572c6119f55452561ba662a566c0185bd17eca1a89ed94",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "3.3.13",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-3.3.13-windows-x64.7z",
+    "source_sha256": "c02e7fe5adbb6626dfa02133ee3e80c988037342c32544d42031933bd5414697",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "3.4.12",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-3.4.12-windows-x64.7z",
+    "source_sha256": "8c14c178fda25fa51519f8fb6e12da77e480dbddb6289a9a3b8b8b5aa0dd2fd2",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "ruby",
+    "version": "4.0.9",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/ruby/ruby-4.0.9-windows-x64.7z",
+    "source_sha256": "8bc96f0833762055d3ed6dd1cf155962f95d7df1e3749e68e4a108c884318377",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "rust",
+    "version": "1.99.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/rust/rust-1.99.1-windows-x64.7z",
+    "source_sha256": "56aedf9ac6ff723fd6faca02bc4a61c94d3219b41a0c36d44bce2323c52a0193",
+    "minimum_os": "10.0"
+  },
+  {
+    "pkg": "simple-acme",
+    "version": "2.4.1",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/simple-acme/simple-acme-2.4.1-windows-x64.7z",
+    "source_sha256": "b73585666f2d5b0c89b1daf4d782586313a9c6b793229ad71ccd75ca8c4e19d6",
+    "minimum_os": "10.0"
+  }
+]
