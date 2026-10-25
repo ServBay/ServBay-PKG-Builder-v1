@@ -1,0 +1,20 @@
+Description: PG 19+ moved get_database_name declaration from commands/dbcommands.h
+to utils/lsyscache.h. zhparser.c calls get_database_name() (line ~216) so under
+PG 19 the declaration is missing -> implicit-function-declaration error with the
+Xcode 26.5 toolchain.
+Upstream: equivalent to PR #96 (bigplaice) merged to master after the v2.3 tag,
+so this is not in any released tarball yet.
+
+--- a/zhparser.c
++++ b/zhparser.c
+@@ -17,6 +17,10 @@
+ #include "utils/varlena.h"
+ #endif
+ 
++#if PG_VERSION_NUM >= 190000
++#include "utils/lsyscache.h"
++#else
+ #include "commands/dbcommands.h"
++#endif
+ 
+ /* dict file extension */

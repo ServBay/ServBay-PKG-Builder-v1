@@ -1847,6 +1847,11 @@ _build_pgsql_mod_postgis() {
     # Replicating the original configure flags with proper environment variables
     CFLAGS="${CFLAGS} -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
     CXXFLAGS="${CXXFLAGS} -std=c++17 -I${SERVBAY_COMMON_INCLUDE_PATH}/libxml2 -I${SERVBAY_COMMON_INCLUDE_PATH}" \
+    # 新 clang 下 INT_MIN/INT_MAX 需要显式 <limits.h>（v1 补丁 portback）
+    _apply_single_patch "${PATCH_DIR}/pgsql/postgis-limits-h.patch" "p1" || return 1
+    if [[ "$pg_version_major" -ge 19 ]]; then
+        _apply_single_patch "${PATCH_DIR}/pgsql/postgis-pg19-compat.patch" "p1" || return 1
+    fi
     LDFLAGS="${LDFLAGS} -L${SERVBAY_COMMON_LIB_PATH} -lxml2 -lz -lpthread -liconv -licui18n -licuuc -licudata -lm" \
     ./configure --prefix="${pg_prefix}" \
                 --bindir="${pg_prefix}/bin" \
@@ -2075,6 +2080,9 @@ _build_pgsql_mod_zhparser() {
     unpack_package "$mod_package_fullname" "$mod_source_filename"
     if [[ $? -ne 0 ]]; then return 1; fi
 
+    if [[ "$pg_version_major" -ge 19 ]]; then
+        _apply_single_patch "${PATCH_DIR}/pgsql/zhparser-pg19-get-database-name.patch" "p1" || return 1
+    fi
     make -j${CPU_NUMBER} PG_CONFIG="${pg_config}" SCWS_HOME="${SERVBAY_COMMON_PATH}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "zhparser make failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
 
@@ -5487,6 +5495,7 @@ _build_php_mod_swoole() {
             sed -i '' 's/internal_function\.arg_info = copy_arginfo/internal_function.arg_info = (zend_arg_info *)copy_arginfo/g' ext-src/swoole_runtime.cc
         fi
         "${php_bin_dir}/phpize" || return 1
+        sed -i '' 's/sw_usleep(/usleep(/g' src/core/misc.cc 2>/dev/null || true
         ./configure --with-php-config="${php_config}" \
             --enable-openssl \
             --enable-brotli \
@@ -5569,10 +5578,10 @@ _build_php_mod_phalcon() {
             cd build/php7/64bits || return 1
         else
             # Phalcon 5.x (PHP 8.0+)
-            if [[ "$php_version_major" =~ "8.4" ]]; then
+            if [[ "$php_version_major" =~ "8.4" ]] && [[ "$mod_version" < "5.23.0" ]]; then
                 _apply_single_patch "${PATCH_DIR}/php8.5/phalcon.diff" "p0" || return 1
             fi
-            if [[ "$php_version_major" == "8.5" ]]; then
+            if [[ "$php_version_major" == "8.5" ]] && [[ "$mod_version" < "5.23.0" ]]; then
                 _apply_single_patch "${PATCH_DIR}/php8.5/phalcon.diff" "p0" || return 1
             fi
             if [[ "$php_version_major" == "8.6" ]]; then
