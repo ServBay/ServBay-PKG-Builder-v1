@@ -4060,6 +4060,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":8,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 8,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T08:43:57+00:00",
+        "expires_at": "2026-10-25T16:43:57+00:00",
+        "producer": {
+          "commit": "6b59863848e3daf6a196b1456935b581b1b17e86",
+          "run_attempt": 1,
+          "run_id": "40177770594"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":8,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 0,
       "last_collected_producer": {
@@ -8160,6 +8183,29 @@
         "version": "19.beta4"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":8,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 8,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.4.27"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-25T08:43:57+00:00",
+        "expires_at": "2026-10-25T16:43:57+00:00",
+        "producer": {
+          "commit": "6b59863848e3daf6a196b1456935b581b1b17e86",
+          "run_attempt": 1,
+          "run_id": "40177770594"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":8,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 0,
