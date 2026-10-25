@@ -56,13 +56,6 @@
     "minimum_os": "10.0"
   },
   {
-    "pkg": "cloudflared",
-    "version": "2026.6.1",
-    "source_url": "https://dl.servbay.com/windows-packages/x64/cloudflared/cloudflared-2026.6.1-windows-x64.7z",
-    "source_sha256": "05af6f6ed965a5ac2a55afc33fb7577212db4c782dc49d01c6a4df227a294358",
-    "minimum_os": "10.0"
-  },
-  {
     "pkg": "composer",
     "version": "2.10.3",
     "source_url": "https://dl.servbay.com/windows-packages/x64/composer/composer-2.10.3-windows-x64.7z",
@@ -470,9 +463,9 @@
   },
   {
     "pkg": "mongosh",
-    "version": "2.13.0",
-    "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.13.0-windows-x64.7z",
-    "source_sha256": "1448f7aac5cbbe3df71545f502655f925d059a5824ec9ef74edb10a438469018",
+    "version": "2.14.0",
+    "source_url": "https://dl.servbay.com/windows-packages/x64/mongosh/mongosh-2.14.0-windows-x64.7z",
+    "source_sha256": "eb9bd05afd57d40718e5ad644517d7f8cda6c1db9b9f8289e59b33eb76bf0746",
     "minimum_os": "10.0"
   },
   {
@@ -1061,13 +1054,6 @@
     "version": "1.99.1",
     "source_url": "https://dl.servbay.com/windows-packages/x64/rust/rust-1.99.1-windows-x64.7z",
     "source_sha256": "56aedf9ac6ff723fd6faca02bc4a61c94d3219b41a0c36d44bce2323c52a0193",
-    "minimum_os": "10.0"
-  },
-  {
-    "pkg": "simple-acme",
-    "version": "2.4.1",
-    "source_url": "https://dl.servbay.com/windows-packages/x64/simple-acme/simple-acme-2.4.1-windows-x64.7z",
-    "source_sha256": "b73585666f2d5b0c89b1daf4d782586313a9c6b793229ad71ccd75ca8c4e19d6",
     "minimum_os": "10.0"
   }
 ]
