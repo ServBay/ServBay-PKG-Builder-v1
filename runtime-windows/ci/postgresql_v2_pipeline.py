@@ -43,6 +43,7 @@ def failure_summary(error):
             value = getattr(error, name, None)
             if type(value) is int:
                 detail += f" {name}={value}"
+    if not isinstance(error, ProbeFailure):
         frames, trace = [], error.__traceback__
         while trace is not None:
             try:
