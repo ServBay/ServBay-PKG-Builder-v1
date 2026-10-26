@@ -167,17 +167,31 @@ int main() {
         source = self.prepare("swoole")
         parts = ("ext-src", "src", "include", "thirdparty/php/sockets", "thirdparty/php/standard",
                  "thirdparty/php/streams", "thirdparty/php84/curl", "thirdparty/pdo_sqlite")
+        # Discover PHP's globals accessors from the actual installed headers,
+        # including extension globals such as JSON_G rather than only EG/CG.
+        getters = {}
+        for header in self.include.rglob("*.h"):
+            for name in re.findall(r"^\s*#\s*define\s+(\w+)\(\w+\)\s+[^\n]*(?:globals|ZEND_MODULE_GLOBALS_ACCESSOR|TSRMG)[^\n]*",
+                                   header.read_text(errors="replace"), re.M):
+                getters.setdefault(name, set()).add(str(header.relative_to(self.include)))
+        pattern = r"\b(?:" + "|".join(re.escape(name) for name in getters) + r")\(\s*[A-Za-z_]\w*\s*\)(?:(?:->|\.)[A-Za-z_]\w*)*"
         expressions = set()
         for part in parts:
             for filename in (source / part).rglob("*"):
                 if filename.suffix not in (".c", ".cc", ".cpp", ".h"):
                     continue
                 code = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', "", filename.read_text(errors="replace"), flags=re.S)
-                expressions.update(re.findall(r"\b(?:EG|CG)\(\s*[A-Za-z_]\w*\s*\)(?:(?:->|\.)[A-Za-z_]\w*)*", code))
-        self.assertGreaterEqual(len(expressions), 28)
+                expressions.update(re.findall(pattern, code))
+        self.assertGreaterEqual(len(expressions), 67)
+        headers = set()
+        for expression in expressions:
+            headers.update(getters[expression.split("(", 1)[0]])
+        includes = "\n".join('#include "' + header + '"' for header in sorted(headers)) + "\n"
+        # PHP's bundled PCRE header is part of the exact upstream PHP tree.
+        extra = ("-I", str(self.sources / "php-8.6.0RC4/ext/pcre"))
         for expression in sorted(expressions):
             with self.subTest(expression=expression):
-                self.compile_probe("void probe() { (void)(" + expression + "); }", cxx=True)
+                self.compile_probe(includes + "void probe() { (void)(" + expression + "); }", extra=extra, cxx=True)
 
     def test_swoole_process_pool_actual_parse_call_compiles_without_removed_throw_alias(self):
         source = self.prepare("swoole")
@@ -185,6 +199,91 @@ int main() {
         call = re.search(r"zend_parse_parameters(?:_throw)?\(ZEND_NUM_ARGS\(\), [^\n]*\)", text).group()
         declarations = re.search(r"zend_long worker_num;.*?zend_bool enable_coroutine[^;]*;", text, re.S).group()
         self.compile_probe("#define SW_IPC_NONE 0\nPHP_FUNCTION(probe) {\n" + declarations + "\n(void)" + call + ";\n}", cxx=True)
+
+    def test_swoole_json_decoder_preserves_error_details_and_throw_behavior(self):
+        source = self.prepare("swoole")
+        text = (source / "thirdparty/php/standard/var_decoder.cc").read_text()
+        start = text.index("static const char *php_json_get_error_msg(")
+        end = text.index("}  // namespace zend", start)
+        decoder = text[start:end]
+        code = r'''
+extern "C" {
+#include "ext/json/php_json.h"
+#include "Zend/zend_exceptions.h"
+}
+#include <cstring>
+zend_json_globals json_globals;
+zend_class_entry *php_json_exception_ce;
+static int decoded = 0, thrown = 0, warnings = 0;
+static zend_long thrown_code = 0;
+static const char *thrown_message = nullptr;
+static const char *delegated_input = nullptr;
+static size_t delegated_length = 0;
+static zend_long delegated_options = 0, delegated_depth = 0;
+extern "C" zend_object *zend_throw_exception(zend_class_entry *ce, const char *message, zend_long code) {
+    if (ce != php_json_exception_ce) return nullptr;
+    thrown++;
+    thrown_code = code;
+    thrown_message = message;
+    return nullptr;
+}
+extern "C" void php_error_docref(const char *, int, const char *, ...) { warnings++; }
+extern "C" zend_result php_json_decode_ex(zval *result, const char *input, size_t length, zend_long options, zend_long depth) {
+    decoded++;
+    delegated_input = input;
+    delegated_length = length;
+    delegated_options = options;
+    delegated_depth = depth;
+    if (input[0] == '!') {
+        if (options & PHP_JSON_THROW_ON_ERROR) {
+            zend_throw_exception(php_json_exception_ce, "Syntax error", PHP_JSON_ERROR_SYNTAX);
+        } else {
+            JSON_G(error_details) = {PHP_JSON_ERROR_SYNTAX, 3, 7};
+        }
+        ZVAL_NULL(result);
+        return FAILURE;
+    }
+    ZVAL_TRUE(result);
+    return SUCCESS;
+}
+namespace zend {
+''' + decoder + r'''
+}
+static void previous_error() { JSON_G(error_details) = {PHP_JSON_ERROR_UTF8, 9, 15}; }
+static bool details_are(php_json_error_code code, uint64_t line, uint64_t column) {
+    return JSON_G(error_details).code == code && JSON_G(error_details).line == line && JSON_G(error_details).column == column;
+}
+int main() {
+    zval result;
+    const char valid[] = "ok";
+    previous_error();
+    zend::json_decode(&result, valid, 2, PHP_JSON_OBJECT_AS_ARRAY, 12);
+    if (Z_TYPE(result) != IS_TRUE || !details_are(PHP_JSON_ERROR_NONE, 0, 0)) return 1;
+    if (decoded != 1 || delegated_input != valid || delegated_length != 2 || delegated_options != PHP_JSON_OBJECT_AS_ARRAY || delegated_depth != 12) return 2;
+    previous_error();
+    zend::json_decode(&result, "", 0, 0, 512);
+    if (Z_TYPE(result) != IS_NULL || !details_are(PHP_JSON_ERROR_SYNTAX, 0, 0) || decoded != 1 || thrown) return 3;
+    previous_error();
+    zend::json_decode(&result, "", 0, PHP_JSON_THROW_ON_ERROR, 512);
+    if (Z_TYPE(result) != IS_NULL || !details_are(PHP_JSON_ERROR_UTF8, 9, 15) || thrown != 1 || thrown_code != PHP_JSON_ERROR_SYNTAX || std::strcmp(thrown_message, "Syntax error")) return 4;
+    previous_error();
+    zend::json_decode(&result, valid, 2, PHP_JSON_THROW_ON_ERROR, 512);
+    if (Z_TYPE(result) != IS_TRUE || !details_are(PHP_JSON_ERROR_UTF8, 9, 15) || decoded != 2 || thrown != 1) return 5;
+    zend::json_decode(&result, "!", 1, 0, 512);
+    if (Z_TYPE(result) != IS_NULL || !details_are(PHP_JSON_ERROR_SYNTAX, 3, 7) || decoded != 3) return 6;
+    previous_error();
+    zend::json_decode(&result, "!", 1, PHP_JSON_THROW_ON_ERROR, 512);
+    if (!details_are(PHP_JSON_ERROR_UTF8, 9, 15) || decoded != 4 || thrown != 2) return 7;
+    previous_error();
+    zend::json_decode(&result, valid, 2, 0, 0);
+    if (Z_TYPE(result) != IS_NULL || !details_are(PHP_JSON_ERROR_NONE, 0, 0) || decoded != 4 || warnings != 1) return 8;
+    previous_error();
+    zend::json_decode(&result, valid, 2, 0, static_cast<zend_long>(INT_MAX) + 1);
+    if (Z_TYPE(result) != IS_NULL || !details_are(PHP_JSON_ERROR_NONE, 0, 0) || decoded != 4 || warnings != 2) return 9;
+    return 0;
+}
+'''
+        self.compile_probe(code, cxx=True, run=True)
 
     def test_apcu_print_macro_compiles_with_the_rc4_php_verror_signature(self):
         source = self.prepare("apcu")

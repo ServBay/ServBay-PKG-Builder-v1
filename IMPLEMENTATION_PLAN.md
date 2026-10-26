@@ -329,6 +329,10 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 09:23 UTC：已批准的CI条件修复 `0018dfd8d79334c8c10f69e13cfd3d58cd530b6a` 推送后，ARM run `40299195891`、Intel run `40299204692` 的四个模块job均实际启动，但在下载公开core时收到HTTP403，尚未编译/发布。对相同CF IP、Host/SNI、URL只改变UA：默认Python-urllib返回403，ServBay-PKG-Builder返回206；日本出口实际urllib同样复现。证据 `cloudflare-user-agent-comparison.json`。两处公开host下载仅增加显式Request UA，保留完整GET、原URL、120秒超时、SHA/ABI/base及失败传播。15项精准离线回归通过；逐处恢复裸URL的两项内存突变均被识别。第1轮审查因专用角色缺少允许的文件读取工具而覆盖0；第2轮最终只读审查独立15项通过、两突变KILLED，Spec PASS / Quality PASS。未修改CDN/WAF/门禁；真实四模块编译、SID功能及API/CDN仍待新CI。
 
+09:54 UTC：下载修复 `354c39819bdab131b4475de5d01719e2356d72bf` 后，ARM `40301435776` / Intel `40301445165` 实际通过公开core SHA/ABI/base验证；Phalcon双架构编译、原生加载及SID功能验证成功，两个正式artifact的ZIP/package/manifest SHA与producer已独立核对。Uploader dry-run `40302597443` / `40302603933` 各仅1条Phalcon revision1，计划逐项匹配；LIVE `40302872931` / `40302879228` 各新增1扩展记录、OSS/R2各2次SHA回读成功，公开extension API与两CDN完整下载一致。没有重编、覆盖或重新注册core。六个核心API于09:46 UTC重新核对SHA/URL全部保持不变；既有38扩展的ESA/CF共76次完整下载亦全部匹配。证据 `current-core-api-hash-audit.json`、`dual-cdn-existing-38-modules.json`、`macos-phalcon-public-verification.json`。
+
+Swoole双架构本轮仅剩 `thirdparty/php/standard/var_decoder.cc` 的两处 `JSON_G(error_code)` 字段移除错误；失败计数为2，没有修改计数或阈值。两调用点按PHP8.6官方JSON实现改为清完整error_details、空串赋完整SYNTAX/0/0，保留THROW、非空委托及深度语义。新增真实函数/RC4头行为测试先RED后GREEN、逐处no-op突变KILLED；扩展至实际PHP globals访问器及thirdparty的67成员表达式均通过，14项源码回归通过。该新增JSON增量第1轮独立只读审查Spec PASS / Quality PASS，独立2项禁网测试通过；只审新增两点及其契约，没有重审旧补丁。后续仅补两个Swoole单元，已成功发布的Phalcon状态保持build-ready，仍待新原生CI及API/双CDN闭环。
+
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 
 **Git与Windows补充**：安全修复提交 `d0d8191` 推送时遇到自动build-state提交分叉；误用旧head的run `40280094578` 已取消，回读无artifact。用户回复“继续”后，按所提普通merge保留安全修复与自动状态，合并提交 `b55f2b4` 已推送，未重写历史。干净Windows原生验证于06:43 UTC从包含修复的main重新启动；仍消费原producer `40272362001` attempt1。
