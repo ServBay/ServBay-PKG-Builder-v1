@@ -84,7 +84,9 @@ def catalog_host_requests(payload, arch, base):
     return result
 
 
-def plan_modules(candidates, catalog, producer):
+def plan_modules(candidates, catalog, producer, module_revision=0):
+    if type(module_revision) is not int or module_revision < 0:
+        raise ValueError('Module revision must be an explicit nonnegative integer')
     producer = _state.validate_producer(producer)
     include, cores, external, seen = [], [], [], set()
     for candidate in candidates:
@@ -98,11 +100,12 @@ def plan_modules(candidates, catalog, producer):
             context, host = candidate['meta'], _core._inventory._host(copy.deepcopy(candidate['host']))
             if context['producer'] != producer or context['sha256'] != host['package_sha256']:
                 raise ValueError('Candidate core is not from this exact run/attempt/source')
-        rows = _profiles.module_records(host, context['arch'])
+        rows = _profiles.module_records(host, context['arch'], revision=module_revision)
         selected = _profiles.select_modules(rows, catalog, context['base'], context['minimum_os'])
         external.extend(selected['external_candidates'])
         if candidate.get('origin') != 'catalog-host':
-            cores.append({'candidate': copy.deepcopy(candidate), 'external_candidates': selected['external_candidates']})
+            cores.append({'candidate': copy.deepcopy(candidate), 'external_candidates': selected['external_candidates'],
+                          'module_revisions': {row['name']: row['build_revision'] for row in rows}})
         for row in selected['build']:
             key = _state.identity(row)
             if key in seen:
@@ -372,7 +375,8 @@ def finalize_candidate(candidate_dir, plan_path, module_meta_paths, producer, ou
         if meta['arch'] == candidate['meta']['arch'] and meta['host']['type'] == candidate['host']['type'] and meta['host']['series'] == candidate['host']['series']:
             paths.append(value)
     package = files[0].parent / candidate['meta']['filename']
-    return _core.finalize_core(candidate, package, paths, cores[0]['external_candidates'], producer, output_dir)
+    return _core.finalize_core(candidate, package, paths, cores[0]['external_candidates'], producer, output_dir,
+                               module_revisions=cores[0].get('module_revisions'))
 
 
 def environment_producer():
@@ -381,7 +385,7 @@ def environment_producer():
                                     'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])})
 
 
-def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, repository, work_dir):
+def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, repository, work_dir, module_revision=0):
     candidates = [json.loads(path.read_text()) for path in Path(candidate_dir).rglob('candidate.json')]
     if host_request:
         value = json.loads(host_request)
@@ -394,7 +398,7 @@ def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, re
         if payload.get('status_code') != 200 or not isinstance(payload.get('data', {}).get('extensions'), list):
             raise ValueError('The public module catalog failed; no empty fallback')
         catalog.extend(payload['data']['extensions'])
-    plan = plan_modules(candidates, catalog, producer)
+    plan = plan_modules(candidates, catalog, producer, module_revision=module_revision)
     reserved = _state.reserve_github(plan['include'], producer, repository, Path(work_dir) / 'reservation') if plan['include'] else {'include': [], 'diagnostics': []}
     matrix = selected_matrix(plan['include'], reserved['include'])
     plan['dependency_matrix'] = {'include': [row for row in matrix['include'] if row.get('required_modules')]}
@@ -414,6 +418,7 @@ def main():
     plan.add_argument('--host-request', default='')
     plan.add_argument('--catalog', required=True)
     plan.add_argument('--output', required=True)
+    plan.add_argument('--module-revision', type=int, default=0)
     prepare = sub.add_parser('prepare-module')
     prepare.add_argument('--unit', required=True)
     prepare.add_argument('--candidate-dir', required=True)
@@ -430,7 +435,7 @@ def main():
     producer = environment_producer()
     if args.command == 'plan':
         result, matrix, cores, diagnostics = plan_reserved_modules(args.candidates, args.host_request, args.catalog,
-            producer, os.environ['GITHUB_REPOSITORY'], os.environ['RUNNER_TEMP'])
+            producer, os.environ['GITHUB_REPOSITORY'], os.environ['RUNNER_TEMP'], module_revision=args.module_revision)
         Path(args.output).write_text(json.dumps(result, indent=2) + '\n')
         with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
             for key, value in [('matrix', json.dumps(matrix, separators=(',', ':'))), ('count', len(matrix['include'])),

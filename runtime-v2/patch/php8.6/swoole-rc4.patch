@@ -343,3 +343,8 @@
      }
      if (cainfo && cainfo[0] != '\0') {
          curl_easy_setopt(ch->cp, CURLOPT_CAINFO, cainfo);
+--- ext-src/swoole_process_pool.cc
++++ ext-src/swoole_process_pool.cc
+@@ -374 +374 @@
+-    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "l|llb", &worker_num, &ipc_type, &msgq_key, &enable_coroutine) ==
++    if (zend_parse_parameters(ZEND_NUM_ARGS(), "l|llb", &worker_num, &ipc_type, &msgq_key, &enable_coroutine) ==

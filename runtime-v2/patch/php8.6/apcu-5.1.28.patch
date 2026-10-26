@@ -9,3 +9,11 @@
  		va_end(args);							\
  	}
  
+--- apc_persist.c
++++ apc_persist.c
+@@ -247 +247 @@
+-		EMPTY_SWITCH_DEFAULT_CASE()
++		default: ZEND_UNREACHABLE(); break;
+@@ -453 +453 @@
+-		EMPTY_SWITCH_DEFAULT_CASE()
++		default: ZEND_UNREACHABLE(); break;

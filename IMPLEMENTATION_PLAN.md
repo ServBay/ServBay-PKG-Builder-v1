@@ -291,6 +291,20 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 修复提交 `b910cea7110059bb047de99db5d5566b4ac1133d` 已推送；精确目标macOS v2 PHP8.6RC4、双架构LIVE orchestrator `40279549768` 于06:23 UTC启动，消费已发布的兼容模块，补齐失败模块及正式core。源码及测试文件whitespace检查通过；作为数据保存的unified patch上下文含原始缩进/空白，Git的通用whitespace扫描会报这些上下文，不修改原始补丁上下文或检查配置。
 
+## 阶段 RC4-N: 原生补跑的剩余 API 与基座 revision 闭包
+**目标**: 根据真实run `40279549768` 的新增编译证据，补齐 APCu `apc_persist.c` 两处移除的 `EMPTY_SWITCH_DEFAULT_CASE`、Swoole `swoole_process_pool.cc` 移除的 `zend_parse_parameters_throw`，并有范围核对两模块实际源码与PHP8.5→8.6头的同类移除项。另按当前实际基座2.1.3重新生成PHP8.6全套模块revision1，core仍revision0；不混用已发布的2.1.2模块，不覆盖已有revision0。
+**成功标准**: 仅 APCu/Swoole 专属补丁与真实源码回归、两个macOS workflow的显式 `macos_module_revision`/`module_revision` 输入、`module_pipeline.py` 的预期revision数据传递及对应测试发生变化。默认0和旧不可变plan保持原行为；新plan冻结每core全部模块name→revision，finalizer从预期plan绑定，不能从可用产物随意选择revision；base/producer/精确身份/就绪保护不变。新输入显式为1时，同base2.1.3的26个模块与两个core正式完成；独立增量影响锥审查最多两轮，不重审上一阶段无delta的补丁。
+**测试**: 两新增API真实源码/RC4头RED→GREEN及逐调用点变异；新模块revision1进入模块及依赖、core默认引用与SHA，旧默认0/旧plan不变、错误revision不就绪；离线测试禁网、不跑真实phpize/configure/make/宿主PHP二进制。随后GitHub原生双架构实际编译及加载、Uploader plan/LIVE、公开API和CDN字节SHA闭环。
+**状态**: 进行中
+
+**新增运行事实**：旧已发布8模块manifest的base为2.1.2，当前run候选/plan的base为2.1.3（arm64 Runtime SHA `d2940bb56fafe67f4f6e7982cf7bdc3c716bc81cf20826774d0e5df11009a547`、Devlib SHA `1f033b80c22fc03e14ac32f030caca3f5036e84eefff19bed8635908689527a7`；Intel以当前plan为准）。因此旧8模块在新plan中不再兼容，state也不会冒用旧producer。两个新失败由job `121432350396`、`121432350405` 实际日志确认；其余已成功单元证明上一轮对应修复，但不能代替新的revision1整套产物。
+
+本阶段代码第1轮独立Spec PASS / Quality PASS，覆盖23个相关文件；独立21项管线/producer、2项新增真实源码测试通过，4个revision、1个诊断和3个源码调用点变异均被识别，Actionlint语法与表达式通过。无需第2轮；真实原生CI和Phalcon诊断仍未完成。
+
+Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
+
+**Git与Windows补充**：安全修复提交 `d0d8191` 推送时遇到自动build-state提交分叉；误用旧head的run `40280094578` 已取消，回读无artifact。用户回复“继续”后，按所提普通merge保留安全修复与自动状态，合并提交 `b55f2b4` 已推送，未重写历史。干净Windows原生验证于06:43 UTC从包含修复的main重新启动；仍消费原producer `40272362001` attempt1。
+
 **执行记录**：2026-10-26 05:20 UTC，macOS v1 双架构正式 artifacts 已生成；其 ZIP/package SHA 已独立下载验证：arm64 package `e02bda6e6d92671819beb0508727f850bab9067e61fa91b171016441196cf0eb`，x86_64 package `13003c398ab4b2b7163fcd32b872490bc0f4050c1ad647f39616e74df88a162f`。macOS v2 arm64 仅 candidate core，不是可发布 final core；Intel core、Windows upstream/扩展仍在进行。Windows v1 API 的正确架构参数为 `x64`，Windows v2 归一化为 `x86_64`。Windows v2 beta3 当前 API 已正式发布，但不能将旧包验证结果借给 RC4。
 
 **执行预检与裁定**：阶段1的 formal ZIP/证据是阶段2验证输出、阶段3发布输入，路径/版本/revision 约定一致；阶段2、3不改打包规则，不与阶段1冲突。每阶段内部测试与成功标准一致。此计划按用户指定追加于现有 `IMPLEMENTATION_PLAN.md`，本节兼作进度账本，不另建过程目录；worker 只读取本节、按明确文件 ownership 工作。用户已明确要求直接完成本轮工作，不再另行询问执行方式。父独立审查增量并管理提交/推送/发布。

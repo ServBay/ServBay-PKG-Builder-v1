@@ -113,6 +113,17 @@ extern php_stream_ops sqlsrv_stream_ops;
                     code = "#define SQLSRV_G(x) value\nvoid probe() { long value; char warnings_as_errors[]=\"a\", severity[]=\"b\", subsystems[]=\"c\", buffered_limit[]=\"d\", set_locale_info[]=\"e\";\n"+"\n".join(lines)+"\n}"
                     self.compile_probe(code, cxx=True)
 
+    def test_apcu_complete_persist_translation_unit_compiles_without_removed_switch_macro(self):
+        source = self.prepare("apcu")
+        self.compile_probe("", extra=("-I", str(source), str(source / "apc_persist.c")))
+
+    def test_swoole_process_pool_actual_parse_call_compiles_without_removed_throw_alias(self):
+        source = self.prepare("swoole")
+        text = (source / "ext-src/swoole_process_pool.cc").read_text()
+        call = re.search(r"zend_parse_parameters(?:_throw)?\(ZEND_NUM_ARGS\(\), [^\n]*\)", text).group()
+        declarations = re.search(r"zend_long worker_num;.*?zend_bool enable_coroutine[^;]*;", text, re.S).group()
+        self.compile_probe("#define SW_IPC_NONE 0\nPHP_FUNCTION(probe) {\n" + declarations + "\n(void)" + call + ";\n}", cxx=True)
+
     def test_apcu_print_macro_compiles_with_the_rc4_php_verror_signature(self):
         source = self.prepare("apcu")
         text = (source / "apc.c").read_text()

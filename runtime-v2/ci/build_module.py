@@ -79,7 +79,7 @@ def verify_native_payload(payload, arch):
 def verify_php_payload(prefix, payload, provides):
     # Reflection checks the actual loaded module. Correct stdout accompanied by a
     # startup warning must not turn a missing/incompatible module into success.
-    args = [str(Path(prefix) / "bin/php"), "-n", "-d", "extension_dir=" + str(payload)]
+    args = [str(Path(prefix) / "bin/php"), "-n", "-d", "display_errors=stderr", "-d", "extension_dir=" + str(payload)]
     for name in sorted(provides, key=lambda value: value != "psr"):
         args.extend(["-d", ("zend_extension=" if name == "xdebug" else "extension=") + str(Path(payload) / (name + ".so"))])
     code = "echo json_encode(array_map(function($n){$r=new ReflectionExtension($n);return array($r->getName(),$r->getVersion());},array(" + ",".join(json.dumps(name) for name in provides) + ")));"

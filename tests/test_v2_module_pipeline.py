@@ -2,6 +2,9 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
+import shlex
+import sys
 import tarfile
 import io
 import zipfile
@@ -55,6 +58,115 @@ class ModulePipelineTests(unittest.TestCase):
         wrong['meta']['producer']['run_attempt'] = 1
         with self.assertRaises(ValueError):
             helper.plan_modules([wrong], [], self.producer())
+
+    def test_explicit_revision_reaches_every_arch_module_request_and_dependency(self):
+        helper = self.helper()
+        candidates = []
+        for arch in ('x86_64', 'arm64'):
+            candidate = self.candidate()
+            candidate['host'].update(series='8.6', version='8.6.0RC4')
+            candidate['meta'].update(arch=arch, version='8.6.0RC4')
+            candidate['artifact_name'] = 'candidate-core-macos-' + arch + '-php-8.6.0RC4'
+            candidates.append(candidate)
+        planned = helper.plan_modules(candidates, [], self.producer(), module_revision=1)
+        self.assertEqual(26, len(planned['include']))
+        for row in planned['include']:
+            self.assertEqual(1, row['build_revision'])
+            self.assertEqual(1, row['request']['record']['build_revision'])
+            self.assertEqual(candidates[0]['meta']['base'], row['request']['base'])
+        for core in planned['cores']:
+            self.assertEqual({row['name']: 1 for row in planned['include'] if row['arch'] == core['candidate']['meta']['arch']},
+                             core['module_revisions'])
+        default = helper.plan_modules(candidates, [], self.producer())
+        self.assertTrue(all(row['build_revision'] == 0 for row in default['include']))
+        postgres = self.candidate()
+        postgres['host'] = {'type': 'postgresql', 'series': '18', 'version': '18.6',
+                            'package_sha256': 'c' * 64, 'abi': {'major': 18}}
+        postgres['meta'].update(name='postgresql', version='18.6', filename='postgresql-18.6.tar.gz')
+        dependent = helper.plan_modules([postgres], [], self.producer(), module_revision=1)
+        routing = next(row for row in dependent['include'] if row['name'] == 'pgrouting')
+        self.assertEqual(1, routing['required_modules']['postgis']['build_revision'])
+        self.assertEqual(1, routing['request']['record']['required_modules']['postgis']['build_revision'])
+        for invalid in (None, True, -1, '1', 1.5):
+            with self.subTest(revision=invalid), self.assertRaises(ValueError):
+                helper.plan_modules([], [], self.producer(), module_revision=invalid)
+
+    def test_frozen_core_plan_controls_revisions_and_legacy_plan_keeps_zero(self):
+        helper = self.helper()
+        fixture = test_v2_core_manifest.CoreManifestTests(methodName='runTest')
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        candidate = fixture.candidate()
+        directory = fixture.root / 'candidate'
+        directory.mkdir()
+        (directory / 'candidate.json').write_text(json.dumps(candidate))
+        (directory / fixture.package.name).write_bytes(fixture.package.read_bytes())
+        paths = fixture.modules()
+        plan_path = fixture.root / 'plan.json'
+        legacy = {'cores': [{'candidate': candidate, 'external_candidates': []}]}
+        plan_path.write_text(json.dumps(legacy))
+        result = helper.finalize_candidate(directory, plan_path, paths, fixture.producer, fixture.root / 'legacy-zero')
+        self.assertTrue(all(row['build_revision'] == 0 for row in result['meta']['package_manifest']['default_modules']))
+        explicit = copy.deepcopy(legacy)
+        records = helper._profiles.module_records(candidate['host'], candidate['meta']['arch'])
+        explicit['cores'][0]['module_revisions'] = {row['name']: 1 for row in records}
+        plan_path.write_text(json.dumps(explicit))
+        with self.assertRaises(ValueError):
+            helper.finalize_candidate(directory, plan_path, paths, fixture.producer, fixture.root / 'wrong-zero')
+        for path in paths:
+            meta = json.loads(Path(path).read_text())
+            meta['build_revision'] = 1
+            Path(path).write_text(json.dumps(meta))
+        result = helper.finalize_candidate(directory, plan_path, paths, fixture.producer, fixture.root / 'explicit-one')
+        self.assertEqual(0, result['meta']['build_revision'])
+        self.assertEqual({row['name']: 1 for row in records if row['default']},
+                         {row['name']: row['build_revision'] for row in result['meta']['package_manifest']['default_modules']})
+        plan_path.write_text(json.dumps(legacy))
+        with self.assertRaises(ValueError):
+            helper.finalize_candidate(directory, plan_path, paths, fixture.producer, fixture.root / 'legacy-wrong-one')
+
+    def test_plan_cli_freezes_explicit_revision_before_reserving_modules(self):
+        helper = self.helper()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = self.candidate()
+            candidate['record'] = {'runtime_version': 'v2', 'os': 'macos', 'kind': 'package', 'name': 'php',
+                                   'version': '8.4.27', 'arch': 'x86_64', 'build_revision': 0, 'build_type': 'source'}
+            (root / 'candidate.json').write_text(json.dumps(candidate))
+            output = root / 'plan.json'
+            args = ['module_pipeline.py', 'plan', '--candidates', str(root), '--catalog',
+                    'https://catalog.example.invalid/', '--output', str(output), '--module-revision', '1']
+            def reserve(rows, producer, repository, work):
+                self.assertTrue(all(row['build_revision'] == 1 for row in rows))
+                return helper._state.reserve_records({'schema_version': 1, 'units': {}}, rows, producer)
+            with mock.patch.object(sys, 'argv', args), mock.patch.object(helper, 'environment_producer', return_value=self.producer()), \
+                    mock.patch.dict(os.environ, {'GITHUB_REPOSITORY': 'fixture/Builder', 'RUNNER_TEMP': str(root),
+                                                  'GITHUB_OUTPUT': str(root / 'github-output')}, clear=True), \
+                    mock.patch.object(helper, 'read_catalog', return_value={'status_code': 200, 'data': {'extensions': []}}), \
+                    mock.patch.object(helper._state, 'reserve_github', side_effect=reserve):
+                helper.main()
+            planned = json.loads(output.read_text())
+            self.assertTrue(all(row['build_revision'] == 1 for row in planned['include']))
+            self.assertTrue(all(revision == 1 for revision in planned['cores'][0]['module_revisions'].values()))
+
+    def test_workflow_inputs_keep_module_revision_independent_from_core_revision(self):
+        import yaml
+        orchestration = yaml.safe_load((ROOT / '.github/workflows/build-and-dispatch.yml').read_text())
+        workflow = yaml.safe_load((ROOT / '.github/workflows/build-macos.yml').read_text())
+        entry = orchestration.get('on', orchestration.get(True))['workflow_dispatch']['inputs']
+        self.assertEqual(('number', 0), (entry['macos_module_revision']['type'], entry['macos_module_revision']['default']))
+        passed = orchestration['jobs']['build-macos']['with']
+        self.assertEqual("${{ fromJSON(format('{0}', inputs.macos_module_revision || 0)) }}", passed['module_revision'])
+        self.assertEqual("${{ fromJSON(format('{0}', inputs.build_revision || 0)) }}", passed['build_revision'])
+        triggers = workflow.get('on', workflow.get(True))
+        for trigger in ('workflow_dispatch', 'workflow_call'):
+            self.assertEqual('number', triggers[trigger]['inputs']['module_revision']['type'])
+            self.assertEqual(0, triggers[trigger]['inputs']['module_revision']['default'])
+        step = next(row for row in workflow['jobs']['module-plan']['steps'] if row.get('id') == 'modules')
+        self.assertEqual('${{ inputs.module_revision }}', step['env']['MODULE_REVISION'])
+        command = shlex.split(next(line for line in step['run'].replace('\\\n', '').splitlines()
+                                   if line.startswith('python3 ')))
+        self.assertEqual('$MODULE_REVISION', command[command.index('--module-revision') + 1])
 
     def test_public_package_rows_are_real_grouped_payload_and_never_invent_host_source_producer(self):
         helper = self.helper()

@@ -15,6 +15,10 @@ on:
         description: 'Explicit rebuild revision (v2 only)'
         type: number
         default: 0
+      module_revision:
+        description: 'Explicit independent module rebuild revision (v2 only)'
+        type: number
+        default: 0
       pkg:
         description: 'Package name (e.g. php, nginx)'
         required: true
@@ -43,6 +47,9 @@ on:
         type: string
         default: v1
       build_revision:
+        type: number
+        default: 0
+      module_revision:
         type: number
         default: 0
       pkg:
@@ -499,12 +506,13 @@ jobs:
         env:
           HOST_REQUEST: ${{ inputs.host_request }}
           MODULE_CATALOG_URL: ${{ vars.MODULE_CATALOG_URL }}
+          MODULE_REVISION: ${{ inputs.module_revision }}
           PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 runtime-v2/ci/module_pipeline.py plan --candidates candidates --host-request "$HOST_REQUEST" \
-            --catalog "$MODULE_CATALOG_URL" --output module-plan.json
+            --catalog "$MODULE_CATALOG_URL" --module-revision "$MODULE_REVISION" --output module-plan.json
       - uses: actions/upload-artifact@v4
         with:
           name: module-plan-${{ inputs.pkg }}-${{ inputs.version }}-${{ inputs.arch }}-r${{ inputs.build_revision }}

@@ -435,6 +435,19 @@ class ModuleProducerTests(unittest.TestCase):
         self.assertEqual([["phalcon", "4.1.2"], ["psr", "1.1.0"]],
                          self.helper().verify_php_payload(prefix, payload, ["phalcon", "psr"]))
 
+    def test_php_startup_diagnostics_report_the_reason_and_still_block_publication(self):
+        prefix, payload = self.root / "host", self.root / "payload"
+        (prefix / "bin").mkdir(parents=True)
+        payload.mkdir()
+        php = prefix / "bin/php"
+        php.write_text("#!/bin/sh\ncase \"$*\" in *display_errors=stderr*) "
+                       "printf '%s' 'Deprecated: fixture startup reason' >&2; "
+                       "printf '%s' '[[\"phalcon\",\"5.23.0\"]]' ;; *) "
+                       "printf '\\nDeprecated: fixture startup reason\\n[[\"phalcon\",\"5.23.0\"]]' ;; esac\n")
+        php.chmod(0o755)
+        with self.assertRaisesRegex(ValueError, "PHP module loading emitted diagnostics: Deprecated: fixture startup reason"):
+            self.helper().verify_php_payload(prefix, payload, ["phalcon"])
+
     def test_pg_provides_rejects_missing_or_invalid_actual_control_default_version(self):
         for text in ("# default_version = '0.8.1'\n", "default_version='0.8.1'\ndefault_version='0.8.2'\n"):
             with self.subTest(control=text):
