@@ -1,0 +1,85 @@
+name: build-windows-v2-postgresql
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages_json:
+        description: 'Exact stable versions and EDB revisions: [{"version":"17.11","edb_revision":5}]'
+        required: true
+        type: string
+      build_revision:
+        description: 'Package build revision (0 for first publication)'
+        required: true
+        default: '0'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: windows-2025
+    outputs:
+      packages: ${{ steps.matrix.outputs.packages }}
+      suffix: ${{ steps.matrix.outputs.suffix }}
+    steps:
+      - id: matrix
+        shell: pwsh
+        env:
+          PACKAGES_JSON: ${{ inputs.packages_json }}
+          BUILD_REVISION: ${{ inputs.build_revision }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:BUILD_REVISION -notmatch '^(0|[1-9][0-9]*)$') { throw 'Invalid build revision' }
+          $rows = @($env:PACKAGES_JSON | ConvertFrom-Json)
+          if ($rows.Count -lt 1 -or $rows.Count -gt 16) { throw 'Provide 1-16 exact packages' }
+          $seen = @{}
+          foreach ($row in $rows) {
+            $fields = @($row.PSObject.Properties.Name | Sort-Object)
+            if (($fields -join ',') -ne 'edb_revision,version') { throw 'Unexpected package fields' }
+            if ($row.version -isnot [string] -or $row.version -notmatch '^[1-9][0-9]*\.[0-9]+$' -or
+                [int]($row.version.Split('.')[0]) -lt 10) { throw 'Stable PostgreSQL >=10 required' }
+            if (($row.edb_revision -isnot [long] -and $row.edb_revision -isnot [int]) -or
+                $row.edb_revision -lt 1) { throw 'Positive integer EDB revision required' }
+            if ($seen.ContainsKey($row.version)) { throw 'Duplicate PostgreSQL version' }
+            $seen[$row.version] = $true
+          }
+          $compact = ConvertTo-Json -InputObject @($rows) -Compress -Depth 4
+          "packages=$compact" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $suffix = if ($env:BUILD_REVISION -eq '0') { '' } else { "-r$env:BUILD_REVISION" }
+          "suffix=$suffix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+  build:
+    needs: prepare
+    runs-on: windows-2025
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        package: ${{ fromJSON(needs.prepare.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Produce and exercise exact PostgreSQL core
+        shell: pwsh
+        env:
+          PG_VERSION: ${{ matrix.package.version }}
+          EDB_REVISION: ${{ matrix.package.edb_revision }}
+          BUILD_REVISION: ${{ inputs.build_revision }}
+          PRODUCER_COMMIT: ${{ github.sha }}
+          PRODUCER_RUN_ID: ${{ github.run_id }}
+          PRODUCER_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $seven = 'C:\Program Files\7-Zip\7z.exe'
+          if (-not (Test-Path -LiteralPath $seven -PathType Leaf)) { throw 'Installed 7-Zip is required' }
+          $python = (Get-Command python -ErrorAction Stop).Source
+          & $python runtime-windows/ci/postgresql_v2_pipeline.py --version $env:PG_VERSION --edb-revision $env:EDB_REVISION --build-revision $env:BUILD_REVISION --minimum-os 10.0 --commit $env:PRODUCER_COMMIT --run-id $env:PRODUCER_RUN_ID --run-attempt $env:PRODUCER_RUN_ATTEMPT --output postgresql-output --seven-zip $seven
+          if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL producer failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg2-windows-x86_64-package-postgresql-${{ matrix.package.version }}${{ needs.prepare.outputs.suffix }}
+          path: postgresql-output/*
+          if-no-files-found: error
+          retention-days: 14
