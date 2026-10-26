@@ -23,6 +23,7 @@ ATTEMPT = 1
 VERSION = "8.6.0RC4"
 PRODUCER_COMMIT = "5f5af83f797ae89a7187ddca87492cf8064d68d7"
 COLLECTOR_COMMIT = "b614c80d50c417f22a92a78be2540c750c7559f8"
+PHP_RUNTIME_ENV = {"SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "TEMP", "TMP", "PATH", "COMSPEC", "PATHEXT"}
 
 
 def load(name, path):
@@ -43,15 +44,14 @@ def sha(path):
 def run(command, *, env=None, strict_stderr=False):
     result = subprocess.run([str(item) for item in command], capture_output=True,
                             text=True, encoding="utf-8", errors="strict", timeout=300, env=env)
-    # Never include the environment or GitHub command output in error reports.
+    # PHP info can contain environment values. Never echo raw subprocess output.
     if result.returncode or (strict_stderr and result.stderr.strip()):
-        detail = (result.stdout + "\n" + result.stderr) if Path(str(command[0])).name.lower() == "php.exe" else ""
-        raise RuntimeError(f"{Path(str(command[0])).name} failed ({result.returncode})\n{detail}")
+        raise RuntimeError(f"{Path(str(command[0])).name} failed ({result.returncode}; stderr_present={bool(result.stderr.strip())})")
     return result.stdout
 
 
 def php_run(php, arguments):
-    env = dict(os.environ)
+    env = {key.upper(): value for key, value in os.environ.items() if key.upper() in PHP_RUNTIME_ENV}
     env.update(PHPRC="", PHP_INI_SCAN_DIR="", PATH=str(php.parent) + os.pathsep + env.get("PATH", ""))
     return run([php, *arguments], env=env, strict_stderr=True)
 
@@ -261,8 +261,7 @@ def build_payloads(repacker, split, index, selected, work, module_revision, seve
     raw = work / "raw-core"
     raw.mkdir()
     repacker._zip_inventory(split / core_asset["filename"], core_asset, raw)
-    abi_info = php_run(raw / "php.exe", ["-n", "-i"])
-    abi = parse_abi(abi_info)
+    abi = parse_abi(php_run(raw / "php.exe", ["-n", "-i"]))
     core, modules = identities(selected, abi, module_revision)
     evidence = {"source_sha256": core_asset["sha256"], "version": VERSION, "abi": abi}
     prepared = repacker.prepare_php_payloads(split_source, core, modules, evidence,
@@ -294,7 +293,7 @@ def build_payloads(repacker, split, index, selected, work, module_revision, seve
     receipt = {"schema": "servbay.php-rc4-native-pipeline.v1", "producer": index["build_context"]["producer"],
                "collector_commit": COLLECTOR_COMMIT, "machine": machine, "core_identity": core,
                "module_identities": modules, "split_index_sha256": split_source["sha256"],
-               "raw_core_phpinfo": abi_info, "abi": abi, "prepared_native": native,
+               "core_evidence": evidence, "abi": abi, "prepared_native": native,
                "formal_native": formal_native, "upstream_artifacts": upstream["artifacts"],
                "formal_archive_sha256": {name: sha(path) for name, path in formal_archives.items()}}
     (exported / "native-evidence.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
