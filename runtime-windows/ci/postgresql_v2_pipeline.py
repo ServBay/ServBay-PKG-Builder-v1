@@ -12,13 +12,14 @@ from pathlib import Path
 import re
 import socket
 import subprocess
+import sys
 import tempfile
 from urllib.request import urlopen
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_ENV = {"SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "TEMP", "TMP", "PATH", "COMSPEC", "PATHEXT"}
-STAGES = {"arguments", "prepare", "extract", "download", "native", "finalize", "export"}
+STAGES = {"arguments", "work_access", "prepare", "extract", "download", "native", "finalize", "export"}
 
 
 class ProbeFailure(RuntimeError):
@@ -43,11 +44,11 @@ def load_repacker():
     return module
 
 
-def run(command):
+def run(command, *, cwd=None):
     environment = {key.upper(): value for key, value in os.environ.items() if key.upper() in RUNTIME_ENV}
     try:
         return subprocess.run([str(item) for item in command], env=environment, capture_output=True,
-                              text=True, encoding="utf-8", errors="replace", timeout=300)
+                              text=True, encoding="utf-8", errors="replace", timeout=300, cwd=cwd)
     except (OSError, subprocess.SubprocessError):
         raise RuntimeError("Subprocess execution failed") from None
 
@@ -80,6 +81,47 @@ def powershell(script, runner=run):
 
 def ps_literal(value):
     return "'" + str(value).replace("'", "''") + "'"
+
+
+def token_user_sid():
+    return powershell("[Security.Principal.WindowsIdentity]::GetCurrent().User.Value")
+
+
+def _work_access(path, sid):
+    script = ("$sid=([Security.Principal.SecurityIdentifier]" + ps_literal(sid) + ").Value; "
+              "$acl=Get-Acl -LiteralPath " + ps_literal(path) + "; "
+              "$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])); "
+              "$ready=@($rules | Where-Object {$_.IdentityReference.Value -eq $sid -and "
+              "$_.AccessControlType -eq 'Allow' -and "
+              "($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -eq "
+              "[Security.AccessControl.FileSystemRights]::FullControl -and "
+              "($_.InheritanceFlags -band 3) -eq 3 -and $_.PropagationFlags -eq 0}).Count -gt 0; "
+              "$others=@($rules | Where-Object {$_.IdentityReference.Value -ne $sid} | ForEach-Object { "
+              "'{0}|{1}|{2}|{3}|{4}|{5}' -f $_.IdentityReference.Value,[int]$_.FileSystemRights,"
+              "[int]$_.InheritanceFlags,[int]$_.PropagationFlags,$_.IsInherited,$_.AccessControlType} | Sort-Object); "
+              "@{owner=$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value; "
+              "others=$others; ready=$ready; protected=$acl.AreAccessRulesProtected} "
+              "| ConvertTo-Json -Compress -Depth 4")
+    return json.loads(powershell(script))
+
+
+def prepare_work_directory(work, *, runner=run):
+    """Grant only this new empty tree to TokenUser before any payload exists."""
+    work = Path(work)
+    if work.is_symlink() or not work.is_dir() or any(work.iterdir()):
+        raise ValueError("Work access requires the newly created empty directory")
+    sid = token_user_sid()
+    if not isinstance(sid, str) or not re.fullmatch(r"S-1-(?:[0-9]+-){1,14}[0-9]+", sid):
+        raise ValueError("Actual TokenUser SID is invalid")
+    before = _work_access(work, sid)
+    icacls = Path(os.environ.get("SYSTEMROOT", "C:/Windows")) / "System32/icacls.exe"
+    require_ok(runner([icacls, str(work), "/grant", "*" + sid + ":(OI)(CI)F"]), "work access grant")
+    after = _work_access(work, sid)
+    if (after["ready"] is not True or before["owner"] != after["owner"]
+            or before["others"] != after["others"] or before["protected"] != after["protected"]):
+        raise ValueError("Work access was not verified or existing security changed")
+    return {"python_version": sys.version.split()[0], "work_access_ready": after["ready"],
+            "owner_matches_user": after["owner"] == sid, "owner_preserved": before["owner"] == after["owner"]}
 
 
 def machine_evidence(runner=run):
@@ -186,6 +228,9 @@ def download_source(version, revision, destination):
 
 
 def collect_native(root, archive, version, *, runner=run):
+    def native_run(command):
+        return runner(command, cwd=root / "bin")
+
     machine = machine_evidence(runner)
     if (machine["os_architecture"] != "X64" or machine["process_architecture"] != "X64"
             or machine["process_environment_architecture"] != "AMD64" or machine["process_machine"] != 0
@@ -193,7 +238,7 @@ def collect_native(root, archive, version, *, runner=run):
         raise ValueError("Native Windows AMD64 is required; emulation is not accepted")
     pgconfig, flags = {}, {}
     for key in ("version", "bindir", "sharedir", "pkglibdir", "includedir-server", "cc", "configure", "cflags", "ldflags"):
-        actual = require_ok(runner([root / "bin/pg_config.exe", "--" + key]), "pg_config " + key)
+        actual = require_ok(native_run([root / "bin/pg_config.exe", "--" + key]), "pg_config " + key)
         (pgconfig if key in ("version", "bindir", "sharedir", "pkglibdir", "includedir-server") else flags)[key.replace("-", "_")] = actual
     if pgconfig["version"] != "PostgreSQL " + version:
         raise ValueError("pg_config version differs")
@@ -202,7 +247,7 @@ def collect_native(root, archive, version, *, runner=run):
             raise ValueError("pg_config path differs: " + key)
     executables = {}
     for name in ("postgres", "initdb", "pg_ctl", "psql"):
-        actual = require_ok(runner([root / ("bin/" + name + ".exe"), "--version"]), name + " version")
+        actual = require_ok(native_run([root / ("bin/" + name + ".exe"), "--version"]), name + " version")
         if actual != f"{name} (PostgreSQL) {version}":
             raise ValueError("Executable version differs: " + name)
         executables[name] = actual
@@ -210,7 +255,7 @@ def collect_native(root, archive, version, *, runner=run):
     data, port = root / "data", free_port()
     if data.exists():
         raise ValueError("Native database directory already exists")
-    init = runner([root / "bin/initdb.exe", "-D", data, "-U", "servbay_probe", "--encoding=UTF8", "--locale=C", "--auth=trust"])
+    init = native_run([root / "bin/initdb.exe", "-D", data, "-U", "servbay_probe", "--encoding=UTF8", "--locale=C", "--auth=trust"])
     require_ok(init, "initdb")
     initialized = (data / "PG_VERSION").read_text(encoding="utf-8").strip()
     if initialized != version.split(".")[0]:
@@ -218,17 +263,17 @@ def collect_native(root, archive, version, *, runner=run):
     start = query = stop = None
     sql = None
     try:
-        start = runner([root / "bin/pg_ctl.exe", "-D", data, "-l", root.parent.parent / "postgresql-startup.log",
+        start = native_run([root / "bin/pg_ctl.exe", "-D", data, "-l", root.parent.parent / "postgresql-startup.log",
                         "-o", f"-h 127.0.0.1 -p {port}", "-w", "-t", "60", "start"])
         require_ok(start, "startup")
         statement = ("SELECT json_build_object('server_version',current_setting('server_version'),"
                      "'server_encoding',current_setting('server_encoding'),'data_directory',"
                      "current_setting('data_directory'),'compiler',version())::text;")
-        query = runner([root / "bin/psql.exe", "-X", "-A", "-t", "-w", "-h", "127.0.0.1", "-p", str(port),
+        query = native_run([root / "bin/psql.exe", "-X", "-A", "-t", "-w", "-h", "127.0.0.1", "-p", str(port),
                         "-U", "servbay_probe", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c", statement])
         sql = json.loads(require_ok(query, "query"))
     finally:
-        stop = runner([root / "bin/pg_ctl.exe", "-D", data, "-w", "-t", "60", "-m", "fast", "stop"])
+        stop = native_run([root / "bin/pg_ctl.exe", "-D", data, "-w", "-t", "60", "-m", "fast", "stop"])
         remaining, listeners = cleanup_observation(root, port, runner)
         require_ok(stop, "stop")
         if remaining != 0 or listeners != 0:
@@ -275,6 +320,12 @@ def pipeline(version, edb_revision, producer, output, seven_zip, *, build_revisi
     try:
         with tempfile.TemporaryDirectory(prefix="servbay-pg-producer-", dir=output.parent) as temporary:
             work = Path(temporary)
+            progress("work_access")
+            runtime = prepare_work_directory(work)
+            print("PostgreSQL runtime python_version=" + runtime["python_version"]
+                  + " work_access_ready=" + str(runtime["work_access_ready"]).lower()
+                  + " owner_matches_user=" + str(runtime["owner_matches_user"]).lower()
+                  + " owner_preserved=" + str(runtime["owner_preserved"]).lower(), flush=True)
             progress("download")
             filename = f"postgresql-{version}-{edb_revision}-windows-x64-binaries.zip"
             source = download_source(version, edb_revision, work / filename)
@@ -307,7 +358,7 @@ def pipeline(version, edb_revision, producer, output, seven_zip, *, build_revisi
             write_json(export / "source-evidence.json", {
                 "source": {key: value for key, value in source.items() if key != "path"},
                 "edb_revision": edb_revision, "producer": producer,
-                "minimum_os_policy": minimum_os, **sidecar})
+                "minimum_os_policy": minimum_os, "runtime": runtime, **sidecar})
             (export / "postgresql-repack-manifest.json").write_bytes(
                 (work / "prepared/postgresql-repack-manifest.json").read_bytes())
             if output.exists() or output.is_symlink():

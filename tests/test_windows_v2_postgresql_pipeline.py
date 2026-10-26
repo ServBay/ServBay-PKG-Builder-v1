@@ -60,9 +60,10 @@ class PipelineTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GH_TOKEN": "SECRET", "GITHUB_TOKEN": "SECRET",
                                          "AWS_SECRET_ACCESS_KEY": "SECRET"}), \
                 mock.patch.object(pipeline.subprocess, "run", return_value=raw) as run:
-            result = pipeline.run(["postgres.exe", "--version"])
+            result = pipeline.run(["postgres.exe", "--version"], cwd=self.root)
         self.assertEqual(result.returncode, 9)
         env = run.call_args.kwargs["env"]
+        self.assertTrue(run.call_args.kwargs["cwd"] == self.root, "Explicit subprocess cwd must be forwarded")
         self.assertFalse(set(env) & {"GH_TOKEN", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY"})
         with self.assertRaises(RuntimeError) as caught:
             pipeline.require_ok(result, "startup")
@@ -87,11 +88,13 @@ class PipelineTests(unittest.TestCase):
         (root / "bin").mkdir(parents=True)
         return root
 
-    def runner(self, root, failures=None, bad=None):
+    def runner(self, root, failures=None, bad=None, cwd_callback=None):
         failures, bad = failures or {}, bad or {}
         calls = []
         def invoke(command, **kwargs):
             command = [str(item) for item in command]
+            if cwd_callback:
+                cwd_callback(command, kwargs.get("cwd"))
             calls.append(command)
             name, args = Path(command[0]).stem, command[1:]
             key = name
@@ -120,7 +123,8 @@ class PipelineTests(unittest.TestCase):
         return invoke, calls
 
     def observe(self, root, **kwargs):
-        runner, calls = self.runner(root, kwargs.pop("failures", None), kwargs.pop("bad", None))
+        runner, calls = self.runner(root, kwargs.pop("failures", None), kwargs.pop("bad", None),
+                                    kwargs.pop("cwd_callback", None))
         system = {"os_architecture": "X64", "process_architecture": "X64", "processor_name": "actual cpu",
                   "processor_architecture_code": 9, "process_environment_architecture": "AMD64",
                   "os_version": "10.0.26100", "native_machine": 34404, "process_machine": 0}
@@ -261,6 +265,116 @@ class PipelineTests(unittest.TestCase):
                                _identity=REAL_REPACKER._identity, prepare_postgresql_core=mock.Mock(side_effect=prepare),
                                _verify_archive=mock.Mock(side_effect=extract),
                                finalize_postgresql_core=mock.Mock(side_effect=finalize))
+
+    def security_snapshot(self, path):
+        script = ("$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+                  "$acl=Get-Acl -LiteralPath " + pipeline.ps_literal(path) + "; "
+                  "$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])); "
+                  "$ready=@($rules | Where-Object {$_.IdentityReference.Value -eq $sid -and "
+                  "$_.AccessControlType -eq 'Allow' -and "
+                  "($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -eq "
+                  "[Security.AccessControl.FileSystemRights]::FullControl -and "
+                  "($_.InheritanceFlags -band 3) -eq 3 -and $_.PropagationFlags -eq 0}).Count -gt 0; "
+                  "$others=@($rules | Where-Object {$_.IdentityReference.Value -ne $sid} | ForEach-Object { "
+                  "'{0}|{1}|{2}|{3}|{4}|{5}' -f $_.IdentityReference.Value,[int]$_.FileSystemRights,"
+                  "[int]$_.InheritanceFlags,[int]$_.PropagationFlags,$_.IsInherited,$_.AccessControlType} | Sort-Object); "
+                  "@{owner=$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value; "
+                  "sddl=$acl.GetSecurityDescriptorSddlForm('All'); others=$others; ready=$ready; "
+                  "protected=$acl.AreAccessRulesProtected} | ConvertTo-Json -Compress -Depth 4")
+        value = json.loads(pipeline.powershell(script))
+        return {"owner_hash": hashlib.sha256(value["owner"].encode()).hexdigest(),
+                "acl_hash": hashlib.sha256(value["sddl"].encode()).hexdigest(),
+                "other_rules_hash": hashlib.sha256(json.dumps(value["others"]).encode()).hexdigest(),
+                "protected": value["protected"], "ready": value["ready"]}
+
+    def test_runtime_work_tree_has_user_inheritable_access_before_download(self):
+        repacker = self.fake_repacker()
+        archive = self.root / "source.zip"
+        archive.write_bytes(b"source")
+        output = self.root / "formal"
+        parent_before = self.security_snapshot(self.root)
+        existing_before = self.security_snapshot(archive)
+        observations = []
+        def download(version, revision, destination):
+            work = Path(destination).parent
+            snapshot = self.security_snapshot(work)
+            observations.append(snapshot)
+            self.assertTrue(snapshot["ready"], "New work tree must grant the actual TokenUser inheritable F")
+            self.assertFalse(list(work.iterdir()), "Access must be prepared before payload/download creation")
+            self.assertTrue(snapshot["owner_hash"] == parent_before["owner_hash"], "Existing default owner must be preserved")
+            self.assertTrue(self.security_snapshot(self.root) == parent_before, "Parent ACL must remain unchanged")
+            self.assertTrue(self.security_snapshot(archive) == existing_before, "Existing input ACL must remain unchanged")
+            return {"path": str(archive), "version": version, "url": pipeline.source_url(version, revision),
+                    "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bytes": archive.stat().st_size}
+        with mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                mock.patch.object(pipeline, "download_source", side_effect=download), \
+                mock.patch.object(pipeline, "collect_native", return_value=({"observed": "native"}, {}, {})):
+            try:
+                pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+            except ValueError:
+                self.fail("New work tree access must be successfully prepared before download")
+        self.assertEqual(len(observations), 1)
+        self.assertTrue(self.security_snapshot(self.root) == parent_before, "Pipeline must not grant parent directory access")
+
+    def test_runtime_native_commands_receive_package_bin_cwd(self):
+        root = self.fixture()
+        observed = []
+        initial = Path.cwd()
+        def observe_cwd(command, cwd):
+            self.assertTrue(cwd is not None and Path(cwd).resolve() == (root / "bin").resolve(),
+                            "Every native PostgreSQL command must use its accessible package bin cwd")
+            observed.append(Path(command[0]).stem)
+        self.observe(root, cwd_callback=observe_cwd)
+        self.assertTrue({"pg_config", "postgres", "initdb", "pg_ctl", "psql"} <= set(observed))
+        self.assertTrue(Path.cwd() == initial, "Native cwd must not change the Python process cwd")
+
+    def test_runtime_user_grant_preserves_owner_other_aces_and_protection(self):
+        before = self.security_snapshot(self.root)
+        metadata = pipeline.prepare_work_directory(self.root)
+        after = self.security_snapshot(self.root)
+        self.assertTrue(after["ready"], "Actual user inheritable FullControl ACE must be observable")
+        for key in ("owner_hash", "other_rules_hash", "protected"):
+            self.assertTrue(before[key] == after[key], "Existing owner/other ACEs/protection must be preserved")
+        self.assertTrue(metadata["work_access_ready"])
+        self.assertTrue(metadata["owner_preserved"])
+        self.assertEqual(metadata["python_version"], sys.version.split()[0])
+        serialized = json.dumps(metadata)
+        self.assertNotIn("S-1-", serialized)
+        self.assertNotIn(str(self.root), serialized)
+
+    def test_runtime_invalid_sid_and_failed_grant_stop_before_download(self):
+        for failure in ("invalid_sid", "grant_exit"):
+            with self.subTest(failure=failure):
+                output = self.root / failure
+                failed = subprocess.CompletedProcess([], 5, "SECRET stdout", "SECRET stderr")
+                original = pipeline.prepare_work_directory
+                failure_probe = mock.Mock(return_value=failed)
+                with mock.patch.object(pipeline, "download_source") as download, \
+                        mock.patch.object(pipeline, "collect_native") as native:
+                    if failure == "invalid_sid":
+                        with mock.patch.object(pipeline, "token_user_sid", return_value="invalid-SECRET"):
+                            with self.assertRaises(ValueError) as caught:
+                                pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+                    else:
+                        with mock.patch.object(pipeline, "prepare_work_directory",
+                                               side_effect=lambda path: original(path, runner=failure_probe)):
+                            with self.assertRaises(pipeline.ProbeFailure) as caught:
+                                pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+                        command = failure_probe.call_args.args[0]
+                        self.assertEqual(Path(command[0]).name.lower(), "icacls.exe")
+                        self.assertNotIn("/T", command)
+                        self.assertNotIn("/grant:r", command)
+                        self.assertTrue(Path(command[1]).parent == self.root and Path(command[1]) != self.root,
+                                        "Only the newly-created work directory may be granted")
+                    download.assert_not_called()
+                    native.assert_not_called()
+                self.assertNotIn("SECRET", pipeline.failure_summary(caught.exception))
+                self.assertFalse(output.exists())
+
+    def test_runtime_claimed_grant_success_requires_actual_acl_readback(self):
+        successful = subprocess.CompletedProcess([], 0, "claims success", "")
+        with self.assertRaises(ValueError):
+            pipeline.prepare_work_directory(self.root, runner=lambda command: successful)
 
     def test_pipeline_binds_actual_source_producer_and_native_before_export(self):
         repacker = self.fake_repacker()
