@@ -276,12 +276,13 @@ class PackageUpdater:
             active = [row for row in existing if not row["is_commented"]]
             if not active:
                 continue
-            floor = min((row["version"] for row in active), key=self.version_to_tuple)
+            version_key = self.php_version_key if name == "php" else self.version_to_tuple
+            floor = min((row["version"] for row in active), key=version_key)
             major_floors = {}
             for row in active:
                 major = int(re.match(r"\d+", row["version"]).group())
                 previous = major_floors.get(major)
-                if previous is None or self.compare_versions(row["version"], previous) < 0:
+                if previous is None or self.compare_versions(row["version"], previous, name) < 0:
                     major_floors[major] = row["version"]
             updates = versions if isinstance(versions, dict) else {"SINGLE": versions}
             series_keys = sorted(updates, key=len, reverse=True)
@@ -291,18 +292,18 @@ class PackageUpdater:
                              version == series or version.startswith((series + ".", series + "-"))), None)
 
             for series, version in updates.items():
-                if self.compare_versions(version, floor) < 0:
+                if self.compare_versions(version, floor, name) < 0:
                     continue
                 major = int(re.match(r"\d+", version).group())
-                if major in major_floors and self.compare_versions(version, major_floors[major]) < 0:
+                if major in major_floors and self.compare_versions(version, major_floors[major], name) < 0:
                     continue
                 if major not in major_floors and major < max(major_floors):
                     continue
                 matching = [row for row in existing if series_for(row["version"]) == series]
-                if any(not row["is_commented"] and self.compare_versions(row["version"], version) > 0
+                if any(not row["is_commented"] and self.compare_versions(row["version"], version, name) > 0
                        for row in matching):
                     continue
-                template = max(matching or active, key=lambda row: self.version_to_tuple(row["version"]))
+                template = max(matching or active, key=lambda row: version_key(row["version"]))
                 exact = next((row for row in matching if row["version"] == version), None)
                 for row in matching:
                     data = "\t".join(str(row[key]) for key in ("name", "version", "x86_file", "arm_file", "build_type"))
@@ -424,7 +425,7 @@ class PackageUpdater:
                     # Filter based on series
                     if serie in ['8.6']:  # Dev versions
                         # Sort all versions including pre-releases
-                        version_list.sort(key=lambda x: tuple(x.split('.')))
+                        version_list.sort(key=self.php_version_key)
                         versions[f'php_{serie}'] = version_list[-1]
                     else:
                         # For stable branches, exclude pre-releases
@@ -1365,8 +1366,23 @@ class PackageUpdater:
         except:
             return False
 
-    def compare_versions(self, v1: str, v2: str) -> int:
+    @staticmethod
+    def php_version_key(version: str) -> tuple:
+        """Order PHP numeric releases and dev/alpha/beta/RC stages."""
+        match = re.fullmatch(r'(\d+(?:\.\d+)*)(?:-?(dev|alpha|beta|rc)(?:-?(\d+))?)?',
+                             version, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Invalid PHP version: {version}")
+        numeric, stage, sequence = match.groups()
+        stage_rank = {'dev': 0, 'alpha': 1, 'beta': 2, 'rc': 3}
+        return (tuple(map(int, numeric.split('.'))),
+                stage_rank.get((stage or '').lower(), 4), int(sequence or 0))
+
+    def compare_versions(self, v1: str, v2: str, package: Optional[str] = None) -> int:
         """Compare two version strings"""
+        if package == 'php':
+            first, second = self.php_version_key(v1), self.php_version_key(v2)
+            return (first > second) - (first < second)
         def normalize(v):
             return [int(x) if x.isdigit() else x for x in re.split(r'[.-]', v)]
         try:
@@ -1619,7 +1635,7 @@ class PackageUpdater:
                     # update waiting to happen — treat it as already satisfied so
                     # the series is not re-queued for a build.
                     newer_local = any(
-                        self.compare_versions(v['version'], version) > 0
+                        self.compare_versions(v['version'], version, package) > 0
                         and (v['version'] == series
                              or v['version'].startswith(series + '.')
                              or v['version'].startswith(series + '-'))
@@ -1730,9 +1746,10 @@ class PackageUpdater:
                     # left it, and the upstream line as provenance. Rewriting or
                     # dropping the local line would queue a build of the
                     # unpatched tarball and overwrite the patched artifact.
-                    local_best = (max(matching_entries, key=lambda e: self.version_to_tuple(e['ver']))
+                    version_key = self.php_version_key if current_package == 'php' else self.version_to_tuple
+                    local_best = (max(matching_entries, key=lambda e: version_key(e['ver']))
                                   if matching_entries else None)
-                    if local_best and self.compare_versions(local_best['ver'], latest) > 0:
+                    if local_best and self.compare_versions(local_best['ver'], latest, current_package) > 0:
                         if exact_match:
                             upstream_line = exact_match['line']
                             if not upstream_line.strip().startswith('#'):

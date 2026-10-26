@@ -365,7 +365,7 @@ class WindowsPackageUpdater:
                 if not version_list:
                     continue
                 if serie == '8.6':  # pre-GA: keep alpha/beta/RC so new ones compile
-                    version_list.sort(key=lambda x: tuple(x.split('.')))
+                    version_list.sort(key=self.php_version_key)
                     versions[f'php_{serie}'] = version_list[-1]
                 else:
                     stable_versions = [v for v in version_list
@@ -934,6 +934,18 @@ class WindowsPackageUpdater:
             return None
 
         return tag
+
+    @staticmethod
+    def php_version_key(version: str) -> tuple:
+        """Order PHP numeric releases and dev/alpha/beta/RC stages."""
+        match = re.fullmatch(r'(\d+(?:\.\d+)*)(?:-?(dev|alpha|beta|rc)(?:-?(\d+))?)?',
+                             version, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Invalid PHP version: {version}")
+        numeric, stage, sequence = match.groups()
+        stage_rank = {'dev': 0, 'alpha': 1, 'beta': 2, 'rc': 3}
+        return (tuple(map(int, numeric.split('.'))),
+                stage_rank.get((stage or '').lower(), 4), int(sequence or 0))
 
     def compare_versions(self, v1: str, v2: str) -> int:
         """Compare two version strings"""
