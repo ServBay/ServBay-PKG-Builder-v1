@@ -179,7 +179,8 @@ def prepare_module_request(unit, candidate_dir, base_root, work_root, producer, 
         work_root.mkdir(parents=True, exist_ok=True)
         archive = work_root / ('host-' + unit['host']['type'] + '-' + request['host_version'] + '-' + request['host_sha256'] + '.tar.gz')
         if not archive.exists():
-            with urllib.request.urlopen(request['download_url'], timeout=120) as response:
+            download = urllib.request.Request(request['download_url'], headers={'User-Agent': 'ServBay-PKG-Builder'})
+            with urllib.request.urlopen(download, timeout=120) as response:
                 archive.write_bytes(response.read())
     if _meta.sha256(archive) != request['host_sha256']:
         raise ValueError('Exact module host download SHA256 differs')
@@ -312,7 +313,8 @@ def finalize_requested_module(unit, plan, producer, repository, directory, host_
     else:
         _public_url(request['download_url'])
         host_archive = Path(directory) / ('host-' + request['host_sha256'] + '.tar.gz')
-        with urllib.request.urlopen(request['download_url'], timeout=120) as response:
+        download = urllib.request.Request(request['download_url'], headers={'User-Agent': 'ServBay-PKG-Builder'})
+        with urllib.request.urlopen(download, timeout=120) as response:
             host_archive.write_bytes(response.read())
     external = [row for row in plan.get('external_candidates', [])
                 if row['record']['arch'] == unit['arch'] and row['record']['host'] == unit['host']]
