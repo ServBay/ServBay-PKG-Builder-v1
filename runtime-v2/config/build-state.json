@@ -5510,7 +5510,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.2.0-dev\"}": {
+      "artifact_expires_at": "2026-11-02T10:16:57Z",
+      "artifact_id": "12643365357",
+      "artifact_name": "pkg2-macos-arm64-php-extension-swoole-6.2.0-dev-8.6-r1",
+      "artifact_zip_sha256": "5570928237bacd395af66cc425ab5ffb17df3a86c4ca96239e593956448f0882",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "9d299d42d246051ec87d8bf0e0f53fba368af4be",
+        "run_attempt": 1,
+        "run_id": "40305625443"
+      },
+      "package_sha256": "a521e0831635dbc77153f52b100f79ede8ddcbd31f85985e75f2e4caccba4873",
+      "producer": {
+        "commit": "9d299d42d246051ec87d8bf0e0f53fba368af4be",
+        "run_attempt": 1,
+        "run_id": "40305625443"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5533,16 +5548,7 @@
         "runtime_version": "v2",
         "version": "6.2.0-dev"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T10:13:18+00:00",
-        "expires_at": "2026-10-26T18:13:18+00:00",
-        "producer": {
-          "commit": "9d299d42d246051ec87d8bf0e0f53fba368af4be",
-          "run_attempt": 1,
-          "run_id": "40305625443"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
       "artifact_expires_at": "2026-11-02T07:18:19Z",
