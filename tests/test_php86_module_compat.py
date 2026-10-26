@@ -107,8 +107,10 @@ class PHP86SourceCompatibilityTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "differs from its expected"):
                     exec(code, scope)
 
-    def test_swoole_real_version_download_keeps_exact_snapshot_bytes_and_receipt(self):
+    def test_swoole_real_version_download_selects_exact_snapshot_url_and_receipt(self):
         source_archive = self.sources / ("swoole-" + VERSIONS["swoole"] + ".tar.gz")
+        # This direct-codeload fixture has a short-ref archive root. The helper
+        # test checks URL/receipt selection, not GitHub's HTTP normalization.
         expected_sha = "e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09"
         self.assertEqual(expected_sha, hashlib.sha256(source_archive.read_bytes()).hexdigest())
         helper = "_download_pecl_source() {\n" + self.extract(self.script, "_download_pecl_source") + "\n}"

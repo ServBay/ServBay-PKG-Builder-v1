@@ -279,13 +279,13 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **目标**: 把 Windows v2 正式 ZIP 交给已有 windows-assets 路由，并持续收口已启动的 macOS v1/v2、Windows v1 发布。
 **成功标准**: 全部目标的 Uploader LIVE 步骤成功；公开 package API 的 PHP8.6 为 `8.6.0RC4`，模块记录与 core default_modules 的 version/revision/hash/ABI 一致；每个目标下载 URL 的真实字节 SHA 等于 Builder/元数据/API。留存精确 run/attempt/commit、注册结果和 hash，不以 check-only/CI 绿灯代替注册。
 **测试**: 对精确 artifact 运行现有 Uploader plan/dry-run，随后 `dry_run=false`；查询真实 API、下载 CDN 全部 core 和引用模块验证 SHA。对失败仅补对应单元，禁止无关全量重跑。
-**状态**: 进行中。06:03 UTC已确认公开API的macOS v1 arm64/x86_64、Windows v1 x64全部为RC4；三包API hash、Builder package SHA和CDN实际下载SHA一致。macOS v2已注册的8模块CDN SHA一致；macOS v2 core/其余模块和Windows v2尚未完成。
+**状态**: 已完成。全部6个核心、Windows v2的16个与macOS v2的26个扩展已LIVE，48个唯一文件的当前API SHA/URL全部一致；ESA/CF共96次完整下载均一致。最终发布增量独立审查Spec PASS / Quality PASS，九个公开API和两个Swoole的双CDN另行独立回读通过。重复core记录4143/4144及v1显示名仅提出处理建议，未获删除/修改指令，未执行。
 
 ## 阶段 RC4-M: macOS v2 的 PHP 8.6 扩展兼容修复
 **目标**: 修复本次真实构建发现的 9 个扩展、双架构共 18 个失败单元：memcached 3.4.0、APCu 5.1.28、Phalcon 5.23.0 的旧补丁不再适用；SQLSRV 5.13.3、IMAP 1.0.3、SCWS 1.2.4-pre、Xdebug 3.4.3 使用了已移除的 INI 宏；PDO_SQLSRV 5.13.3 和 Swoole 6.1.7-88fc55029c 使用旧的 stream/error API。保留已通过的核心包和其余 4 个模块，不减少模块、不修改版本、不绕过编译或 finalize 门禁。
 **成功标准**: 按 exact 上游源码和 PHP 8.6.0RC4 实际头文件修复 PHP8.6 专属补丁/接线；worker 仅负责 `runtime-v2/scripts/build_package.sh` 的 PHP8.6 扩展部分、必要的 `runtime-v2/patch/php8.6/*` 和对应行为测试，保留该脚本中并行提交 b67168ad 的 PostgreSQL/ICU 修复。新增增量经独立只读影响锥审查（最多两轮），线上双架构 13 个模块和 final core 均成功后进入发布。
 **测试**: 全量逐 job 日志分类、exact 源码补丁应用和必要的 C/C++ 编译/行为回归；新 recipe 提交在 GitHub runner 上实际编译，最终 core/module 原生加载和 ABI 检查全部通过。旧 SHA 的 rerun 不代表修复代码已验证；不能拿 candidate core 代替正式 core。
-**状态**: 进行中
+**状态**: 已完成。双架构13×2扩展均实际编译、原生加载、正式发布；新增JSON及真实版本纠正经两轮增量审查通过，原门禁保留。源码提交不变，Swoole正确版本6.2.0-dev。
 
 代码审查已在最多两轮内通过：第1轮独立找到SQL两opener的未命名context、Swoole剩余21处参数宏和实际启用php84 curl两处INI调用，共3个P1；原worker修正后，第2轮独立Spec PASS / Quality PASS，3个delta测试及26/26逐处变异通过。完整源码测试8/8及既有recipe18/18通过；保留全部模块与原行为，待新提交在双架构CI实际编译/加载。
 
@@ -295,7 +295,7 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **目标**: 根据真实run `40279549768` 的新增编译证据，补齐 APCu `apc_persist.c` 两处移除的 `EMPTY_SWITCH_DEFAULT_CASE`、Swoole `swoole_process_pool.cc` 移除的 `zend_parse_parameters_throw`，并有范围核对两模块实际源码与PHP8.5→8.6头的同类移除项。另按当前实际基座2.1.3重新生成PHP8.6全套模块revision1，core仍revision0；不混用已发布的2.1.2模块，不覆盖已有revision0。
 **成功标准**: 仅 APCu/Swoole 专属补丁与真实源码回归、两个macOS workflow的显式 `macos_module_revision`/`module_revision` 输入、`module_pipeline.py` 的预期revision数据传递及对应测试发生变化。默认0和旧不可变plan保持原行为；新plan冻结每core全部模块name→revision，finalizer从预期plan绑定，不能从可用产物随意选择revision；base/producer/精确身份/就绪保护不变。新输入显式为1时，同base2.1.3的26个模块与两个core正式完成；独立增量影响锥审查最多两轮，不重审上一阶段无delta的补丁。
 **测试**: 两新增API真实源码/RC4头RED→GREEN及逐调用点变异；新模块revision1进入模块及依赖、core默认引用与SHA，旧默认0/旧plan不变、错误revision不就绪；离线测试禁网、不跑真实phpize/configure/make/宿主PHP二进制。随后GitHub原生双架构实际编译及加载、Uploader plan/LIVE、公开API和CDN字节SHA闭环。
-**状态**: 进行中
+**状态**: 已完成。两个core revision0及26模块revision1均为基座2.1.3；双架构Swoole与Phalcon原生/版本/SID门禁全部通过，新4模块LIVE/API/ESA/CF已逐项回读，未重新注册core。旧误标Swoole失败3次记录保留。
 
 **新增运行事实**：旧已发布8模块manifest的base为2.1.2，当前run候选/plan的base为2.1.3（arm64 Runtime SHA `d2940bb56fafe67f4f6e7982cf7bdc3c716bc81cf20826774d0e5df11009a547`、Devlib SHA `1f033b80c22fc03e14ac32f030caca3f5036e84eefff19bed8635908689527a7`；Intel以当前plan为准）。因此旧8模块在新plan中不再兼容，state也不会冒用旧producer。两个新失败由job `121432350396`、`121432350405` 实际日志确认；其余已成功单元证明上一轮对应修复，但不能代替新的revision1整套产物。
 
@@ -333,7 +333,13 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 Swoole双架构本轮仅剩 `thirdparty/php/standard/var_decoder.cc` 的两处 `JSON_G(error_code)` 字段移除错误；失败计数为2，没有修改计数或阈值。两调用点按PHP8.6官方JSON实现改为清完整error_details、空串赋完整SYNTAX/0/0，保留THROW、非空委托及深度语义。新增真实函数/RC4头行为测试先RED后GREEN、逐处no-op突变KILLED；扩展至实际PHP globals访问器及thirdparty的67成员表达式均通过，14项源码回归通过。该新增JSON增量第1轮独立只读审查Spec PASS / Quality PASS，独立2项禁网测试通过；只审新增两点及其契约，没有重审旧补丁。后续仅补两个Swoole单元，已成功发布的Phalcon状态保持build-ready，仍待新原生CI及API/双CDN闭环。
 
-10:11 UTC：JSON修复 `0d62cbeccf7c8ee1bf08385c45ef742547a8b07c` 的ARM `40303665974`、Intel `40303672904` 均已完整编译、链接并通过dlopen；原版本门禁准确拒绝 actual `6.2.0-dev` 与配置误标 `6.1.7-88fc55029c`，没有正式产物/上传/注册。实际archive的PAX comment确认full commit `88fc55029c3fefce6678477c35a26f3e3cd857c2`，包内头声明6.2.0-dev/60200；旧源码archive SHA `e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09`。仅纠正PHP8.6 Swoole profile到真实版本，并为该版本显式复用完全相同shortref URL与正确本地tar.gz归档名；源码字节不变，不修改原生版本门禁/阈值/revision。旧误标identity的双架构失败3次记录已核对保留，真实版本会形成新identity，不能表述成清零重试。新增两行为回归先RED后GREEN、profile/ref逐点变异KILLED，禁网源码16项全部通过；本轮Swoole第2轮最终只读增量审查Spec PASS / Quality PASS，独立2项及2突变通过。证据 `swoole-source-version-audit.json`。仅剩真实版本Swoole双架构原生CI与LIVE/API/双CDN验收。
+10:11 UTC：JSON修复 `0d62cbeccf7c8ee1bf08385c45ef742547a8b07c` 的ARM `40303665974`、Intel `40303672904` 均已完整编译、链接并通过dlopen；原版本门禁准确拒绝 actual `6.2.0-dev` 与配置误标 `6.1.7-88fc55029c`，没有正式产物/上传/注册。实际archive的PAX comment确认full commit `88fc55029c3fefce6678477c35a26f3e3cd857c2`，包内头声明6.2.0-dev/60200；本地直接codeload短ref夹具SHA `e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09`（生产GitHub入口实际重定向完整commit归档，见后续校正）。仅纠正PHP8.6 Swoole profile到真实版本，并为该版本显式复用完全相同shortref URL与正确本地tar.gz归档名；源码提交与文件内容不变，不修改原生版本门禁/阈值/revision。旧误标identity的双架构失败3次记录已核对保留，真实版本会形成新identity，不能表述成清零重试。新增两行为回归先RED后GREEN、profile/ref逐点变异KILLED，禁网源码16项全部通过；本轮Swoole第2轮最终只读增量审查Spec PASS / Quality PASS，独立2项及2突变通过。证据 `swoole-source-version-audit.json`。仅剩真实版本Swoole双架构原生CI与LIVE/API/双CDN验收。
+
+10:22 UTC校正：此前把本地直接codeload短ref夹具e2d…误称生产下载字节。生产GitHub /archive/88fc55029c.tar.gz实际302到完整commit的codeload URL，真实archive SHA为 `8054ca88e45ef3fe24244d8185e96fa7a8374e1dcc11b4fb7f4aa913d9dd92f7`，正式metadata准确记录该值。父实际下载并对短/完整ref两归档去根路径后逐项核对3011个成员，内容、mode、type、link及PAX commit全部相同；不是源码变更。已修正生产注释、离线测试名称/范围说明与本账本；2项相关禁网回归通过，生产逻辑不变，不为注释重新构建。证据 `swoole-source-archive-equivalence.json`。
+
+10:28 UTC：真实版本修正提交 `9d299d42d246051ec87d8bf0e0f53fba368af4be` 的ARM `40305625443`、Intel `40305632585` 全部成功；仅各1个Swoole，正式artifact `12643365357` / `12642961326` 的ZIP/package/manifest SHA、Mach-O CPU、producer/source/base/core绑定独立核对。dry-run `40306981886` / `40306990301` 各1包计划通过；LIVE `40307176122` / `40307181291` 各新增1扩展、OSS/R2共4次SHA验证，无未执行项。公开extension API与ESA/CF四次完整下载一致。六个core最新API复核及双路12次完整下载保持原SHA；汇总当前48文件的API全部一致、双CDN共96次SHA一致，详见 `final-release-verification.json`。下一步仅最终发布增量审查及账本提交，不再构建/注册。
+
+10:33 UTC：第1轮最终发布增量只读审查Spec PASS / Quality PASS，约21个本地相关文件及GitHub/公开API证据；四份真实ZIP的SHA/manifest/Mach-O/producer、每份dry1扩展、LIVE注册1与OSS/R2验证2全部独立通过。reviewer另行请求九个公开API确认48身份各1条，实取Swoole两包双CDN四次SHA一致；独立重新比对源归档3011成员一致。没有新缺陷，不再第二轮审查。阶段RC4-3/M/N全部完成，仅提交这次注释/测试名澄清和最终账本；未删除重复数据库记录、未改显示名，也未声称PAT已轮换。
 
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 
