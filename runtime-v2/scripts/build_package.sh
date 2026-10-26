@@ -4826,6 +4826,7 @@ build_postgresql() {
     # 只在 Libs.private 里，configure 的非 static pkg-config 拿不到，链接期
     # ICU 符号全缺（run 40062810115 双架构实测）。v2 静态优先策略下显式给全。
     export ICU_LIBS="-L${SERVBAY_COMMON_LIB_PATH} -L${SERVBAY_STATIC_LIB_PATH} -licui18n -licuuc -licudata -lc++"
+    export CPPFLAGS="${CPPFLAGS} -DU_DISABLE_RENAMING=1"
     # ICU 取证探针（第 5 轮仍未消，需 runner 实地 nm 实际库文件）
     log_message "INFO" "[icu2] === ICU library facts on this runner ==="
     for _f in "${SERVBAY_COMMON_LIB_PATH}/libicuuc.a" "${SERVBAY_COMMON_LIB_PATH}/libicuuc.76.dylib" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.a" "${SERVBAY_COMMON_LIB_PATH}/libicui18n.76.dylib"; do

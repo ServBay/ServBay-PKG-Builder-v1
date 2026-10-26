@@ -413,6 +413,34 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
         self.assertEqual(str(generator), Path(str(capture) + ".generator").read_text().strip())
         self.assertEqual("common-protobuf-c\n", Path(str(capture) + ".result").read_text())
 
+    def test_pg_core_configure_preserves_caller_flags_and_disables_icu_symbol_renaming(self):
+        source = self.root / "icu-source"
+        (source / "src/include").mkdir(parents=True)
+        (source / "src/include/pg_config_manual.h").write_text('#define DEFAULT_PGSOCKET_DIR  "/tmp"\n')
+        capture = self.root / "configure.cppflags"
+        configure = source / "configure"
+        configure.write_text('#!/bin/sh\nprintf "%s\\n" "$CPPFLAGS" > "$CAPTURE"\n')
+        configure.chmod(0o755)
+        body = self.extract(self.text, "build_postgresql")
+        # Keep the recipe's fixed diagnostic probes inside this test's sandbox.
+        body = body.replace("/tmp/icu2", str(self.root / "icu2"))
+        script = ["architecture=arm64", "CPU_NUMBER=2",
+                  "SERVBAY_BUILD_DIR=" + shlex.quote(str(self.root)),
+                  "SERVBAY_PACKAGE_FULL_PATH=" + shlex.quote(str(self.root / "packages")),
+                  "SOURCE=" + shlex.quote(str(source)),
+                  "export CAPTURE=" + shlex.quote(str(capture)),
+                  "export CPPFLAGS='-DCALLER_SENTINEL=37 -I/caller/include'",
+                  "log_message() { :; }", "trash_path() { :; }", "make() { return 0; }",
+                  'unpack_package() { builtin cd "$SOURCE"; }',
+                  'build_postgresql() {\n' + body + '\n}',
+                  'build_postgresql 18.6 source.tar.bz2 ""']
+        result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        flags = shlex.split(capture.read_text())
+        self.assertIn("-DCALLER_SENTINEL=37", flags)
+        self.assertIn("-I/caller/include", flags)
+        self.assertIn("-DU_DISABLE_RENAMING=1", flags)
+
     def test_pg_core_keeps_official_contrib_without_building_third_party_or_copying_runtime_libpq(self):
         source = self.root / "source"
         (source / "src/include").mkdir(parents=True)
