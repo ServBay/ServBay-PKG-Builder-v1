@@ -504,6 +504,7 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
         core = core_manifest.finalize_core(
             candidate, core_archive, module_metas, [], producer, staged_output / "core",
             config=profile, seven_zip=seven_zip,
+            module_revisions={name: module["identity"]["build_revision"] for name, module in audit["modules"].items()},
         )
         receipt = {
             "schema": "servbay.php-v2-finalization.v1",
