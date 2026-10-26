@@ -5317,9 +5317,9 @@
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"phalcon\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.23.0\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
+        "commit": "5054ccc9f2f6c2ea3b5c9d655a911f96d745de90",
         "run_attempt": 1,
-        "run_id": "40293140056"
+        "run_id": "40293585909"
       },
       "record": {
         "arch": "arm64",
@@ -5342,15 +5342,6 @@
         "recipe_name": "phalcon",
         "runtime_version": "v2",
         "version": "5.23.0"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-26T08:38:06+00:00",
-        "expires_at": "2026-10-26T16:38:06+00:00",
-        "producer": {
-          "commit": "5054ccc9f2f6c2ea3b5c9d655a911f96d745de90",
-          "run_attempt": 1,
-          "run_id": "40293585909"
-        }
       },
       "status": "discovered"
     },
@@ -5480,9 +5471,9 @@
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.7-88fc55029c\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
+        "commit": "5054ccc9f2f6c2ea3b5c9d655a911f96d745de90",
         "run_attempt": 1,
-        "run_id": "40293140056"
+        "run_id": "40293585909"
       },
       "record": {
         "arch": "arm64",
@@ -5505,15 +5496,6 @@
         "recipe_name": "swoole",
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-26T08:38:06+00:00",
-        "expires_at": "2026-10-26T16:38:06+00:00",
-        "producer": {
-          "commit": "5054ccc9f2f6c2ea3b5c9d655a911f96d745de90",
-          "run_attempt": 1,
-          "run_id": "40293585909"
-        }
       },
       "status": "discovered"
     },
