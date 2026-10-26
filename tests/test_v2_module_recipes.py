@@ -381,10 +381,15 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
         generator = common / "bin/protoc-c"
         generator.write_text("#!/bin/sh\nprintf 'common-protobuf-c\\n'\n")
         generator.chmod(0o755)
+        sfcgal = common / "bin/sfcgal-config"
+        sfcgal.write_text("#!/bin/sh\nprintf '2.1.0\\n'\n")
+        sfcgal.chmod(0o755)
         prefix = self.root / "base/packages/postgresql/18"
         (prefix / "bin").mkdir(parents=True)
         config = prefix / "bin/pg_config"
-        config.write_text("#!/bin/sh\nprintf '%s\\n' " + shlex.quote(str(prefix / "bin")) + "\n")
+        config.write_text("#!/bin/sh\ncase \"$1\" in --bindir) printf '%s\\n' " + shlex.quote(str(prefix / "bin")) +
+                          ";; --pkglibdir) printf '%s\\n' " + shlex.quote(str(prefix / "lib")) +
+                          ";; --sharedir) printf '%s\\n' " + shlex.quote(str(prefix / "share")) + ";; esac\n")
         config.chmod(0o755)
         capture = self.root / "configure.args"
         configure = source / "configure"
@@ -403,13 +408,14 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
                   'log_message() { :; }', 'download_source() { :; }',
                   'unpack_package() { builtin cd "$SOURCE"; }',
                   '_apply_single_patch() { :; }', 'cleanup_source_directory() { :; }',
-                  'make() { if [[ $1 == install ]]; then touch "$PREFIX/bin/postgis"; fi; }',
+                  'make() { if [[ $1 == install ]]; then mkdir -p "$PREFIX/lib" "$PREFIX/share/extension"; touch "$PREFIX/bin/postgis" "$PREFIX/lib/postgis_sfcgal-3.dylib" "$PREFIX/share/extension/postgis_sfcgal.control" "$PREFIX/share/extension/postgis_sfcgal--3.5.7.sql"; fi; }',
                   '_build_pgsql_mod_postgis() {\n' + self.extract(self.text, "_build_pgsql_mod_postgis") + '\n}',
                   '_build_pgsql_mod_postgis 3.5.7 18.6 18 "$PREFIX"']
         result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)],
                                 capture_output=True, text=True, env=dict(os.environ, PATH="/usr/bin:/bin"))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("--with-protobufdir=" + str(common), capture.read_text().splitlines())
+        self.assertIn("--with-sfcgal=" + str(sfcgal), capture.read_text().splitlines())
         self.assertEqual(str(generator), Path(str(capture) + ".generator").read_text().strip())
         self.assertEqual("common-protobuf-c\n", Path(str(capture) + ".result").read_text())
 
@@ -554,7 +560,11 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
         prefix = self.root / "base/packages/postgresql/18"
         (prefix / "bin").mkdir(parents=True)
         config = prefix / "bin/pg_config"
-        config.write_text("#!/bin/sh\nprintf '%s' " + shlex.quote(str(prefix / "lib")) + "\n")
+        headers = prefix / "include/server"
+        headers.mkdir(parents=True)
+        (headers / "pg_config.h").write_text('#define DLSUFFIX ".dylib"\n')
+        config.write_text("#!/bin/sh\ncase \"$1\" in --includedir-server) printf '%s' " + shlex.quote(str(headers)) +
+                          ";; *) printf '%s' " + shlex.quote(str(prefix / "lib")) + ";; esac\n")
         config.chmod(0o755)
         source_dir = self.root / "src"
         source_dir.mkdir()
@@ -568,6 +578,7 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
                   'download_source() { print -r -- "$1" >> "$CALLS"; [[ "$1" == *cppjieba* ]] && cp "$COMPONENT" "$2" || cp "$MAIN" "$2"; }',
                   'unpack_package() { mkdir -p "$SERVBAY_BUILD_SRC_DIR/$1"; /usr/bin/tar -xzf "$SERVBAY_BUILD_SRC_DIR/$2" --strip-components=1 -C "$SERVBAY_BUILD_SRC_DIR/$1"; builtin cd "$SERVBAY_BUILD_SRC_DIR/$1"; }',
                   'cmake() { print -r -- "$*" >> "$CALLS"; [[ -f libjieba/include/cppjieba/Jieba.hpp ]] || return 9; if [[ $1 == --install ]]; then mkdir -p "$DESTDIR$PREFIX/lib"; print native > "$DESTDIR$PREFIX/lib/pg_jieba.so"; fi; return 0; }',
+                  '_install_pg_jieba_loader_alias() {\n' + self.extract(self.text, "_install_pg_jieba_loader_alias") + '\n}',
                   '_build_pgsql_mod_pg_jieba() {\n' + self.extract(self.text, "_build_pgsql_mod_pg_jieba") + '\n}',
                   '_build_pgsql_mod_pg_jieba 2.0.1 18.6 18 ' + shlex.quote(str(prefix))]
         result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)], capture_output=True, text=True)
@@ -577,6 +588,7 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
         self.assertIn(pin["component"]["url"], calls)
         self.assertIn("-DPostgreSQL_PG_CONFIG=" + str(config), calls)
         self.assertTrue((Path(str(stage) + str(prefix)) / "lib/pg_jieba.so").is_file())
+        self.assertEqual(Path("pg_jieba.so"), (Path(str(stage) + str(prefix)) / "lib/pg_jieba.dylib").readlink())
         self.assertFalse((prefix / "lib/pg_jieba.so").exists())
         for changed in ("release", "component"):
             wrong = json.loads(json.dumps(pin))

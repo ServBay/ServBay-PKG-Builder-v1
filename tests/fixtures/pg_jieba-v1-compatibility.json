@@ -1,0 +1,115 @@
+{
+  "provenance": {
+    "source": {
+      "arch": "arm64",
+      "os": "macOS",
+      "majorVersion": "18",
+      "latestVersion": "18.6",
+      "fileName": "postgresql-18.6.tar.gz",
+      "hash": "39830aa5a4ea15a2908d4dbdfe8769b1cf0d527fafc7aa8314974c77a19c1fdf",
+      "downloadUrl": "https://dl.servbay.com/packages/arm64/postgresql/postgresql-18.6.tar.gz",
+      "runtimeVersion": "v1",
+      "buildRevision": 0
+    },
+    "actual_sha256": "39830aa5a4ea15a2908d4dbdfe8769b1cf0d527fafc7aa8314974c77a19c1fdf",
+    "actual_bytes": 27607847,
+    "scope": "data_only_no_v1_binary_execution"
+  },
+  "candidate_main": {
+    "url": "https://codeload.github.com/jaiminpan/pg_jieba/tar.gz/d0ffac8028328b2566a889ff4db3d74ba63d1b42",
+    "bytes": 12018,
+    "sha256": "a7ee376de977b9aa6e5a867a5fbbadbaeab1b40233e90dcf6bd1214897d00fa5"
+  },
+  "candidate_cppjieba": {
+    "url": "https://codeload.github.com/yanyiwu/cppjieba/tar.gz/391121d5db0f31dd5ce9795d4d34812f20eeb25c",
+    "bytes": 8318402,
+    "sha256": "c02907dbe41da72bba15cae39fe0b09bb6916ea03173f92090c4fc9e78c830f9"
+  },
+  "candidate_limonp": {
+    "url": "https://codeload.github.com/yanyiwu/limonp/tar.gz/a269e34dc4948d5a9209e21a7887b52daa0d3e78",
+    "commit": "a269e34dc4948d5a9209e21a7887b52daa0d3e78",
+    "bytes": 247512,
+    "sha256": "54b77a01176815b70190ed5f546c32aeb47e6cce646d930d73cb02c5c465a912",
+    "gitmodules_present": false,
+    "headers": [
+      "include/limonp/ArgvContext.hpp",
+      "include/limonp/BlockingQueue.hpp",
+      "include/limonp/BoundedBlockingQueue.hpp",
+      "include/limonp/BoundedQueue.hpp",
+      "include/limonp/Closure.hpp",
+      "include/limonp/Colors.hpp",
+      "include/limonp/Condition.hpp",
+      "include/limonp/Config.hpp",
+      "include/limonp/FileLock.hpp",
+      "include/limonp/ForcePublic.hpp",
+      "include/limonp/LocalVector.hpp",
+      "include/limonp/Logging.hpp",
+      "include/limonp/Md5.hpp",
+      "include/limonp/MutexLock.hpp",
+      "include/limonp/NonCopyable.hpp",
+      "include/limonp/StdExtension.hpp",
+      "include/limonp/StringUtil.hpp",
+      "include/limonp/Thread.hpp",
+      "include/limonp/ThreadPool.hpp"
+    ]
+  },
+  "files": {
+    "share/extension/pg_jieba--1.1.1.sql": {
+      "bytes": 3338,
+      "sha256": "df1c8d9f72cefeb18097c429127eeb90752af60fefa6b25f01145caaef5e7f70",
+      "candidate_source_sha256": "df1c8d9f72cefeb18097c429127eeb90752af60fefa6b25f01145caaef5e7f70",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "efe031cae3d273dee9782166da0be69fe81a077cdcad7225b71959d75748168e",
+      "current_v2_source_matches": false
+    },
+    "share/extension/pg_jieba.control": {
+      "bytes": 135,
+      "sha256": "3ff798a2f571a587b0da816f65ea3f467758e2ccf2c89f412af67d211ae272bc",
+      "candidate_source_sha256": "3ff798a2f571a587b0da816f65ea3f467758e2ccf2c89f412af67d211ae272bc",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "eb03703ccd7e597af7d15fb7fe070b785788d7c3067ddf94f69344b3e38b8280",
+      "current_v2_source_matches": false
+    },
+    "share/tsearch_data/jieba_user.dict": {
+      "bytes": 49,
+      "sha256": "495bbf49270408a1234690e1e6a97328f30a482a7a72aa769e8a12e8714b0c62",
+      "candidate_source_sha256": "495bbf49270408a1234690e1e6a97328f30a482a7a72aa769e8a12e8714b0c62",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "495bbf49270408a1234690e1e6a97328f30a482a7a72aa769e8a12e8714b0c62",
+      "current_v2_source_matches": true
+    },
+    "share/tsearch_data/jieba_base.dict": {
+      "bytes": 5071204,
+      "sha256": "3043b77068e09c9904f27cad82f12b6ebe9dbdb5aeff3b25e45ab7f9c1122b55",
+      "candidate_source_sha256": "3043b77068e09c9904f27cad82f12b6ebe9dbdb5aeff3b25e45ab7f9c1122b55",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "3043b77068e09c9904f27cad82f12b6ebe9dbdb5aeff3b25e45ab7f9c1122b55",
+      "current_v2_source_matches": true
+    },
+    "share/tsearch_data/jieba.idf": {
+      "bytes": 5998717,
+      "sha256": "dbd1e03d72b2263cc8d84a4304ed77677eed9e7deaf43a1a5133bbba9733b535",
+      "candidate_source_sha256": "dbd1e03d72b2263cc8d84a4304ed77677eed9e7deaf43a1a5133bbba9733b535",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "dbd1e03d72b2263cc8d84a4304ed77677eed9e7deaf43a1a5133bbba9733b535",
+      "current_v2_source_matches": true
+    },
+    "share/tsearch_data/jieba_hmm.model": {
+      "bytes": 519739,
+      "sha256": "f17790586ac86dd048c8adffed052c4bd2b28ed0682972c1275e59040c0589a7",
+      "candidate_source_sha256": "f17790586ac86dd048c8adffed052c4bd2b28ed0682972c1275e59040c0589a7",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "f17790586ac86dd048c8adffed052c4bd2b28ed0682972c1275e59040c0589a7",
+      "current_v2_source_matches": true
+    },
+    "share/tsearch_data/jieba.stop": {
+      "bytes": 8974,
+      "sha256": "b788b8a939d2e2fe079abd579ea98f12f9fb84370bfd0dddd81bb9381f7ab42c",
+      "candidate_source_sha256": "b788b8a939d2e2fe079abd579ea98f12f9fb84370bfd0dddd81bb9381f7ab42c",
+      "candidate_source_matches": true,
+      "current_v2_source_sha256": "b788b8a939d2e2fe079abd579ea98f12f9fb84370bfd0dddd81bb9381f7ab42c",
+      "current_v2_source_matches": true
+    }
+  },
+  "original_v2_sql_sha256": "efe031cae3d273dee9782166da0be69fe81a077cdcad7225b71959d75748168e"
+}
