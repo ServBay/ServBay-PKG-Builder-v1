@@ -317,6 +317,16 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 07:41 UTC：第2轮最终delta独立审查Spec PASS / Quality PASS，覆盖约19个相关文件，独立10项producer/4项源码探针、成功返回及非Phalcon排除、4个接线缺陷变异均通过。已核对真实RC4 lookup guard、官方SID生成器和用户handler回调、两个根类/四具体类及已验证host_version来源。阶段N两轮代码审查收口；下一步只跑四个剩余原生模块及API/CDN，不重审无变动代码。
 
+08:34 UTC：最终补丁提交 `b5b03d5cddb0554e213f11fada3b6a115f4a07a8` 已推送。首次选择orchestrator的host请求run `40293024382`/`40293030290` 未启动编译：实际orchestrator有意不向reusable workflow传递host_request；改用已有直接入口build-macos.yml，arm64 `40293140056`、Intel `40293144863`，均为同一b5b03d5源码、实际公开RC4 core及module revision1。未改workflow或来源门禁。
+
+08:43 UTC：两个直接入口仍未编译；依据四单元已discovered/failures1且无lease的实际state，再发 `40293585909`/`40293591061` 后仍跳过，遂停止重复调度。独立只读诊断确认：state提交ac1b099精确预留ARM两模块，5105e9精确预留Intel两模块，矩阵各至少2，正常设置outputs且无secretmask；module-build的无状态函数if被skipped core祖先的隐式success阻断，随后collector释放lease但未增加失败计数。其他独立入口复用同一workflow，无等价的现成仅补模块入口。父已准备未应用的一行patch `/tmp/servbay-php-rc4-release-d8heet_i/independent-host-workflow.patch`：显式要求!cancelled、plan/module-plan成功、count非零，语法检查通过。因宿主AGENTS.md:157要求CI判定变更须用户批准，已提出具体授权请求，待答复前不改项目workflow、不继续调度。
+
+08:56 UTC：用户明确允许应用该CI条件修复、提交推送并补跑四项。仅module-build.if改为显式未取消、两个plan成功和count非零；不修改预留/失败阈值、原生加载/SID、SHA或发布检查。用户另确认正常merge授权；此前安全修复合并b55f2b4已经完成，本轮当前分支仅落后自动state，按实际差异快进同步，没有重写历史或重复制造merge。
+
+09:21 UTC：用户质询重复记录、显示名及双CDN，期间只读核对、未新增发布。生产数据库4141/4143和4142/4144除ID/时间外所有字段相同，无数据库外键引用；建议保留先登记4141/4142、删除后登记4143/4144，不删除共同CDN文件；未获删除许可，未执行删除。v1显示名来自Uploader php_meta的完整版本标签，v2按系列PHP8.6，尚未修改名称或注册逻辑。
+
+此前公共CDN下载命中阿里云ESA，Uploader OSS/R2后端回读不能代表CF CDN；已明确纠正该证据边界。本轮固定CF IP并保持原Host/SNI、绕过本机代理，确认server=cloudflare、CF-Ray LHR，完整GET六个core，全部SHA与ESA/数据库/Builder一致，CF均HIT。原URL和查询参数URL的ESA下载一致；包内版本/Windows二进制标记为RC4。双链路证据保存于 `/tmp/servbay-php-rc4-release-d8heet_i/cloudflare-cdn-six-core-verification.json`、`cdn-content-and-cache-evidence.json`；仅代表已测ESA及CF LHR路径，不声称逐个全球PoP。双侧核对完成后接续已批准的四模块构建，后续仅发布尚未登记的四扩展，不重新注册core。
+
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 
 **Git与Windows补充**：安全修复提交 `d0d8191` 推送时遇到自动build-state提交分叉；误用旧head的run `40280094578` 已取消，回读无artifact。用户回复“继续”后，按所提普通merge保留安全修复与自动状态，合并提交 `b55f2b4` 已推送，未重写历史。干净Windows原生验证于06:43 UTC从包含修复的main重新启动；仍消费原producer `40272362001` attempt1。

@@ -523,7 +523,7 @@ jobs:
   module-build:
     name: ${{ matrix.unit_job }}
     needs: [plan, module-plan]
-    if: ${{ needs.module-plan.outputs.count != '0' }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.module-plan.result == 'success' && needs.module-plan.outputs.count != '0' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.module-plan.outputs.matrix) }}
