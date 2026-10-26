@@ -743,6 +743,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.2.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "adminer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "6.2.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "artifact_expires_at": "2026-10-30T17:17:01Z",
       "artifact_id": "12518902245",
@@ -1009,6 +1023,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"disk-cleaner\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.1.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "disk-cleaner",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.1.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
       "artifact_expires_at": "2026-10-30T17:02:17Z",
       "artifact_id": "12518455398",
@@ -1066,6 +1094,20 @@
         "version": "10.0.402"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.0.403\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "10.0.403"
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.100-rc1\"}": {
       "consecutive_failures": 0,
@@ -1193,6 +1235,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.427\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.0.427"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.319\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -1204,6 +1260,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "9.0.319"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.320\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "9.0.320"
       },
       "status": "discovered"
     },
@@ -2128,6 +2198,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongosh",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.14.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
       "artifact_expires_at": "2026-10-30T17:33:18Z",
       "artifact_id": "12520385482",
@@ -2707,6 +2791,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.11\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "ollama",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "0.40.11"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.9\"}": {
       "artifact_expires_at": "2026-10-30T20:09:41Z",
       "artifact_id": "12528548595",
@@ -2761,6 +2859,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "11.0.32.1"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.33\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "11.0.33"
       },
       "status": "discovered"
     },
@@ -2848,6 +2960,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"17.0.21\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "17.0.21"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.0.2.1\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -2901,6 +3027,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "21.0.12.1"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"21.0.13\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "21.0.13"
       },
       "status": "discovered"
     },
@@ -2960,6 +3100,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"25.0.5\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "25.0.5"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"26.0.2.1\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -3003,6 +3157,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"27.0.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "27.0.1"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.352\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -3028,6 +3196,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.0.504"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.512\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.0.512"
       },
       "status": "discovered"
     },
@@ -3262,6 +3444,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.5.12"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0RC4\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.6.0RC4"
       },
       "status": "discovered"
     },
@@ -3539,6 +3735,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.11.18\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.11.18"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.12.15\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -3553,6 +3763,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.12.16\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.12.16"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.13.17\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -3564,6 +3788,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "3.13.17"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.13.18\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.13.18"
       },
       "status": "discovered"
     },
@@ -5655,6 +5893,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"adminer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.2.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "adminer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "6.2.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "artifact_expires_at": "2026-10-30T17:17:25Z",
       "artifact_id": "12519081694",
@@ -5921,6 +6173,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"disk-cleaner\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.1.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "disk-cleaner",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.1.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dnsmasq\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.92\"}": {
       "artifact_expires_at": "2026-10-30T17:02:31Z",
       "artifact_id": "12517693272",
@@ -5978,6 +6244,20 @@
         "version": "10.0.402"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.0.403\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "10.0.403"
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.100-rc1\"}": {
       "consecutive_failures": 0,
@@ -6105,6 +6385,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.427\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.0.427"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.319\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -6116,6 +6410,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "9.0.319"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.320\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "dotnetsdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "9.0.320"
       },
       "status": "discovered"
     },
@@ -7040,6 +7348,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongosh",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.14.0"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
       "artifact_expires_at": "2026-10-30T17:35:06Z",
       "artifact_id": "12519548550",
@@ -7619,6 +7941,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.11\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "ollama",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "0.40.11"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.9\"}": {
       "artifact_expires_at": "2026-10-30T18:38:00Z",
       "artifact_id": "12522704849",
@@ -7673,6 +8009,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "11.0.32.1"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.33\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "11.0.33"
       },
       "status": "discovered"
     },
@@ -7760,6 +8110,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"17.0.21\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "17.0.21"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.0.2.1\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -7813,6 +8177,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "21.0.12.1"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"21.0.13\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "21.0.13"
       },
       "status": "discovered"
     },
@@ -7872,6 +8250,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"25.0.5\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "25.0.5"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"26.0.2.1\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -7915,6 +8307,20 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"27.0.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "27.0.1"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.352\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -7940,6 +8346,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.0.504"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.512\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "openjdk",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.0.512"
       },
       "status": "discovered"
     },
@@ -8174,6 +8594,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.5.12"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0RC4\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "php",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.6.0RC4"
       },
       "status": "discovered"
     },
@@ -8451,6 +8885,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.11.18\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.11.18"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.12.15\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -8465,6 +8913,20 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.12.16\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.12.16"
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.13.17\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -8476,6 +8938,20 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "3.13.17"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.13.18\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "python",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.13.18"
       },
       "status": "discovered"
     },
