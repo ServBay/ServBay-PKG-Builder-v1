@@ -273,6 +273,8 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 06:20 UTC：该原生run的AMD64及16模块两轮加载、PNG、正式7z回读全部通过，但native诊断保存全量phpinfo，父在导出复核中确认包含GH_TOKEN环境项，因此该诊断artifact `12631365752` 不可交付/发布。wrapper正改为PHP环境明确allowlist、只导出解析后的版本/ABI、失败也不回显原始phpinfo，并补哨兵秘密回归；之后用同producer再生成干净产物。已按用户删除规则请求仅删除这份artifact，待明确答复；不记录或输出令牌值。
 
+06:25 UTC：用户明确允许删除该artifact；DELETE已成功，并回读run的artifact列表为空。原始producer和已发布包保持不变。已告知关联UPSTREAM_DISPATCH_PAT需在GitHub轮换，删除产物不等于令牌失效；未读取/输出令牌值。诊断修复完成两条哨兵RED/GREEN、9项管线回归；第2轮只读增量审查Spec PASS / Quality PASS，独立9项通过，环境继承/错误回显/原始phpinfo导出三个逐项变异均被识别。后续仍以干净原生CI为验收证据。
+
 ## 阶段 RC4-3: LIVE 发布、API 与 CDN 回读
 **目标**: 把 Windows v2 正式 ZIP 交给已有 windows-assets 路由，并持续收口已启动的 macOS v1/v2、Windows v1 发布。
 **成功标准**: 全部目标的 Uploader LIVE 步骤成功；公开 package API 的 PHP8.6 为 `8.6.0RC4`，模块记录与 core default_modules 的 version/revision/hash/ABI 一致；每个目标下载 URL 的真实字节 SHA 等于 Builder/元数据/API。留存精确 run/attempt/commit、注册结果和 hash，不以 check-only/CI 绿灯代替注册。
@@ -286,6 +288,8 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **状态**: 进行中
 
 代码审查已在最多两轮内通过：第1轮独立找到SQL两opener的未命名context、Swoole剩余21处参数宏和实际启用php84 curl两处INI调用，共3个P1；原worker修正后，第2轮独立Spec PASS / Quality PASS，3个delta测试及26/26逐处变异通过。完整源码测试8/8及既有recipe18/18通过；保留全部模块与原行为，待新提交在双架构CI实际编译/加载。
+
+修复提交 `b910cea7110059bb047de99db5d5566b4ac1133d` 已推送；精确目标macOS v2 PHP8.6RC4、双架构LIVE orchestrator `40279549768` 于06:23 UTC启动，消费已发布的兼容模块，补齐失败模块及正式core。源码及测试文件whitespace检查通过；作为数据保存的unified patch上下文含原始缩进/空白，Git的通用whitespace扫描会报这些上下文，不修改原始补丁上下文或检查配置。
 
 **执行记录**：2026-10-26 05:20 UTC，macOS v1 双架构正式 artifacts 已生成；其 ZIP/package SHA 已独立下载验证：arm64 package `e02bda6e6d92671819beb0508727f850bab9067e61fa91b171016441196cf0eb`，x86_64 package `13003c398ab4b2b7163fcd32b872490bc0f4050c1ad647f39616e74df88a162f`。macOS v2 arm64 仅 candidate core，不是可发布 final core；Intel core、Windows upstream/扩展仍在进行。Windows v1 API 的正确架构参数为 `x64`，Windows v2 归一化为 `x86_64`。Windows v2 beta3 当前 API 已正式发布，但不能将旧包验证结果借给 RC4。
 

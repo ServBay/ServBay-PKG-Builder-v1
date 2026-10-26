@@ -3,6 +3,7 @@
 import importlib.util
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import socket
@@ -65,6 +66,29 @@ class PipelineTests(unittest.TestCase):
         for revision in (None, 0, -1, True, "1"):
             with self.subTest(revision=revision), self.assertRaises(ValueError):
                 self.m.identities(selected, self.m.parse_abi(INFO), revision)
+
+    def test_php_subprocess_receives_only_explicit_runtime_environment(self):
+        sentinel = "synthetic-secret-never-forward-to-php"
+        environment = {"SystemRoot": "C:\\Windows", "WINDIR": "C:\\Windows",
+                       "TEMP": "C:\\Temp", "TMP": "C:\\Temp", "PATH": "C:\\Windows\\System32",
+                       "COMSPEC": "C:\\Windows\\System32\\cmd.exe", "PATHEXT": ".EXE;.BAT",
+                       "GH_TOKEN": sentinel, "GITHUB_TOKEN": sentinel,
+                       "ACTIONS_RUNTIME_TOKEN": sentinel, "UNRECOGNIZED_CREDENTIAL": sentinel}
+        with patch.dict(os.environ, environment, clear=True), \
+                patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "ok", "")) as process:
+            self.assertEqual(self.m.php_run(self.base / "bin/php.exe", ["-n", "-i"]), "ok")
+        forwarded = process.call_args.kwargs["env"]
+        self.assertFalse(any(sentinel in value for value in forwarded.values()))
+        self.assertEqual({key.upper() for key in forwarded},
+                         {"SYSTEMROOT", "WINDIR", "TEMP", "TMP", "PATH", "COMSPEC", "PATHEXT",
+                          "PHPRC", "PHP_INI_SCAN_DIR"})
+        self.assertEqual(forwarded["PATH"], str(self.base / "bin") + os.pathsep + environment["PATH"])
+        self.assertEqual(forwarded["PHPRC"], "")
+        self.assertEqual(forwarded["PHP_INI_SCAN_DIR"], "")
+        with patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 1, sentinel, sentinel)), \
+                self.assertRaises(RuntimeError) as failed:
+            self.m.php_run(self.base / "bin/php.exe", ["-n", "-i"])
+        self.assertNotIn(sentinel, str(failed.exception))
 
     def test_exact_upstream_identity_and_complete_original_artifacts(self):
         run = {"id": self.m.RUN_ID, "run_attempt": 1, "head_sha": self.m.PRODUCER_COMMIT,
@@ -191,12 +215,13 @@ class PipelineTests(unittest.TestCase):
         split, index, selected = self.split_fixture()
         calls = []
         fail_at = [None]
+        sentinel = "synthetic-phpinfo-secret-never-export"
         def native_process(php, args):
             calls.append((php, args))
             if len(calls) == fail_at[0]:
                 raise RuntimeError("injected native process failure")
             if args[-1] == "-i":
-                return INFO
+                return INFO + "\nEnvironment\nGH_TOKEN => " + sentinel + "\n"
             if "queryFormats" in args[-1]:
                 return "true"
             code = args[-1]
@@ -210,10 +235,17 @@ class PipelineTests(unittest.TestCase):
             self.m.export_verified(output, build)
         self.assertEqual(len(calls), 37)
         evidence = json.loads((output / "native-evidence.json").read_text())
+        for path in output.rglob("*"):
+            if path.is_file():
+                self.assertNotIn(sentinel.encode(), path.read_bytes())
+        self.assertEqual(evidence["core_evidence"]["abi"], self.m.parse_abi(INFO))
+        self.assertNotIn("raw_core_phpinfo", evidence)
         self.assertEqual(evidence["formal_native"]["loaded"], 16)
         self.assertTrue(evidence["formal_native"]["imagick_png"])
         self.assertEqual(evidence["formal_zip_sha256"], self.m.sha(output / "formal.zip"))
         with zipfile.ZipFile(output / "formal.zip") as archive:
+            for name in archive.namelist():
+                self.assertNotIn(sentinel.encode(), archive.read(name))
             core = json.loads(archive.read("core/meta.json"))
             msgpack = json.loads(archive.read("msgpack/meta.json"))
             self.assertEqual((core["version"], core["build_revision"]), ("8.6.0RC4", 0))
