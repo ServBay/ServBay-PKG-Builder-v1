@@ -1,0 +1,13 @@
+--- src/develop/stack.c
++++ src/develop/stack.c
+@@ -16,6 +16,10 @@
+ #include "php_xdebug.h"
+ 
+ #include "main/php_ini.h"
++
++#ifndef INI_STR
++# define INI_STR(name) zend_ini_string((name), (size_t)strlen(name), 0)
++#endif
+ 
+ #include "ext/standard/html.h"
+ #include "ext/standard/php_smart_string.h"

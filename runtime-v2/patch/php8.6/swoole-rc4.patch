@@ -1,0 +1,345 @@
+--- ext-src/swoole_server.cc
++++ ext-src/swoole_server.cc
+@@ -1939,7 +1939,7 @@
+         RETURN_FALSE;
+     }
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 4)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 4)
+     Z_PARAM_STRING(host, host_len)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(serv_port)
+--- thirdparty/php/streams/plain_wrapper.c
++++ thirdparty/php/streams/plain_wrapper.c
+@@ -21,6 +21,10 @@
+ #include "ext/standard/php_filestat.h"
+ 
+ #include <fcntl.h>
++
++/* PHP 8.6 removed the parameterized docref helpers. Keep their diagnostics. */
++#define php_error_docref1(docref, param1, type, format, ...) php_error_docref(docref, type, "(%s): " format, param1, ##__VA_ARGS__)
++#define php_error_docref2(docref, param1, param2, type, format, ...) php_error_docref(docref, type, "(%s,%s): " format, param1, param2, ##__VA_ARGS__)
+ 
+ #if PHP_VERSION_ID >= 80400
+ #ifdef HAVE_SYS_WAIT_H
+@@ -1047,7 +1051,7 @@
+     char *persistent_id = NULL;
+ 
+     if (FAILURE == sw_php_stream_parse_fopen_modes(mode, &open_flags)) {
+-        php_stream_wrapper_log_error(&php_plain_files_wrapper, options, "`%s' is not a valid mode for fopen", mode);
++        php_stream_wrapper_log_warn(&php_plain_files_wrapper, NULL, options, InvalidMode, "`%s' is not a valid mode for fopen", mode);
+         return NULL;
+     }
+ 
+--- ext-src/swoole_runtime.cc
++++ ext-src/swoole_runtime.cc
+@@ -1363,10 +1363,7 @@
+ 
+     if (flags & PHPCoroutine::HOOK_TCP) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_TCP)) {
+-            if (php_stream_xport_register("tcp", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_TCP;
+-                hook_stream_throw_exception("tcp");
+-            }
++            php_stream_xport_register("tcp", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_TCP) {
+@@ -1375,10 +1372,7 @@
+     }
+     if (flags & PHPCoroutine::HOOK_UDP) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_UDP)) {
+-            if (php_stream_xport_register("udp", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_UDP;
+-                hook_stream_throw_exception("udp");
+-            }
++            php_stream_xport_register("udp", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_UDP) {
+@@ -1387,10 +1381,7 @@
+     }
+     if (flags & PHPCoroutine::HOOK_UNIX) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_UNIX)) {
+-            if (php_stream_xport_register("unix", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_UNIX;
+-                hook_stream_throw_exception("unix");
+-            }
++            php_stream_xport_register("unix", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_UNIX) {
+@@ -1399,10 +1390,7 @@
+     }
+     if (flags & PHPCoroutine::HOOK_UDG) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_UDG)) {
+-            if (php_stream_xport_register("udg", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_UDG;
+-                hook_stream_throw_exception("udg");
+-            }
++            php_stream_xport_register("udg", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_UDG) {
+@@ -1411,10 +1399,7 @@
+     }
+     if (flags & PHPCoroutine::HOOK_SSL) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_SSL)) {
+-            if (php_stream_xport_register("ssl", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_SSL;
+-                hook_stream_throw_exception("ssl");
+-            }
++            php_stream_xport_register("ssl", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_SSL) {
+@@ -1427,10 +1412,7 @@
+     }
+     if (flags & PHPCoroutine::HOOK_TLS) {
+         if (!(runtime_hook_flags & PHPCoroutine::HOOK_TLS)) {
+-            if (php_stream_xport_register("tls", socket_create) != SUCCESS) {
+-                flags ^= PHPCoroutine::HOOK_TLS;
+-                hook_stream_throw_exception("tls");
+-            }
++            php_stream_xport_register("tls", socket_create);
+         }
+     } else {
+         if (runtime_hook_flags & PHPCoroutine::HOOK_TLS) {
+--- ext-src/swoole_atomic.cc
++++ ext-src/swoole_atomic.cc
+@@ -163,7 +163,7 @@
+     sw_atomic_t *atomic = atomic_get_ptr(ZEND_THIS);
+     zend_long value = 0;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(value)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+--- ext-src/swoole_channel_coro.cc
++++ ext-src/swoole_channel_coro.cc
+@@ -126,7 +126,7 @@
+ static PHP_METHOD(swoole_channel_coro, __construct) {
+     zend_long capacity = 1;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(capacity)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+@@ -145,7 +145,7 @@
+     zval *zdata;
+     double timeout = -1;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 2)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 2)
+     Z_PARAM_ZVAL(zdata)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_DOUBLE(timeout)
+@@ -170,7 +170,7 @@
+     Channel *chan = channel_coro_get_ptr(ZEND_THIS);
+     double timeout = -1;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_DOUBLE(timeout)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+--- ext-src/swoole_client_coro.cc
++++ ext-src/swoole_client_coro.cc
+@@ -214,7 +214,7 @@
+ static PHP_METHOD(swoole_client_coro, __construct) {
+     zend_long type = 0;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 1)
+     Z_PARAM_LONG(type)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+ 
+--- ext-src/swoole_http2_client_coro.cc
++++ ext-src/swoole_http2_client_coro.cc
+@@ -794,7 +794,7 @@
+     zend_long port = 80;
+     zend_bool ssl = false;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 3)
+     Z_PARAM_STRING(host, host_len)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(port)
+--- ext-src/swoole_http_client_coro.cc
++++ ext-src/swoole_http_client_coro.cc
+@@ -1743,7 +1743,7 @@
+     zend_long port = 0;
+     zend_bool ssl = false;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 3)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 3)
+     Z_PARAM_STRING(host, host_len)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(port)
+--- ext-src/swoole_http_response.cc
++++ ext-src/swoole_http_response.cc
+@@ -1448,7 +1448,7 @@
+ 
+     double timeout = 0;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_DOUBLE(timeout)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+--- ext-src/swoole_http_server_coro.cc
++++ ext-src/swoole_http_server_coro.cc
+@@ -320,7 +320,7 @@
+     zend_bool ssl = false;
+     zend_bool reuse_port = false;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 4)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 4)
+     Z_PARAM_STRING(host, l_host)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(port)
+@@ -525,7 +525,7 @@
+     HttpServer *hs = http_server_coro_get_object(Z_OBJ_P(ZEND_THIS));
+     zval *zconn;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 1)
+     Z_PARAM_OBJECT(zconn)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_NULL());
+ 
+--- ext-src/swoole_process.cc
++++ ext-src/swoole_process.cc
+@@ -283,7 +283,7 @@
+     po->worker = new Worker();
+     Worker *process = po->worker;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 4)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 4)
+     Z_PARAM_FUNC(func.fci, func.fci_cache);
+     Z_PARAM_OPTIONAL
+     Z_PARAM_BOOL(redirect_stdin_and_stdout)
+--- ext-src/swoole_process_pool.cc
++++ ext-src/swoole_process_pool.cc
+@@ -448,7 +448,7 @@
+         RETURN_FALSE;
+     }
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 2)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 2, 2)
+     Z_PARAM_STRING(name, l_name)
+     Z_PARAM_ZVAL(zfn);
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+--- ext-src/swoole_socket_coro.cc
++++ ext-src/swoole_socket_coro.cc
+@@ -1232,7 +1232,7 @@
+ static PHP_METHOD(swoole_socket_coro, __construct) {
+     zend_long domain, type, protocol = IPPROTO_IP;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 3)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 2, 3)
+     Z_PARAM_LONG(domain)
+     Z_PARAM_LONG(type)
+     Z_PARAM_OPTIONAL
+--- ext-src/swoole_table.cc
++++ ext-src/swoole_table.cc
+@@ -199,7 +199,7 @@
+     zend_long table_size;
+     double conflict_proportion = SW_TABLE_CONFLICT_PROPORTION;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 2)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 2)
+     Z_PARAM_LONG(table_size)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_DOUBLE(conflict_proportion)
+@@ -268,7 +268,7 @@
+     char *key;
+     size_t keylen;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 2)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 2, 2)
+     Z_PARAM_STRING(key, keylen)
+     Z_PARAM_ARRAY(array)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+@@ -469,7 +469,7 @@
+     size_t keylen;
+     zend_string *field = nullptr;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 2)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 2)
+     Z_PARAM_STRING(key, keylen)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_STR_OR_NULL(field)
+@@ -503,7 +503,7 @@
+     char *key;
+     size_t keylen;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 1)
+     Z_PARAM_STRING(key, keylen)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+ 
+--- ext-src/swoole_thread_atomic.cc
++++ ext-src/swoole_thread_atomic.cc
+@@ -197,7 +197,7 @@
+     auto o = atomic_fetch_object(Z_OBJ_P(ZEND_THIS));
+     zend_long value = 0;
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(value)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+--- ext-src/swoole_tracer.cc
++++ ext-src/swoole_tracer.cc
+@@ -606,7 +606,7 @@
+     }
+ 
+     zend_long threshold = 64;
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_LONG(threshold)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+@@ -660,7 +660,7 @@
+ 
+     zval *options = NULL; /* optional array arg: for future use */
+ 
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 0, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 0, 1)
+     Z_PARAM_OPTIONAL
+     Z_PARAM_ARRAY(options)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+@@ -688,7 +688,7 @@
+     }
+ 
+     zend_string *file;
+-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
++    ZEND_PARSE_PARAMETERS_START_EX(0, 1, 1)
+     Z_PARAM_STR(file)
+     ZEND_PARSE_PARAMETERS_END_EX(RETURN_FALSE);
+ 
+--- thirdparty/php84/curl/interface.cc
++++ thirdparty/php84/curl/interface.cc
+@@ -924,7 +924,7 @@
+ /* {{{ _php_curl_set_default_options()
+    Set default options for a handle */
+ static void _php_curl_set_default_options(php_curl *ch) {
+-    char *cainfo;
++    const char *cainfo;
+ 
+     curl_easy_setopt(ch->cp, CURLOPT_NOPROGRESS, 1L);
+     curl_easy_setopt(ch->cp, CURLOPT_VERBOSE, 0L);
+@@ -938,9 +938,9 @@
+     curl_easy_setopt(ch->cp, CURLOPT_DNS_CACHE_TIMEOUT, 120L);
+     curl_easy_setopt(ch->cp, CURLOPT_MAXREDIRS, 20L); /* prevent infinite redirects */
+ 
+-    cainfo = INI_STR("openssl.cafile");
++    cainfo = zend_ini_string_literal("openssl.cafile");
+     if (!(cainfo && cainfo[0] != '\0')) {
+-        cainfo = INI_STR("curl.cainfo");
++        cainfo = zend_ini_string_literal("curl.cainfo");
+     }
+     if (cainfo && cainfo[0] != '\0') {
+         curl_easy_setopt(ch->cp, CURLOPT_CAINFO, cainfo);
