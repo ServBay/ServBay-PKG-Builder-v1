@@ -19,6 +19,10 @@ on:
         description: 'Explicit macOS v2 rebuild revision'
         type: number
         default: 0
+      macos_module_revision:
+        description: 'Explicit macOS v2 module rebuild revision (core revision is independent)'
+        type: number
+        default: 0
       targets:
         description: 'Platforms to build'
         type: choice
@@ -146,6 +150,7 @@ jobs:
       arch: ${{ inputs.macos_arch }}
       runtime_version: ${{ inputs.runtime_version }}
       build_revision: ${{ fromJSON(format('{0}', inputs.build_revision || 0)) }}
+      module_revision: ${{ fromJSON(format('{0}', inputs.macos_module_revision || 0)) }}
     # Pass repo secrets through so a private upstream (ai-gateway) can authenticate
     # its `gh release download`. Public upstreams ignore them.
     secrets: inherit
