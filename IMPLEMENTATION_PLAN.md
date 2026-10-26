@@ -237,3 +237,56 @@ Legacy 分支另行补齐：`build-windows-php-legacy.yml` 现在同时输出 co
 Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资产。5.3–8.1 共 11 个版本生成 11 个 core 包和 107 个模块包，全部模块在 Windows VM 加载成功，Uploader 计划均为 `validation_complete=true`。5.3/5.4 为 x86 内容、按 x64 身份发布（包内 `php.exe` PE Machine 实测 0x14c），5.5 为 core-only；详见 `runtime-windows/WINDOWS_V2_PHP_MODULES.md`。
 
 另新增手工 `build-windows-v2-package.yml`：默认以已核验的 Adminer v1 输入演示完整下载、SHA 校验、`repack_v2.py`、artifact 上传流程；任意已支持包可显式提供公开 URL/SHA/version 复用。该入口默认不调用 Uploader、不建立 Release、不修改公共 catalog，真实运行仍需单独触发。
+
+---
+
+# 2026-10-26 PHP 8.6.0RC4 完整发布补跑
+
+**用户要求与授权**：修复 RC 检测后提交、推送并线上补跑；用户明确指出仅检查清单并未注册 API，不满足完成标准。用户进一步明确选择“这次一并补齐 Windows v2”。本轮目标是 PHP 8.6.0RC4 的编译、真实验证、正式上传、API 登记和 CDN 字节回读，不扩展到其他软件包，不修改既有发布门禁。
+
+**当前记录**：Utility 修复提交 `dd44550`、Builder 修复提交 `21b4ee4` 已推到 GitHub。此前运行 `40268009854` 和 `40268199101` 仅检查版本，不能作为发布完成证据。现已开启 LIVE orchestrator：`40272343132` 为 macOS v1 双架构和 Windows v1 x64，`40272350331` 为 macOS v2 双架构；二者 `upload_dry_run=false`。Windows 原始 producer 为 `ServBay/PHP-Windows-Portable` run `40272362001`、attempt 1、commit `5f5af83f797ae89a7187ddca87492cf8064d68d7`，明确构建 `8.6.0RC4`、x64、NTS。不得重复触发这些运行。
+
+**架构**：复用 Portable 原始 core/逐扩展 artifact、已有 collector 和 Builder 的 `prepare_php_payloads` / `finalize_php_payloads`；新增的薄入口只串联输入核验、原生执行和正式产物导出。Uploader 使用现有 `runtime_version=v2, os=windows-assets` 路由，不增加上传实现。
+
+**全局约束**：
+- 不使用 merged release ZIP 逆拆 core/第三方扩展；必须消费指定 producer run/attempt 的原始 core 和全部 selected extension artifacts，并核对版本、producer、文件和 SHA。
+- Collector 复用 Portable 已存在的 `b614c80` 实现；该提交比远端 main 多 1 个提交，仅涉及 split collector/Release 接线、文档和测试。纳入本轮独立审查后才能推送供 CI 固定读取，不另复制一份 collector。
+- CI 必须使用原生 x64 Windows runner（与 8.6 VS18 工具链匹配），不得以 ARM64 VM 的 x64 仿真替代。不得在开发机安装系统级 VC++ runtime。
+- 先从原始 core 实际执行 `php -n -i` 取得 ABI 和版本，再 prepare；逐个加载 selected 的全部第三方 DLL，Xdebug 使用 zend_extension；有 Imagick coder 时必须实际查询 PNG。
+- finalize 后从正式 core/module 7z 重新解包并执行同样原生验证；只在全部通过后生成正式 ZIP 和可审计结果。不得用返回码 0、文件存在或 mocked native 结果替代线上实跑。
+- RC4 core `build_revision=0`；Windows PHP8.6 beta3 的同版本模块已占用 revision 0，因此 RC4 模块必须显式使用经 API 确认未占用的新 revision（拟 1），不得覆盖已有内容。`msgpack-3.0.0` 等真实 ref 保持原值，仅可去掉前导 v。
+- 保留现有 Uploader 精确身份、manifest、逐通道回读 SHA、模块先于 core 登记等门禁；先检查正式发布计划，再按已有授权 LIVE 发布。不能修改 gate/CI 判定来绕过失败。
+- 不读真实 .env 或输出 Secrets；不清理、回滚、暂存或提交他人改动。新增临时目录必须是本次创建且有明确归属，不对既有输入/输出树递归删除。
+- 用户已给出本任务提交、推送和正式发布授权；父负责精确暂存和 Git 操作，worker/reviewer 不提交、不推送、不另起 subagent。
+
+## 阶段 RC4-1: 原生 Windows v2 CI 入口与离线回归
+**目标**: 新建 `runtime-windows/ci/php_v2_pipeline.py`、`.github/workflows/build-windows-v2-php.yml` 和 `tests/test_windows_v2_php_pipeline.py`，复用三种同类实现：`repack_php_v2.py`、既有 `build-windows-v2-package.yml` 和 Portable `collect_split_assets.py`；旧 `/tmp/run_php_series_pipeline.py` 只作为流程参考，不直接执行其删除逻辑。
+**成功标准**: 入口显式接受 producer run/attempt/version/module revision；workflow 获取精确 producer 及原始 artifacts、固定 collector commit，在原生 x64 runner 上执行薄入口，输出正式 ZIP、完整 native 证据和 manifest；不自动发布其他包，不新设生产开关。新文件和 collector 提交经一次独立影响锥审查通过，最多两轮。
+**测试**: 先写失败用例并见证 RED，再实现 GREEN。测试真实外部行为：版本/producer/ABI 不一致、缺少 selected 扩展、任一 DLL 加载失败、PNG 失败、正式归档再加载失败必须阻断成功输出；revision 正确进入模块 meta 和 core default_modules；禁止重用既有非空输出；离线环境禁止网络和 Windows 二进制执行。运行相关既有 repack/collector 测试；不运行真实编译的全套测试。
+**状态**: 已完成。独立影响锥审查 Spec PASS / Quality PASS，覆盖20个相关文件；Builder 51项与Portable 64项离线测试通过，真实7z合成正式ZIP已被既有Uploader消费为17包、模块revision1、core revision0。共享旧调用者额外5项通过；6个逐项内存突变均被识别。尚不代表原生CI完成。
+
+## 阶段 RC4-2: 当前 producer 的原生 CI 验证与正式产物
+**目标**: 在上游 `40272362001` 完成后，使用经审查并推送的入口消费其 exact attempt；不重编已成功的 RC4 原始输入。
+**成功标准**: Windows x64 上原始 ABI、准备后的全部模块、Imagick PNG、finalize 和正式 7z 再加载全部成功；正式 ZIP/每个归档 SHA/producer/native 结果可回读，所有失败单元明确报告，不将运行中 job 当作完成。
+**测试**: GitHub 原生 runner 实跑；核对 artifact ZIP digest、内部 package SHA、正式 meta/manifest 及实际 native JSON，确认版本为 RC4、模块数与 selected 一致。
+**状态**: 未开始
+
+## 阶段 RC4-3: LIVE 发布、API 与 CDN 回读
+**目标**: 把 Windows v2 正式 ZIP 交给已有 windows-assets 路由，并持续收口已启动的 macOS v1/v2、Windows v1 发布。
+**成功标准**: 全部目标的 Uploader LIVE 步骤成功；公开 package API 的 PHP8.6 为 `8.6.0RC4`，模块记录与 core default_modules 的 version/revision/hash/ABI 一致；每个目标下载 URL 的真实字节 SHA 等于 Builder/元数据/API。留存精确 run/attempt/commit、注册结果和 hash，不以 check-only/CI 绿灯代替注册。
+**测试**: 对精确 artifact 运行现有 Uploader plan/dry-run，随后 `dry_run=false`；查询真实 API、下载 CDN 全部 core 和引用模块验证 SHA。对失败仅补对应单元，禁止无关全量重跑。
+**状态**: 未开始
+
+## 阶段 RC4-M: macOS v2 的 PHP 8.6 扩展兼容修复
+**目标**: 修复本次真实构建发现的 9 个扩展、双架构共 18 个失败单元：memcached 3.4.0、APCu 5.1.28、Phalcon 5.23.0 的旧补丁不再适用；SQLSRV 5.13.3、IMAP 1.0.3、SCWS 1.2.4-pre、Xdebug 3.4.3 使用了已移除的 INI 宏；PDO_SQLSRV 5.13.3 和 Swoole 6.1.7-88fc55029c 使用旧的 stream/error API。保留已通过的核心包和其余 4 个模块，不减少模块、不修改版本、不绕过编译或 finalize 门禁。
+**成功标准**: 按 exact 上游源码和 PHP 8.6.0RC4 实际头文件修复 PHP8.6 专属补丁/接线；worker 仅负责 `runtime-v2/scripts/build_package.sh` 的 PHP8.6 扩展部分、必要的 `runtime-v2/patch/php8.6/*` 和对应行为测试，保留该脚本中并行提交 b67168ad 的 PostgreSQL/ICU 修复。新增增量经独立只读影响锥审查（最多两轮），线上双架构 13 个模块和 final core 均成功后进入发布。
+**测试**: 全量逐 job 日志分类、exact 源码补丁应用和必要的 C/C++ 编译/行为回归；新 recipe 提交在 GitHub runner 上实际编译，最终 core/module 原生加载和 ABI 检查全部通过。旧 SHA 的 rerun 不代表修复代码已验证；不能拿 candidate core 代替正式 core。
+**状态**: 进行中
+
+**执行记录**：2026-10-26 05:20 UTC，macOS v1 双架构正式 artifacts 已生成；其 ZIP/package SHA 已独立下载验证：arm64 package `e02bda6e6d92671819beb0508727f850bab9067e61fa91b171016441196cf0eb`，x86_64 package `13003c398ab4b2b7163fcd32b872490bc0f4050c1ad647f39616e74df88a162f`。macOS v2 arm64 仅 candidate core，不是可发布 final core；Intel core、Windows upstream/扩展仍在进行。Windows v1 API 的正确架构参数为 `x64`，Windows v2 归一化为 `x86_64`。Windows v2 beta3 当前 API 已正式发布，但不能将旧包验证结果借给 RC4。
+
+**执行预检与裁定**：阶段1的 formal ZIP/证据是阶段2验证输出、阶段3发布输入，路径/版本/revision 约定一致；阶段2、3不改打包规则，不与阶段1冲突。每阶段内部测试与成功标准一致。此计划按用户指定追加于现有 `IMPLEMENTATION_PLAN.md`，本节兼作进度账本，不另建过程目录；worker 只读取本节、按明确文件 ownership 工作。用户已明确要求直接完成本轮工作，不再另行询问执行方式。父独立审查增量并管理提交/推送/发布。
+
+**05:45 UTC 补充**：Windows v2 真实 repacker/7z 离线集成复现了非零模块 revision 无法进入 core default_modules 的数据传递缺陷；阶段1 ownership 扩展到 `runtime-windows/repack_php_v2.py` 和 `runtime-v2/ci/core_manifest.py` 的显式 revision 传递及相关回归，保留精确身份与就绪检查。公开 Windows8.6 的16模块均为 revision0，未发现revision1。macOS v2 原运行完成了8个模块产物，其自动 Uploader `40274235486` 因缺少公开下载基址输入而在 plan 前退出，未执行上传/注册；按实际 API 的 `https://dl-v2.servbay.com` 显式参数补跑，不修改生产开关或仓库配置。新的 recipe 提交不能冒用旧 candidate 的 producer 身份；现有流水线将 core 与同 run/attempt 绑定，没有可直接复用旧候选的入口，必要时仅重建 PHP8.6 目标 core，并通过 catalog 复用已发布、ABI 兼容的成功模块。
+
+**06:02 UTC 补充**：Windows producer `40272362001` 和 v1 Builder `40272343132` 均已成功。Windows v1 artifact `12630207514` 的ZIP digest和内部package SHA已独立回读，package为 `c15a9602c37c6b2b811e4b4a064de4f10a9c3e87dbfb44f316398720b6ab0643`。macOS v2 已成功的8模块经 Uploader dry-run `40275955275` 与 LIVE `40276237888` 注册，8个CDN下载均与API SHA一致。macOS v1经 LIVE `40276360977`、随后原始orchestrator自动 LIVE `40276547013`（含Windows v1）完成登记；原始数据库已只读核对RC4及hash。旧legacy POST未清理包列表缓存，故公开GET仍返回beta3；仅清除v1 arm64/macOS、x86_64/macOS、x64/Windows的new/installed共6个精确包列表键，再回读公开API，不改数据库、其他缓存或部署代码。

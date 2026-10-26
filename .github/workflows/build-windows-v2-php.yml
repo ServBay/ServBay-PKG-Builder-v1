@@ -1,0 +1,60 @@
+name: build-windows-v2-php
+
+on:
+  workflow_dispatch:
+    inputs:
+      module_revision:
+        description: Explicit API-reviewed unoccupied module revision (RC4 core remains revision 0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  php-rc4:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout reviewed split collector
+        uses: actions/checkout@v4
+        with:
+          repository: ServBay/PHP-Windows-Portable
+          ref: b614c80d50c417f22a92a78be2540c750c7559f8
+          path: php-portable
+          persist-credentials: false
+      - name: Checkout exact original producer configuration
+        uses: actions/checkout@v4
+        with:
+          repository: ServBay/PHP-Windows-Portable
+          ref: 5f5af83f797ae89a7187ddca87492cf8064d68d7
+          path: php-producer
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          architecture: x64
+      - name: Collect original run 40272362001 attempt 1 and validate both payload generations
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_DISPATCH_PAT || github.token }}
+          MODULE_REVISION: ${{ inputs.module_revision }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sevenZip = (Get-Command 7z.exe -ErrorAction Stop).Source
+          python -B runtime-windows/ci/php_v2_pipeline.py `
+            --portable-source php-portable `
+            --producer-source php-producer `
+            --module-revision "$env:MODULE_REVISION" `
+            --seven-zip "$sevenZip" `
+            --output-dir php-v2-output
+          if ($LASTEXITCODE -ne 0) { throw 'PHP native pipeline failed' }
+      - name: Export verified formal ZIP and native evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg2-windows-x86_64-php-8.6.0RC4
+          path: php-v2-output/*
+          if-no-files-found: error
+          retention-days: 14

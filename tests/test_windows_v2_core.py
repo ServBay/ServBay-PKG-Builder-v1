@@ -48,7 +48,7 @@ class WindowsCoreTests(unittest.TestCase):
         return self.core.create_candidate(self.package, self.record, self.producer, None, '10.0',
             {'version': '8.4.27', 'path': str(self.source)}, self.host, windows_compatibility=kwargs.get('compat', COMPAT))
 
-    def modules(self):
+    def modules(self, revisions=None):
         results = []
         for name, version in [('redis', '9.1'), ('memcache', '9.2'), ('memcached', '9.3')]:
             stage = self.root / name
@@ -57,14 +57,27 @@ class WindowsCoreTests(unittest.TestCase):
             manifest = self.inventory.create_manifest(self.host, stage, [], [name], [], arch='x86_64', minimum_os='10.1', base=None,
                 source_name=name, extension_dir=EXT, os_name='windows', windows_compatibility=COMPAT)
             record = {**self.record, 'kind': 'php-extension', 'name': name, 'version': version,
+                'build_revision': (revisions or {}).get(name, 0),
                 'host': {key: copy.deepcopy(self.host[key]) for key in ('type', 'series', 'abi')}}
             results.append(self.inventory.write_package(manifest, stage, record, self.producer,
                 {'version': version, 'path': str(self.source)}, self.root / ('out-' + name), seven_zip=SEVEN_ZIP))
         return results
 
-    def finalize(self, candidate, modules=(), external=(), name='final'):
+    def finalize(self, candidate, modules=(), external=(), name='final', revisions=None):
         return self.core.finalize_core(candidate, self.package, [m['meta_path'] for m in modules], external,
-            self.producer, self.root / name, self.profile, seven_zip=SEVEN_ZIP)
+            self.producer, self.root / name, self.profile, seven_zip=SEVEN_ZIP, module_revisions=revisions)
+
+    def test_explicit_per_module_revisions_preserve_exact_readiness(self):
+        revisions = {'redis': 1, 'memcache': 0, 'memcached': 2}
+        candidate, modules = self.candidate(), self.modules(revisions)
+        with self.assertRaises(ValueError):
+            self.finalize(candidate, modules, name='default-zero')
+        result = self.finalize(candidate, modules, revisions=revisions)
+        self.assertEqual({row['name']: row['build_revision'] for row in result['meta']['package_manifest']['default_modules']}, revisions)
+        for wrong in ({**revisions, 'redis': 0}, {'redis': 1}, {**revisions, 'unknown': 1},
+                      {**revisions, 'redis': True}, {**revisions, 'redis': -1}):
+            with self.subTest(revisions=wrong), self.assertRaises(ValueError):
+                self.finalize(candidate, modules, name='wrong-revision', revisions=wrong)
 
     def external(self, module):
         return {'reference': {k: copy.deepcopy(module['meta'][k]) for k in ('kind', 'name', 'version', 'build_revision', 'sha256', 'host')},

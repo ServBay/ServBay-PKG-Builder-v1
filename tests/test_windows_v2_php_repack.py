@@ -467,6 +467,17 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
         self.assertEqual(result["modules"], {})
 
     def test_native_evidence_finalizes_core_and_every_selected_module(self):
+        self.finalize_with_native_evidence()
+
+    def test_native_evidence_keeps_each_nonzero_module_revision_in_core_defaults(self):
+        for index, identity in enumerate(self.identities):
+            identity['build_revision'] = 1 + index % 2
+        self.finalize_with_native_evidence()
+        meta = json.loads((self.base / 'formal-output/core/meta.json').read_text())
+        self.assertEqual({row['name']: row['build_revision'] for row in meta['package_manifest']['default_modules']},
+                         {row['name']: row['build_revision'] for row in self.identities})
+
+    def finalize_with_native_evidence(self):
         prepared = self.run_repack()
         audit = prepared["audit"]
         modules = []

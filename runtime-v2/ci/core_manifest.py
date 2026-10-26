@@ -43,7 +43,7 @@ def _ref_key(row):
     return row['kind'], row['name'], row['version'], row['build_revision']
 
 
-def finalize_core(candidate, package, module_meta_paths, external_candidates, producer, output_dir, config=None, *, seven_zip=None):
+def finalize_core(candidate, package, module_meta_paths, external_candidates, producer, output_dir, config=None, *, seven_zip=None, module_revisions=None):
     if candidate.get('schema_version') != 1 or candidate.get('publishable') is not False:
         raise ValueError('A frozen nonpublishing core candidate is required')
     meta, host = copy.deepcopy(candidate['meta']), _inventory._host(copy.deepcopy(candidate['host']))
@@ -72,6 +72,12 @@ def finalize_core(candidate, package, module_meta_paths, external_candidates, pr
         _inventory._sha(base['devlib_sha256'])
     _profiles._os_version(meta['minimum_os'])
     rows = _profiles.module_records(host, meta['arch'], config, os_name=os_name)
+    if module_revisions is not None:
+        if (not isinstance(module_revisions, dict) or set(module_revisions) != {row['name'] for row in rows}
+                or any(type(value) is not int or value < 0 for value in module_revisions.values())):
+            raise ValueError('Explicit module revisions must exactly cover the selected profile')
+        for row in rows:
+            row['build_revision'] = module_revisions[row['name']]
     defaults = [row for row in rows if row['default']]
     available, pending = {}, []
     def add(reference, manifest, external=False):
