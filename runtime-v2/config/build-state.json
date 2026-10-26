@@ -4131,11 +4131,21 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0RC4\"}": {
-      "consecutive_failures": 2,
+      "artifact_expires_at": "2026-11-02T07:25:45Z",
+      "artifact_id": "12634335143",
+      "artifact_name": "pkg2-macos-arm64-package-php-8.6.0RC4",
+      "artifact_zip_sha256": "b76d66ab8b2516d7f22f7aca25a77ce61d7dbec8cb0af165deca2428b231241a",
+      "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "b910cea7110059bb047de99db5d5566b4ac1133d",
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
         "run_attempt": 1,
-        "run_id": "40279549768"
+        "run_id": "40283045159"
+      },
+      "package_sha256": "b35083cf69644ac8006a4cfe0f2e4fd58ee95b855e218b19940bf2abbc28a63d",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
       },
       "record": {
         "arch": "arm64",
@@ -4147,16 +4157,7 @@
         "runtime_version": "v2",
         "version": "8.6.0RC4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T06:59:37+00:00",
-        "expires_at": "2026-10-26T14:59:37+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "build-failed"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 1,
@@ -5027,7 +5028,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"apcu\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.1.28\"}": {
+      "artifact_expires_at": "2026-11-02T07:17:29Z",
+      "artifact_id": "12632299842",
+      "artifact_name": "pkg2-macos-arm64-php-extension-apcu-5.1.28-8.6-r1",
+      "artifact_zip_sha256": "d5ad326b3a606ce2c6f7fdb1326857591a09be1edfd8141194b0a0eb36bdaebc",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "edd79ac5844a725d20c009940dda3bcf6d894e974cfe794ebe38f8a45aab84d3",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5050,19 +5066,25 @@
         "runtime_version": "v2",
         "version": "5.1.28"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"imagick\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.8.1\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:36Z",
+      "artifact_id": "12633409687",
+      "artifact_name": "pkg2-macos-arm64-php-extension-imagick-3.8.1-8.6-r1",
+      "artifact_zip_sha256": "7e5cd6c3135e3e304aca4b8fd750b76f11efa742b3e08e4fe0dd8dfa79261246",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "f36b8a63358ff65fddd1b036bd25f6072f0beae499111a7943f0140dd7cfcb7a",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5085,19 +5107,25 @@
         "runtime_version": "v2",
         "version": "3.8.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"imap\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:17:53Z",
+      "artifact_id": "12632993934",
+      "artifact_name": "pkg2-macos-arm64-php-extension-imap-1.0.3-8.6-r1",
+      "artifact_zip_sha256": "a24de3d7c5f24726b427e6df609e81123a0ac0e81dfba6358e008f4dca1e3419",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "237ef671fdc276a2920f6bccab7979a8c338a0412d3df06ac4853a1b28a10085",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5120,19 +5148,25 @@
         "runtime_version": "v2",
         "version": "1.0.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"memcache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.2\"}": {
+      "artifact_expires_at": "2026-11-02T07:17:34Z",
+      "artifact_id": "12632934017",
+      "artifact_name": "pkg2-macos-arm64-php-extension-memcache-8.2-8.6-r1",
+      "artifact_zip_sha256": "ba7b9c6ace5681d53c5c63efff4f6fb7d7d1acb827050108ab5d0f6e8347f1e3",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "9aba103254cf8f9ddaecc7d87698bc149120c86d58c5e5b0ff58ba2a037c9426",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5155,19 +5189,25 @@
         "runtime_version": "v2",
         "version": "8.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.0\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:18Z",
+      "artifact_id": "12633103732",
+      "artifact_name": "pkg2-macos-arm64-php-extension-memcached-3.4.0-8.6-r1",
+      "artifact_zip_sha256": "57569b539381cb61e1058cfbf8f7f93cf22f7bd679ee2398a828a8c5596c8fa9",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "f3d4f4100bca604473998c7884404b3fa20a38b49ac3c5872829f7ffed633427",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5190,19 +5230,25 @@
         "runtime_version": "v2",
         "version": "3.4.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.21.12\"}": {
+      "artifact_expires_at": "2026-11-02T07:19:06Z",
+      "artifact_id": "12633348364",
+      "artifact_name": "pkg2-macos-arm64-php-extension-mongodb-1.21.12-8.6-r1",
+      "artifact_zip_sha256": "43177fe1604cc4b8cf4ea864392fd5c6117b34782796093f7021c6de59aca217",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "8e31fb96d192d8e4bbf03e3d17143970b9eb5ed6bec55c36ef33bb7589eef37e",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5225,19 +5271,25 @@
         "runtime_version": "v2",
         "version": "1.21.12"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"pdo_sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:15Z",
+      "artifact_id": "12633053839",
+      "artifact_name": "pkg2-macos-arm64-php-extension-pdo_sqlsrv-5.13.3-8.6-r1",
+      "artifact_zip_sha256": "959fbaf8897f6a71a2883dbf1b3b98e198106c62dcd47d1f7552b1b6a404ef8e",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "6a6d12311a92c8856685fff54cd1c1fd38ea3b3991ef83daed31973dc59cb6b8",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5260,19 +5312,15 @@
         "runtime_version": "v2",
         "version": "5.13.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"phalcon\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.23.0\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5295,19 +5343,25 @@
         "runtime_version": "v2",
         "version": "5.23.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.3.0\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:29Z",
+      "artifact_id": "12634135368",
+      "artifact_name": "pkg2-macos-arm64-php-extension-redis-6.3.0-8.6-r1",
+      "artifact_zip_sha256": "76351d95e2609a7bdd778a3c97799718a84cbfda6de312fb19a936853d9ece91",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "40ea78ddd52d3f4a2c7c5b328e0f631c103e76041f845c302b88e4c6ce88029e",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5330,19 +5384,25 @@
         "runtime_version": "v2",
         "version": "6.3.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"scws\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.2.4-pre\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:10Z",
+      "artifact_id": "12633273461",
+      "artifact_name": "pkg2-macos-arm64-php-extension-scws-1.2.4-pre-8.6-r1",
+      "artifact_zip_sha256": "ae29317c5c6edfbef0f0be9ce99c8b95310682ad6c8b23781d37527e2273ec18",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "7be087239de8aaae629c76a097e7bfaca200ae8af7086dea14b72e32114ee6cb",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5365,19 +5425,25 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:21Z",
+      "artifact_id": "12632674307",
+      "artifact_name": "pkg2-macos-arm64-php-extension-sqlsrv-5.13.3-8.6-r1",
+      "artifact_zip_sha256": "4443daeb5da203ef1de268d8f4c41e16cd5c94f8ad540fa23acd73f150769a60",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "aa097111c607a836ba4cd13a3c10a792f5f4512d07362f7d869a8a5b2f8103d7",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5400,19 +5466,15 @@
         "runtime_version": "v2",
         "version": "5.13.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.7-88fc55029c\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5435,19 +5497,25 @@
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:19Z",
+      "artifact_id": "12632854015",
+      "artifact_name": "pkg2-macos-arm64-php-extension-xdebug-3.4.3-8.6-r1",
+      "artifact_zip_sha256": "f7f5f1bca023bc4cc5515359ebada1cd1c7dea7b353392722a90e816f17ce3aa",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "234c38412148c614c4a2dbbdb891505b02e524d2e2f90b31beffa437dd894f55",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5470,16 +5538,7 @@
         "runtime_version": "v2",
         "version": "3.4.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "consecutive_failures": 0,
@@ -10443,11 +10502,21 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0RC4\"}": {
-      "consecutive_failures": 2,
+      "artifact_expires_at": "2026-11-02T07:25:38Z",
+      "artifact_id": "12633842690",
+      "artifact_name": "pkg2-macos-x86_64-package-php-8.6.0RC4",
+      "artifact_zip_sha256": "370f3a044d62dbc448b8e8f730cac4665a28bc15c99b9f1bd6dade89bf0cc46a",
+      "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "b910cea7110059bb047de99db5d5566b4ac1133d",
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
         "run_attempt": 1,
-        "run_id": "40279549768"
+        "run_id": "40283045159"
+      },
+      "package_sha256": "7b8b111aca39e39dc4bd2375f4140d1549ee7838279ca93fae6f8dab031e8058",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
       },
       "record": {
         "arch": "x86_64",
@@ -10459,16 +10528,7 @@
         "runtime_version": "v2",
         "version": "8.6.0RC4"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T06:59:37+00:00",
-        "expires_at": "2026-10-26T14:59:37+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "build-failed"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0beta3\"}": {
       "consecutive_failures": 1,
@@ -11329,7 +11389,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"apcu\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.1.28\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:17Z",
+      "artifact_id": "12634055679",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-apcu-5.1.28-8.6-r1",
+      "artifact_zip_sha256": "50a38aa5d55206eb7bf2350e6892c99dcb647b137166bdea71e303c8c7ec3220",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "43bca8ca6c8ed25182e2b23d091f3ffd02ab2fe1300dcccba8fe307a3a327e02",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11352,19 +11427,25 @@
         "runtime_version": "v2",
         "version": "5.1.28"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"imagick\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.8.1\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:51Z",
+      "artifact_id": "12633133924",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-imagick-3.8.1-8.6-r1",
+      "artifact_zip_sha256": "60aa937ccaa56d4b718551bd1a79fca0cc0f387b1958eb6c0a7caaeb06017855",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "a4ac5c1d256b38989de49c40219ac100b247d2e441afc59691b66e6b8637102b",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11387,19 +11468,25 @@
         "runtime_version": "v2",
         "version": "3.8.1"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"imap\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:19:44Z",
+      "artifact_id": "12633966264",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-imap-1.0.3-8.6-r1",
+      "artifact_zip_sha256": "f842faa45a247c2c08297498601fd27a182aad0c4d7ef52524189aee84fa1673",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "755652b4a302484fb19ce06feb10b7c3e71b0060589a5766ae908eee9835f94c",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11422,19 +11509,25 @@
         "runtime_version": "v2",
         "version": "1.0.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"memcache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.2\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:43Z",
+      "artifact_id": "12633642085",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-memcache-8.2-8.6-r1",
+      "artifact_zip_sha256": "ca488847410bc9433e02911f3434c07572c991829d41d203557d1481937f60ae",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "2132a6e0c3c5f1e75feed071baa7a57c55c664fc306564699f3d963a0e2a6536",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11457,19 +11550,25 @@
         "runtime_version": "v2",
         "version": "8.2"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.0\"}": {
+      "artifact_expires_at": "2026-11-02T07:19:19Z",
+      "artifact_id": "12633388412",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-memcached-3.4.0-8.6-r1",
+      "artifact_zip_sha256": "29401c6579b246426380ddc824c31eb470c35cb196ca4597d749ba7afff03d3d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "d2c399f5e61f6caa714d2f4c32d0638dd634f343ffc240ba73fd1311f70a09a0",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11492,19 +11591,25 @@
         "runtime_version": "v2",
         "version": "3.4.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.21.12\"}": {
+      "artifact_expires_at": "2026-11-02T07:24:08Z",
+      "artifact_id": "12634245410",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-mongodb-1.21.12-8.6-r1",
+      "artifact_zip_sha256": "05e88dce6728738b943ef506b4d0fa6afbf9d820c18f18b586e889252a0177f4",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "660b0a6be8069192dd2921fdeda6667196d54224af115d65c10ef04c38bfc1ab",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11527,19 +11632,25 @@
         "runtime_version": "v2",
         "version": "1.21.12"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"pdo_sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:19:05Z",
+      "artifact_id": "12633916295",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-pdo_sqlsrv-5.13.3-8.6-r1",
+      "artifact_zip_sha256": "5bf88c40a31ca3958dbe9c1d992092b4b432f12b73fa93abc2e09cf6d546c12d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "20276ddcc4e439c90599f5d9b491b8d65119793c096221cb679291ab588d50d4",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11562,19 +11673,15 @@
         "runtime_version": "v2",
         "version": "5.13.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"phalcon\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.23.0\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11597,19 +11704,25 @@
         "runtime_version": "v2",
         "version": "5.23.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.3.0\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:55Z",
+      "artifact_id": "12633691814",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-redis-6.3.0-8.6-r1",
+      "artifact_zip_sha256": "c4a4d3232445f6d70558e0073ee08014673c10173ba5369d9c3e78cd9ccbd1eb",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "59e1e26961002c0ade9a0dbba13ad6439ccb9fde932e24432fdeb66196f927c0",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11632,19 +11745,25 @@
         "runtime_version": "v2",
         "version": "6.3.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"scws\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.2.4-pre\"}": {
+      "artifact_expires_at": "2026-11-02T07:19:05Z",
+      "artifact_id": "12633502519",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-scws-1.2.4-pre-8.6-r1",
+      "artifact_zip_sha256": "10bd86ba5ca1d00864d24a66d05f8b2c544672ad8256057fc737412058c7b40e",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "ad8d1e87a90456c1487d351bd437671adf0f0deeb5d6201cb2afd32145c8986b",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11667,19 +11786,25 @@
         "runtime_version": "v2",
         "version": "1.2.4-pre"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"sqlsrv\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.13.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:30Z",
+      "artifact_id": "12634035852",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-sqlsrv-5.13.3-8.6-r1",
+      "artifact_zip_sha256": "2e8e73d5e8593300dd042f523fbc1f3c1a7e48d8d87b3c6ec3c65392a651f71f",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "64dc0b501110434dce7bc2defc239cf2554a73b66cecffce101782bb77a156f2",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11702,19 +11827,15 @@
         "runtime_version": "v2",
         "version": "5.13.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.7-88fc55029c\"}": {
-      "consecutive_failures": 0,
+      "consecutive_failures": 1,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11737,19 +11858,25 @@
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
+      "artifact_expires_at": "2026-11-02T07:18:19Z",
+      "artifact_id": "12633646854",
+      "artifact_name": "pkg2-macos-x86_64-php-extension-xdebug-3.4.3-8.6-r1",
+      "artifact_zip_sha256": "4bdbd8ea38ea7c667ccc4b0ae621cbc56aa60e574c8b7c866ea5f506367ce788",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
+      "package_sha256": "751ca0a8847adff98f7ec66c58137c0f9dbf279d0af0bf0d9117a26e7fecfedb",
+      "producer": {
+        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "run_attempt": 1,
+        "run_id": "40283045159"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -11772,16 +11899,7 @@
         "runtime_version": "v2",
         "version": "3.4.3"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T07:16:26+00:00",
-        "expires_at": "2026-10-26T15:16:26+00:00",
-        "producer": {
-          "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
-          "run_attempt": 1,
-          "run_id": "40283045159"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"ai-gateway\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.0.0\"}": {
       "consecutive_failures": 0,
