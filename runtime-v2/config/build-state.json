@@ -11696,9 +11696,9 @@
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"phalcon\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.23.0\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
         "run_attempt": 1,
-        "run_id": "40283045159"
+        "run_id": "40293144863"
       },
       "record": {
         "arch": "x86_64",
@@ -11722,16 +11722,7 @@
         "runtime_version": "v2",
         "version": "5.23.0"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T08:34:27+00:00",
-        "expires_at": "2026-10-26T16:34:27+00:00",
-        "producer": {
-          "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
-          "run_attempt": 1,
-          "run_id": "40293144863"
-        }
-      },
-      "status": "build-failed"
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.3.0\"}": {
       "artifact_expires_at": "2026-11-02T07:18:55Z",
@@ -11859,9 +11850,9 @@
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.7-88fc55029c\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "3472f71e53ef38e20f1defe9dac2ddc802ed19ca",
+        "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
         "run_attempt": 1,
-        "run_id": "40283045159"
+        "run_id": "40293144863"
       },
       "record": {
         "arch": "x86_64",
@@ -11885,16 +11876,7 @@
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
       },
-      "reservation": {
-        "claimed_at": "2026-10-26T08:34:27+00:00",
-        "expires_at": "2026-10-26T16:34:27+00:00",
-        "producer": {
-          "commit": "b5b03d5cddb0554e213f11fada3b6a115f4a07a8",
-          "run_attempt": 1,
-          "run_id": "40293144863"
-        }
-      },
-      "status": "build-failed"
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
       "artifact_expires_at": "2026-11-02T07:18:19Z",
