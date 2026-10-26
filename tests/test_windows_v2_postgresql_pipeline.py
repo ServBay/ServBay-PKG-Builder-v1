@@ -10,6 +10,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -125,6 +127,7 @@ class PipelineTests(unittest.TestCase):
     def observe(self, root, **kwargs):
         runner, calls = self.runner(root, kwargs.pop("failures", None), kwargs.pop("bad", None),
                                     kwargs.pop("cwd_callback", None))
+        runner = kwargs.pop("runner_override", runner)
         system = {"os_architecture": "X64", "process_architecture": "X64", "processor_name": "actual cpu",
                   "processor_architecture_code": 9, "process_environment_architecture": "AMD64",
                   "os_version": "10.0.26100", "native_machine": 34404, "process_machine": 0}
@@ -375,6 +378,84 @@ class PipelineTests(unittest.TestCase):
         successful = subprocess.CompletedProcess([], 0, "claims success", "")
         with self.assertRaises(ValueError):
             pipeline.prepare_work_directory(self.root, runner=lambda command: successful)
+
+    def test_start_returns_while_background_descendant_still_holds_standard_handles(self):
+        root = self.fixture()
+        ready, stop = self.root / "background.ready", self.root / "background.stop"
+        query_entered, release_query = threading.Event(), threading.Event()
+        baseline, calls = self.runner(root)
+        errors = []
+        child = ("import os,sys,time; from pathlib import Path; "
+                 "ready=Path(sys.argv[1]); stop=Path(sys.argv[2]); "
+                 "ready.write_text(str(os.getpid())); deadline=time.monotonic()+15\n"
+                 "while not stop.exists() and time.monotonic()<deadline: time.sleep(0.05)\n")
+        launcher = "import subprocess,sys; subprocess.Popen([sys.executable,'-B','-c'," + repr(child) + ",sys.argv[1],sys.argv[2]],close_fds=False)"
+        def controlled_runner(command, **kwargs):
+            name = Path(command[0]).stem
+            if name == "pg_ctl" and "start" in command:
+                return pipeline.run([sys.executable, "-B", "-c", launcher, str(ready), str(stop)], **kwargs)
+            if name == "psql" and "--version" not in command:
+                query_entered.set()
+                release_query.wait(8)
+            if name == "pg_ctl" and "stop" in command:
+                stop.write_text("normal stop")
+            return baseline(command, **kwargs)
+        def worker():
+            try:
+                self.observe(root, runner_override=controlled_runner)
+            except Exception as error:
+                errors.append(type(error).__name__)
+        thread = threading.Thread(target=worker)
+        thread.start()
+        handle = None
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
+        kernel.OpenProcess.restype = ctypes.c_void_p
+        kernel.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
+        kernel.CloseHandle.argtypes = [ctypes.c_void_p]
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertTrue(ready.exists(), "Supervised background fixture must actually start")
+            handle = kernel.OpenProcess(0x1000, False, int(ready.read_text()))
+            self.assertTrue(bool(handle), "Background child must be independently observable")
+            self.assertTrue(query_entered.wait(3), "pg_ctl start must return before its background descendant exits")
+            exit_code = ctypes.c_ulong()
+            self.assertTrue(bool(kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code))))
+            self.assertEqual(exit_code.value, 259, "Background descendant must remain running when start returns")
+        finally:
+            release_query.set()
+            stop.write_text("normal supervised shutdown")
+            thread.join(12)
+            if handle:
+                deadline = time.monotonic() + 5
+                exit_code = ctypes.c_ulong(259)
+                while time.monotonic() < deadline:
+                    kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                    if exit_code.value != 259:
+                        break
+                    time.sleep(0.05)
+                kernel.CloseHandle(handle)
+                self.assertNotEqual(exit_code.value, 259, "Background fixture must exit without a force kill")
+        self.assertFalse(thread.is_alive(), "Native call must be completely joined")
+        self.assertFalse(errors, "Supervised native fixture must preserve query/stop behavior")
+
+    def test_foreground_values_remain_captured_and_uncaptured_nonzero_still_fails(self):
+        result = pipeline.run([sys.executable, "-B", "-c",
+                               "import sys;print('actual foreground');sys.stderr.write('actual stderr')"], cwd=self.root)
+        self.assertEqual(result.stdout.strip(), "actual foreground")
+        self.assertEqual(result.stderr, "actual stderr")
+        failed = pipeline.run([sys.executable, "-B", "-c",
+                               "import sys;sys.stderr.write('SECRET-output');sys.exit(7)"],
+                              cwd=self.root, capture_output=False)
+        self.assertEqual(failed.returncode, 7)
+        self.assertIsNone(failed.stdout)
+        self.assertIsNone(failed.stderr)
+        with self.assertRaises(pipeline.ProbeFailure) as caught:
+            pipeline.require_ok(failed, "startup")
+        self.assertIn("exit=7", pipeline.failure_summary(caught.exception))
+        self.assertNotIn("SECRET", pipeline.failure_summary(caught.exception))
 
     def test_pipeline_binds_actual_source_producer_and_native_before_export(self):
         repacker = self.fake_repacker()

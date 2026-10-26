@@ -44,10 +44,12 @@ def load_repacker():
     return module
 
 
-def run(command, *, cwd=None):
+def run(command, *, cwd=None, capture_output=True):
     environment = {key.upper(): value for key, value in os.environ.items() if key.upper() in RUNTIME_ENV}
     try:
-        return subprocess.run([str(item) for item in command], env=environment, capture_output=True,
+        return subprocess.run([str(item) for item in command], env=environment,
+                              stdout=subprocess.PIPE if capture_output else subprocess.DEVNULL,
+                              stderr=subprocess.PIPE if capture_output else subprocess.DEVNULL,
                               text=True, encoding="utf-8", errors="replace", timeout=300, cwd=cwd)
     except (OSError, subprocess.SubprocessError):
         raise RuntimeError("Subprocess execution failed") from None
@@ -69,7 +71,7 @@ def runtime_environment():
 def require_ok(result, label):
     if result.returncode != 0:
         raise ProbeFailure(label, result.returncode)
-    return result.stdout.strip()
+    return result.stdout.strip() if result.stdout is not None else ""
 
 
 def powershell(script, runner=run):
@@ -228,8 +230,8 @@ def download_source(version, revision, destination):
 
 
 def collect_native(root, archive, version, *, runner=run):
-    def native_run(command):
-        return runner(command, cwd=root / "bin")
+    def native_run(command, *, capture_output=True):
+        return runner(command, cwd=root / "bin", capture_output=capture_output)
 
     machine = machine_evidence(runner)
     if (machine["os_architecture"] != "X64" or machine["process_architecture"] != "X64"
@@ -264,7 +266,7 @@ def collect_native(root, archive, version, *, runner=run):
     sql = None
     try:
         start = native_run([root / "bin/pg_ctl.exe", "-D", data, "-l", root.parent.parent / "postgresql-startup.log",
-                        "-o", f"-h 127.0.0.1 -p {port}", "-w", "-t", "60", "start"])
+                        "-o", f"-h 127.0.0.1 -p {port}", "-w", "-t", "60", "start"], capture_output=False)
         require_ok(start, "startup")
         statement = ("SELECT json_build_object('server_version',current_setting('server_version'),"
                      "'server_encoding',current_setting('server_encoding'),'data_directory',"
