@@ -1876,6 +1876,11 @@ _build_pgsql_mod_postgis() {
     local pg_version_major=$3
     local pg_prefix=$4
     local pg_config="${pg_prefix}/bin/pg_config"
+    local sfcgal_config="${SERVBAY_COMMON_PATH}/bin/sfcgal-config"
+    if [[ ! -x "$sfcgal_config" ]]; then
+        log_message "ERROR" "Required Runtime SFCGAL config is missing: ${sfcgal_config}"
+        return 1
+    fi
 
     log_message "INFO" "  -> Building module: PostGIS v${mod_version}"
     local mod_source_filename="postgis-${mod_version}.tar.gz"
@@ -1905,6 +1910,7 @@ _build_pgsql_mod_postgis() {
                 --with-pgconfig="${pg_config}" \
                 --disable-nls \
                 --with-protobufdir="${SERVBAY_COMMON_PATH}" \
+                --with-sfcgal="${sfcgal_config}" \
                 --without-raster \
                 --without-topology
     if [[ $? -ne 0 ]]; then log_message "ERROR" "PostGIS configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
@@ -1918,6 +1924,19 @@ _build_pgsql_mod_postgis() {
         cd "$SERVBAY_BUILD_DIR"
         return 1
     fi
+    local extension_libdir="${DESTDIR}$($pg_config --pkglibdir)"
+    local extension_sharedir="${DESTDIR}$($pg_config --sharedir)/extension"
+    if [[ ! -f "${extension_libdir}/postgis_sfcgal-3.dylib" && ! -f "${extension_libdir}/postgis_sfcgal-3.so" ]]; then
+        log_message "ERROR" "Required PostGIS SFCGAL library was not installed."
+        cd "$SERVBAY_BUILD_DIR"; return 1
+    fi
+    local sfcgal_file
+    for sfcgal_file in postgis_sfcgal.control "postgis_sfcgal--${mod_version}.sql"; do
+        if [[ ! -f "${extension_sharedir}/${sfcgal_file}" ]]; then
+            log_message "ERROR" "Required PostGIS SFCGAL product is missing: ${sfcgal_file}"
+            cd "$SERVBAY_BUILD_DIR"; return 1
+        fi
+    done
     log_message "INFO" "  -> PostGIS module verified successfully."
 
     cd "$SERVBAY_BUILD_DIR"
@@ -2045,6 +2064,32 @@ _build_pgsql_mod_pgvector() {
     cleanup_source_directory "$mod_package_fullname"
 }
 
+_install_pg_jieba_loader_alias() {
+    local pg_config=$1
+    local extension_libdir=$2
+    local server_include dl_suffix loader
+    server_include=$("$pg_config" --includedir-server) || return 1
+    dl_suffix=$(python3 - "${server_include}/pg_config.h" <<'PY'
+import pathlib, re, sys
+header = pathlib.Path(sys.argv[1]).read_text()
+header = re.sub(r'/\*.*?\*/|//[^\n]*', '', header, flags=re.DOTALL)
+suffixes = re.findall(r'^\s*#\s*define\s+DLSUFFIX\s+"(\.[A-Za-z0-9_]+)"\s*$', header, re.MULTILINE)
+if len(suffixes) != 1:
+    raise SystemExit("Expected one safe PostgreSQL DLSUFFIX in " + sys.argv[1])
+print(suffixes[0])
+PY
+    ) || return 1
+    loader="${extension_libdir}/pg_jieba${dl_suffix}"
+    if [[ ! -e "$loader" && ! -L "$loader" ]]; then
+        [[ -f "${extension_libdir}/pg_jieba.so" ]] || return 1
+        ln -s pg_jieba.so "$loader" || return 1
+    fi
+    if [[ ! -f "$loader" ]]; then
+        log_message "ERROR" "pg_jieba loader target is missing: ${loader}"
+        return 1
+    fi
+}
+
 ###
 # @description Internal build logic for the pg_jieba extension.
 # @param $1 string Module version (e.g., "1.1.1").
@@ -2063,10 +2108,13 @@ _build_pgsql_mod_pg_jieba() {
     local package_fullname="pg_jieba-${mod_version}"
     local main_archive="${SERVBAY_BUILD_SRC_DIR}/${package_fullname}.tar.gz"
     local component_archive="${SERVBAY_BUILD_SRC_DIR}/${package_fullname}-cppjieba.tar.gz"
+    local limonp_archive="${SERVBAY_BUILD_SRC_DIR}/${package_fullname}-limonp.tar.gz"
     local pin_data
-    pin_data=$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1]))["recipes"]["pg_jieba"]["source_pins"][sys.argv[2]]; print(p["url"]); print(p["sha256"]); print(p["component"]["url"]); print(p["component"]["sha256"])' "$PROJECT_ROOT/config/modules.json" "$mod_version") || return 1
+    pin_data=$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1]))["recipes"]["pg_jieba"]["source_pins"][sys.argv[2]]; print(p["url"]); print(p["sha256"]); print(p["component"]["url"]); print(p["component"]["sha256"])
+if p.get("sql_version") == "1.1.1":
+    print(p["component"]["limonp"]["url"]); print(p["component"]["limonp"]["sha256"])' "$PROJECT_ROOT/config/modules.json" "$mod_version") || return 1
     local -a source_values=( "${(@f)pin_data}" )
-    [[ ${#source_values} == 4 ]] || return 1
+    [[ ${#source_values} == 4 || ${#source_values} == 6 ]] || return 1
     download_source "$source_values[1]" "$main_archive" || return 1
     download_source "$source_values[3]" "$component_archive" || return 1
     local actual
@@ -2074,13 +2122,26 @@ _build_pgsql_mod_pg_jieba() {
     [[ "${actual%% *}" == "$source_values[2]" ]] || { log_message "ERROR" "pg_jieba release SHA256 differs from its pinned source"; return 1; }
     actual=$(shasum -a 256 "$component_archive") || return 1
     [[ "${actual%% *}" == "$source_values[4]" ]] || { log_message "ERROR" "pg_jieba cppjieba gitlink SHA256 differs from its pinned source"; return 1; }
+    if [[ ${#source_values} == 6 ]]; then
+        download_source "$source_values[5]" "$limonp_archive" || return 1
+        actual=$(shasum -a 256 "$limonp_archive") || return 1
+        [[ "${actual%% *}" == "$source_values[6]" ]] || { log_message "ERROR" "pg_jieba limonp gitlink SHA256 differs from its pinned source"; return 1; }
+    fi
     unpack_package "$package_fullname" "${package_fullname}.tar.gz" || return 1
     mkdir -p libjieba || return 1
     "$GTAR_BIN" -xzf "$component_archive" --strip-components=1 -C libjieba || return 1
+    if [[ ${#source_values} == 6 ]]; then
+        mkdir -p libjieba/deps/limonp || return 1
+        "$GTAR_BIN" -xzf "$limonp_archive" --strip-components=1 -C libjieba/deps/limonp || return 1
+    fi
+    local current_sdk
+    current_sdk=$(xcrun --sdk macosx --show-sdk-path) || return 1
+    [[ -d "$current_sdk" ]] || return 1
     local cmake_args=(
         "-DCMAKE_PREFIX_PATH=${pg_prefix}"
         "-DPostgreSQL_PG_CONFIG=${pg_config}"
         "-DPostgreSQL_EXECUTABLE=${pg_prefix}/bin/postgres"
+        "-DCMAKE_OSX_SYSROOT=${current_sdk}"
     )
     cmake -S . -B builddir "${cmake_args[@]}"
     if [[ $? -ne 0 ]]; then log_message "ERROR" "pg_jieba configure failed."; cd "$SERVBAY_BUILD_DIR"; return 1; fi
@@ -2093,6 +2154,28 @@ _build_pgsql_mod_pg_jieba() {
         log_message "ERROR" "pg_jieba installation verification failed: library not found in ${extension_libdir}."
         cd "$SERVBAY_BUILD_DIR"
         return 1
+    fi
+    _install_pg_jieba_loader_alias "$pg_config" "$extension_libdir" || return 1
+    if [[ ${#source_values} == 6 ]]; then
+        local extension_sharedir="${DESTDIR}$($pg_config --sharedir)/extension"
+        install -m 644 "${PATCH_DIR}/pgsql/pg_jieba--1.1.0--1.1.1.sql" "$extension_sharedir/" || return 1
+        local search_dir="${DESTDIR}$($pg_config --sharedir)/tsearch_data"
+        local required_file
+        for required_file in jieba_base.dict jieba_hmm.model jieba_user.dict jieba.idf jieba.stop; do
+            if [[ ! -f "${search_dir}/${required_file}" ]]; then
+                log_message "ERROR" "pg_jieba legacy dictionary is missing: ${required_file}"
+                cd "$SERVBAY_BUILD_DIR"; return 1
+            fi
+        done
+        python3 - "$PROJECT_ROOT/config/modules.json" "$mod_version" "${DESTDIR}${pg_prefix}" <<'PY'
+import hashlib, json, pathlib, sys
+pin = json.load(open(sys.argv[1]))["recipes"]["pg_jieba"]["source_pins"][sys.argv[2]]
+for relative, expected in pin["compatibility_files"].items():
+    path = pathlib.Path(sys.argv[3]) / relative
+    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        raise SystemExit("pg_jieba v1 compatibility product differs: " + relative)
+PY
+        if [[ $? -ne 0 ]]; then cd "$SERVBAY_BUILD_DIR"; return 1; fi
     fi
     log_message "INFO" "  -> pg_jieba module verified successfully."
 

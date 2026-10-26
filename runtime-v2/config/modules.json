@@ -80,6 +80,32 @@
             "url": "https://github.com/yanyiwu/cppjieba/archive/45809955f5a345886ec3d49cbed3ec68ced70b1c.tar.gz",
             "sha256": "5a2245a7c02243134f309738d58ad1d6cd0b5fb222b3cb2f6659b9d21c465083"
           }
+        },
+        "2.0.1.1": {
+          "url": "https://codeload.github.com/jaiminpan/pg_jieba/tar.gz/d0ffac8028328b2566a889ff4db3d74ba63d1b42",
+          "sha256": "a7ee376de977b9aa6e5a867a5fbbadbaeab1b40233e90dcf6bd1214897d00fa5",
+          "source_kind": "fixed_commit",
+          "commit": "d0ffac8028328b2566a889ff4db3d74ba63d1b42",
+          "sql_version": "1.1.1",
+          "compatibility_files": {
+            "share/extension/pg_jieba--1.1.1.sql": "df1c8d9f72cefeb18097c429127eeb90752af60fefa6b25f01145caaef5e7f70",
+            "share/extension/pg_jieba.control": "3ff798a2f571a587b0da816f65ea3f467758e2ccf2c89f412af67d211ae272bc",
+            "share/tsearch_data/jieba_user.dict": "495bbf49270408a1234690e1e6a97328f30a482a7a72aa769e8a12e8714b0c62",
+            "share/tsearch_data/jieba_base.dict": "3043b77068e09c9904f27cad82f12b6ebe9dbdb5aeff3b25e45ab7f9c1122b55",
+            "share/tsearch_data/jieba.idf": "dbd1e03d72b2263cc8d84a4304ed77677eed9e7deaf43a1a5133bbba9733b535",
+            "share/tsearch_data/jieba_hmm.model": "f17790586ac86dd048c8adffed052c4bd2b28ed0682972c1275e59040c0589a7",
+            "share/tsearch_data/jieba.stop": "b788b8a939d2e2fe079abd579ea98f12f9fb84370bfd0dddd81bb9381f7ab42c"
+          },
+          "component": {
+            "url": "https://codeload.github.com/yanyiwu/cppjieba/tar.gz/391121d5db0f31dd5ce9795d4d34812f20eeb25c",
+            "sha256": "c02907dbe41da72bba15cae39fe0b09bb6916ea03173f92090c4fc9e78c830f9",
+            "commit": "391121d5db0f31dd5ce9795d4d34812f20eeb25c",
+            "limonp": {
+              "url": "https://codeload.github.com/yanyiwu/limonp/tar.gz/a269e34dc4948d5a9209e21a7887b52daa0d3e78",
+              "sha256": "54b77a01176815b70190ed5f546c32aeb47e6cce646d930d73cb02c5c465a912",
+              "commit": "a269e34dc4948d5a9209e21a7887b52daa0d3e78"
+            }
+          }
         }
       }
     },
@@ -443,7 +469,7 @@
         "pgvector": "0.8.7"
       },
       "18": {
-        "pg_jieba": "2.0.1",
+        "pg_jieba": "2.0.1.1",
         "zhparser": "2.3",
         "postgis": "3.5.7",
         "pgrouting": "3.8.0",
