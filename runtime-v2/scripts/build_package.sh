@@ -5263,7 +5263,7 @@ _download_pecl_source() {
             if [[ "$mod_version" == "6.2.0-dev" ]]; then
                 # This exact snapshot declares 6.2.0-dev in swoole_version.h.
                 # Full commit: 88fc55029c3fefce6678477c35a26f3e3cd857c2.
-                # Keep the short-ref archive bytes: SHA256 e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09.
+                # Keep the existing URL; GitHub redirects it to the full-commit archive.
                 url="https://github.com/swoole/swoole-src/archive/88fc55029c.tar.gz"
                 mod_source_filename="swoole-${mod_version}.tar.gz"
             elif [[ "$mod_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[a-f0-9]{7,40}$ ]]; then
