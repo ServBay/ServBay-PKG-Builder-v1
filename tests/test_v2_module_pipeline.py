@@ -314,6 +314,49 @@ class ModulePipelineTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     helper.prepare_module_request(wrong, directory, base, fixture.root / 'work', producer, fixture.root / 'out')
 
+    def test_public_host_download_uses_explicit_client_identity_and_preserves_hash_and_abi_guards(self):
+        helper = self.helper()
+        fixture = test_v2_core_manifest.CoreManifestTests(methodName='runTest')
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        candidate = fixture.candidate()
+        unit = helper.plan_modules([candidate], [], fixture.producer)['include'][0]
+        del unit['request']['candidate_artifact']
+        unit['request']['download_url'] = 'https://catalog.example.invalid/exact-host.tar.gz'
+        for defect in (None, 'http', 'sha', 'abi'):
+            with self.subTest(defect=defect):
+                base = fixture.root / ('base-' + str(defect))
+                base.mkdir()
+                (base / '.bootstrap-v2.json').write_text(json.dumps({'runtime_version': 'v2', 'arch': unit['arch'], **BASE}))
+                probe = copy.deepcopy(candidate['host'])
+                if defect == 'abi':
+                    probe['abi']['module_api'] += 1
+                def download(request, timeout):
+                    if (not isinstance(request, helper.urllib.request.Request)
+                            or request.get_header('User-agent') != 'ServBay-PKG-Builder' or defect == 'http'):
+                        raise helper.urllib.error.HTTPError(unit['request']['download_url'], 403, 'Forbidden', {}, None)
+                    self.assertEqual(unit['request']['download_url'], request.full_url)
+                    self.assertEqual('GET', request.get_method())
+                    self.assertEqual(120, timeout)
+                    return io.BytesIO(b'wrong archive bytes' if defect == 'sha' else fixture.package.read_bytes())
+                work, output = fixture.root / ('work-' + str(defect)), fixture.root / ('output-' + str(defect))
+                with mock.patch.object(helper.urllib.request, 'urlopen', side_effect=download) as read, \
+                        mock.patch.object(helper._hosts, 'probe_php_host', return_value={'host': probe}) as native:
+                    if defect:
+                        error = helper.urllib.error.HTTPError if defect == 'http' else ValueError
+                        with self.assertRaises(error):
+                            helper.prepare_module_request(unit, fixture.root / 'no-new-core', base, work, fixture.producer, output)
+                    else:
+                        result = helper.prepare_module_request(unit, fixture.root / 'no-new-core', base, work, fixture.producer, output)
+                        self.assertEqual(unit['request']['host_sha256'], helper._meta.sha256(result['host_archive']))
+                        self.assertEqual(unit['request']['record'], result['record'])
+                        self.assertEqual(fixture.producer, result['producer'])
+                self.assertEqual(1, read.call_count)
+                if defect in ('http', 'sha'):
+                    native.assert_not_called()
+                    self.assertFalse((base / 'packages/php/8.4').exists())
+                self.assertFalse(output.exists())
+
     def test_finalizer_readback_uses_actual_zip_bytes_and_rejects_tamper_duplicate_and_older_attempt(self):
         helper = self.helper()
         fixture = test_v2_core_manifest.CoreManifestTests(methodName='runTest')

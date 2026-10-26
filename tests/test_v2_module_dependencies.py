@@ -272,15 +272,31 @@ class ModuleDependencyTests(unittest.TestCase):
         plan = {'include': [unit], 'external_candidates': []}
         work = self.root / 'host-only'
         work.mkdir()
+        def download(request, timeout):
+            if (not isinstance(request, helper.urllib.request.Request)
+                    or request.get_header('User-agent') != 'ServBay-PKG-Builder'):
+                raise helper.urllib.error.HTTPError(unit['request']['download_url'], 403, 'Forbidden', {}, None)
+            self.assertEqual(120, timeout)
+            return io.BytesIO(self.archive.read_bytes())
         with mock.patch.object(helper, 'fetch_module_artifacts', return_value=[pending['candidate_path'], dependency['meta_path']]), \
-                mock.patch.object(helper.urllib.request, 'urlopen', return_value=io.BytesIO(self.archive.read_bytes())) as read:
+                mock.patch.object(helper.urllib.request, 'urlopen', side_effect=download) as read:
             result = helper.finalize_requested_module(unit, plan, self.producer, 'fixture/Builder', work,
                                                        self.root / 'no-new-core', self.root / 'host-only-final')
-        self.assertEqual(unit['request']['download_url'], read.call_args.args[0])
+        self.assertEqual(unit['request']['download_url'], read.call_args.args[0].full_url)
         self.assertEqual(self.producer, result['meta']['producer'])
         self.assertEqual(self.host['package_sha256'],
                          json.loads(Path(result['manifest']).read_text())['host']['package_sha256'])
         self.assertFalse((self.root / 'no-new-core').exists())
+        for defect in ('http', 'sha'):
+            failure = helper.urllib.error.HTTPError(unit['request']['download_url'], 403, 'Forbidden', {}, None)
+            with self.subTest(defect=defect), \
+                    mock.patch.object(helper, 'fetch_module_artifacts', return_value=[pending['candidate_path'], dependency['meta_path']]), \
+                    mock.patch.object(helper.urllib.request, 'urlopen', side_effect=failure if defect == 'http' else None,
+                                      return_value=io.BytesIO(b'wrong host bytes')), \
+                    self.assertRaises(helper.urllib.error.HTTPError if defect == 'http' else ValueError):
+                helper.finalize_requested_module(unit, plan, self.producer, 'fixture/Builder', work,
+                                                 self.root / 'no-new-core', self.root / ('failed-final-' + defect))
+            self.assertFalse((self.root / ('failed-final-' + defect)).exists())
 
     def test_external_dependency_keeps_its_real_hash_and_requires_uploader_confirmation(self):
         helper = self.helper()

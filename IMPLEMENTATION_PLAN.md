@@ -327,6 +327,8 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 此前公共CDN下载命中阿里云ESA，Uploader OSS/R2后端回读不能代表CF CDN；已明确纠正该证据边界。本轮固定CF IP并保持原Host/SNI、绕过本机代理，确认server=cloudflare、CF-Ray LHR，完整GET六个core，全部SHA与ESA/数据库/Builder一致，CF均HIT。原URL和查询参数URL的ESA下载一致；包内版本/Windows二进制标记为RC4。双链路证据保存于 `/tmp/servbay-php-rc4-release-d8heet_i/cloudflare-cdn-six-core-verification.json`、`cdn-content-and-cache-evidence.json`；仅代表已测ESA及CF LHR路径，不声称逐个全球PoP。双侧核对完成后接续已批准的四模块构建，后续仅发布尚未登记的四扩展，不重新注册core。
 
+09:23 UTC：已批准的CI条件修复 `0018dfd8d79334c8c10f69e13cfd3d58cd530b6a` 推送后，ARM run `40299195891`、Intel run `40299204692` 的四个模块job均实际启动，但在下载公开core时收到HTTP403，尚未编译/发布。对相同CF IP、Host/SNI、URL只改变UA：默认Python-urllib返回403，ServBay-PKG-Builder返回206；日本出口实际urllib同样复现。证据 `cloudflare-user-agent-comparison.json`。两处公开host下载仅增加显式Request UA，保留完整GET、原URL、120秒超时、SHA/ABI/base及失败传播。15项精准离线回归通过；逐处恢复裸URL的两项内存突变均被识别。第1轮审查因专用角色缺少允许的文件读取工具而覆盖0；第2轮最终只读审查独立15项通过、两突变KILLED，Spec PASS / Quality PASS。未修改CDN/WAF/门禁；真实四模块编译、SID功能及API/CDN仍待新CI。
+
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 
 **Git与Windows补充**：安全修复提交 `d0d8191` 推送时遇到自动build-state提交分叉；误用旧head的run `40280094578` 已取消，回读无artifact。用户回复“继续”后，按所提普通merge保留安全修复与自动状态，合并提交 `b55f2b4` 已推送，未重写历史。干净Windows原生验证于06:43 UTC从包含修复的main重新启动；仍消费原producer `40272362001` attempt1。
