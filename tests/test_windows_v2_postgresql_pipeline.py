@@ -1,6 +1,7 @@
 """Behavior tests for the parameterized Windows PostgreSQL producer."""
 
 import ctypes
+import errno
 import hashlib
 import importlib.util
 import io
@@ -83,6 +84,45 @@ class PipelineTests(unittest.TestCase):
         summary = pipeline.failure_summary(error)
         self.assertIn("stage=download", summary)
         self.assertIn("ValueError", summary)
+        self.assertNotIn("SECRET", summary)
+
+    def error_in_frame(self, filename, error, depth=0):
+        source = "def controlled(n):\n    if n: return controlled(n-1)\n    raise failure\ncontrolled(depth)\n"
+        namespace = {"failure": error, "depth": depth}
+        try:
+            exec(compile(source, str(filename), "exec"), namespace)
+        except OSError as captured:
+            captured.pipeline_stage = "finalize"
+            return captured
+        self.fail("Controlled OSError must actually be raised")
+
+    def test_oserror_summary_retains_numeric_codes_and_safe_project_frame(self):
+        error = OSError(errno.EXDEV, "SECRET message", "SECRET source", 17, "SECRET destination")
+        error = self.error_in_frame(ROOT / "runtime-windows/repack_postgresql_v2.py", error)
+        summary = pipeline.failure_summary(error)
+        self.assertIn("errno=" + str(error.errno), summary)
+        self.assertIn("winerror=17", summary)
+        self.assertRegex(summary, r"frame=runtime-windows/repack_postgresql_v2\.py:[1-9][0-9]*")
+        self.assertNotIn("SECRET", summary)
+        self.assertNotIn(str(ROOT), summary)
+
+    def test_oserror_summary_rejects_noninteger_codes_and_untrusted_frames(self):
+        for filename in (self.root / "SECRET-external.py", ROOT / "tests/SECRET-not-allowed.py",
+                         ROOT.parent / (ROOT.name + "-SECRET") / "runtime-windows/repack_postgresql_v2.py"):
+            with self.subTest(kind="untrusted_frame"):
+                error = OSError("SECRET message")
+                error.errno, error.winerror = True, "SECRET code"
+                summary = pipeline.failure_summary(self.error_in_frame(filename, error))
+                self.assertNotIn("errno=", summary)
+                self.assertNotIn("winerror=", summary)
+                self.assertNotIn("frame=", summary)
+                self.assertNotIn("SECRET", summary)
+                self.assertNotIn(str(self.root), summary)
+
+    def test_oserror_summary_bounds_project_frames(self):
+        error = self.error_in_frame(ROOT / "runtime-windows/repack_postgresql_v2.py", OSError("SECRET"), depth=5)
+        summary = pipeline.failure_summary(error)
+        self.assertEqual(summary.count("frame="), 3)
         self.assertNotIn("SECRET", summary)
 
     def fixture(self):
@@ -341,9 +381,18 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(metadata["work_access_ready"])
         self.assertTrue(metadata["owner_preserved"])
         self.assertEqual(metadata["python_version"], sys.version.split()[0])
+        self.assertEqual(metadata["system_temp_drive"], Path(tempfile.gettempdir()).drive.upper())
+        self.assertEqual(metadata["work_drive"], self.root.drive.upper())
         serialized = json.dumps(metadata)
         self.assertNotIn("S-1-", serialized)
         self.assertNotIn(str(self.root), serialized)
+
+    def test_runtime_drive_diagnostics_are_drive_letters_only(self):
+        for value, expected in (("C:/Temp/folder", "C:"), ("d:/work/folder", "D:"),
+                                ("//server/SECRET-share/folder", "unavailable"),
+                                ("relative-SECRET", "unavailable")):
+            with self.subTest(kind=expected):
+                self.assertEqual(pipeline.safe_drive(value), expected)
 
     def test_runtime_invalid_sid_and_failed_grant_stop_before_download(self):
         for failure in ("invalid_sid", "grant_exit"):

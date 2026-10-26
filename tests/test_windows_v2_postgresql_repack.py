@@ -1,6 +1,7 @@
 """Behavior tests for the diagnostic Windows PostgreSQL v2 core mapping."""
 
 import copy
+import errno
 import hashlib
 import importlib.util
 import io
@@ -425,6 +426,47 @@ class WindowsPostgresqlRepackTests(unittest.TestCase):
         self.assertEqual(meta["package_manifest"]["host"]["type"], "postgresql")
         self.assertEqual(receipt["native_validation"], "passed")
         self.assertNotIn("C:/tmp", json.dumps(receipt))
+
+    def test_finalization_publishes_real_output_under_simulated_cross_volume_boundary(self):
+        package, source, native, producer, compatibility, unused = self.finalization_fixture()
+        module = self.module()
+        system_temp = self.base / "simulated-system-volume"
+        destination = self.base / "simulated-output-volume"
+        system_temp.mkdir()
+        destination.mkdir()
+        output = destination / "formal-postgresql"
+        original = os.replace
+        publishes = []
+        def simulated_replace(source_path, target_path):
+            source_path, target_path = Path(source_path), Path(target_path)
+            if source_path.is_dir() and target_path == output:
+                if not source_path.resolve().is_relative_to(destination.resolve()):
+                    raise OSError(errno.EXDEV, "Simulated cross-volume directory move")
+                publishes.append(target_path)
+            return original(source_path, target_path)
+        failed = False
+        with mock.patch.object(tempfile, "tempdir", str(system_temp)), \
+                mock.patch.object(os, "replace", side_effect=simulated_replace):
+            try:
+                result = module.finalize_postgresql_core(
+                    package, self.identity, source,
+                    "https://get.enterprisedb.com/postgresql/postgresql-18.6-windows-x64-binaries.zip",
+                    native, producer, "10.0", compatibility, output, seven_zip=SEVEN_ZIP)
+            except OSError:
+                failed = True
+        self.assertFalse(failed, "Simulated cross-volume boundary must use destination-side staging")
+        self.assertEqual(publishes, [output])
+        meta = json.loads((output / "meta.json").read_text())
+        receipt = json.loads((output / "postgresql-finalization.json").read_text())
+        self.assertEqual(result["meta"], output / "meta.json")
+        self.assertEqual(meta["version"], self.identity["version"])
+        self.assertEqual(meta["arch"], "x86_64")
+        self.assertEqual(meta["producer"], producer)
+        self.assertEqual((output / meta["filename"]).read_bytes(), package.read_bytes())
+        self.assertEqual(meta["sha256"], digest(package.read_bytes()))
+        self.assertEqual(receipt["archive"]["sha256"], meta["sha256"])
+        self.assertEqual(receipt["meta"]["sha256"], digest((output / "meta.json").read_bytes()))
+        self.assertEqual(receipt["native_validation"], "passed")
 
     def test_native_core_terminal_failure_and_wrong_archive_prevent_output(self):
         package, source, native, producer, compatibility, output = self.finalization_fixture()

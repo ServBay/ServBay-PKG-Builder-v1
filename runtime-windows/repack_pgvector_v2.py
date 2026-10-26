@@ -294,7 +294,7 @@ def finalize_pgvector(build_dir, identity, core, native_result, source_path, sou
     if not isinstance(minimum_os, str) or not re.fullmatch(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?", minimum_os):
         raise ValueError("pgvector minimum_os must be explicit")
 
-    with tempfile.TemporaryDirectory(prefix="servbay-pgvector-finalize-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="servbay-pgvector-finalize-", dir=output.parent) as temporary:
         temporary = Path(temporary)
         diagnostic = repack_pgvector(build_dir, identity, core, temporary / "diagnostic",
                                      seven_zip=seven_zip)
