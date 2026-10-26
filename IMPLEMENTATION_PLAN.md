@@ -333,6 +333,8 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 
 Swoole双架构本轮仅剩 `thirdparty/php/standard/var_decoder.cc` 的两处 `JSON_G(error_code)` 字段移除错误；失败计数为2，没有修改计数或阈值。两调用点按PHP8.6官方JSON实现改为清完整error_details、空串赋完整SYNTAX/0/0，保留THROW、非空委托及深度语义。新增真实函数/RC4头行为测试先RED后GREEN、逐处no-op突变KILLED；扩展至实际PHP globals访问器及thirdparty的67成员表达式均通过，14项源码回归通过。该新增JSON增量第1轮独立只读审查Spec PASS / Quality PASS，独立2项禁网测试通过；只审新增两点及其契约，没有重审旧补丁。后续仅补两个Swoole单元，已成功发布的Phalcon状态保持build-ready，仍待新原生CI及API/双CDN闭环。
 
+10:11 UTC：JSON修复 `0d62cbeccf7c8ee1bf08385c45ef742547a8b07c` 的ARM `40303665974`、Intel `40303672904` 均已完整编译、链接并通过dlopen；原版本门禁准确拒绝 actual `6.2.0-dev` 与配置误标 `6.1.7-88fc55029c`，没有正式产物/上传/注册。实际archive的PAX comment确认full commit `88fc55029c3fefce6678477c35a26f3e3cd857c2`，包内头声明6.2.0-dev/60200；旧源码archive SHA `e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09`。仅纠正PHP8.6 Swoole profile到真实版本，并为该版本显式复用完全相同shortref URL与正确本地tar.gz归档名；源码字节不变，不修改原生版本门禁/阈值/revision。旧误标identity的双架构失败3次记录已核对保留，真实版本会形成新identity，不能表述成清零重试。新增两行为回归先RED后GREEN、profile/ref逐点变异KILLED，禁网源码16项全部通过；本轮Swoole第2轮最终只读增量审查Spec PASS / Quality PASS，独立2项及2突变通过。证据 `swoole-source-version-audit.json`。仅剩真实版本Swoole双架构原生CI与LIVE/API/双CDN验收。
+
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 
 **Git与Windows补充**：安全修复提交 `d0d8191` 推送时遇到自动build-state提交分叉；误用旧head的run `40280094578` 已取消，回读无artifact。用户回复“继续”后，按所提普通merge保留安全修复与自动状态，合并提交 `b55f2b4` 已推送，未重写历史。干净Windows原生验证于06:43 UTC从包含修复的main重新启动；仍消费原producer `40272362001` attempt1。

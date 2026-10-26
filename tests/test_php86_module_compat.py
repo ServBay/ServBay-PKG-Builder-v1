@@ -3,6 +3,9 @@
 Set SERVBAY_PHP86_SOURCE_ROOT and SERVBAY_PHP86_INCLUDE to run the source probes.
 No downloads, package builds, installs, or PHP binaries are executed by this suite.
 """
+import ast
+import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -78,6 +81,60 @@ class PHP86SourceCompatibilityTests(unittest.TestCase):
         if run:
             result = subprocess.run([str(self.root / "probe")], capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_swoole_profile_version_matches_exact_source_and_original_native_gate(self):
+        header = (self.sources / ("swoole-" + VERSIONS["swoole"]) / "include/swoole_version.h").read_text()
+        header = re.sub(r"/\*.*?\*/|//[^\n]*", "", header, flags=re.S)
+        actual = re.search(r'^#define SWOOLE_VERSION\s+"([^"]+)"', header, re.M).group(1)
+        profile = json.loads((ROOT / "runtime-v2/config/modules.json").read_text())
+        version = profile["hosts"]["php"]["8.6"]["swoole"]
+        self.assertEqual(actual, version)
+        # Execute the original producer's version check, without building or PHP.
+        tree = ast.parse((ROOT / "runtime-v2/ci/build_module.py").read_text())
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "build_module")
+        assignments = [node for node in ast.walk(function) if isinstance(node, ast.Assign)
+                       and any(isinstance(target, ast.Name) and target.id == "actual_version" for target in node.targets)]
+        self.assertEqual(1, len(assignments))
+        branch = next(node for node in ast.walk(function) if isinstance(node, ast.If) and assignments[0] in node.body)
+        start = branch.body.index(assignments[0])
+        checks = branch.body[start:]
+        code = compile(ast.Module(body=checks, type_ignores=[]), "actual-producer-version-check", "exec")
+        for reported in (actual, "6.1.7-88fc55029c", "6.2.0", "9.9.9"):
+            scope = {"record": {"name": "swoole", "version": version}, "loaded": [["swoole", reported]]}
+            if reported == actual:
+                exec(code, scope)
+            else:
+                with self.assertRaisesRegex(ValueError, "differs from its expected"):
+                    exec(code, scope)
+
+    def test_swoole_real_version_download_keeps_exact_snapshot_bytes_and_receipt(self):
+        source_archive = self.sources / ("swoole-" + VERSIONS["swoole"] + ".tar.gz")
+        expected_sha = "e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09"
+        self.assertEqual(expected_sha, hashlib.sha256(source_archive.read_bytes()).hexdigest())
+        helper = "_download_pecl_source() {\n" + self.extract(self.script, "_download_pecl_source") + "\n}"
+        cases = (("6.2.0-dev", "https://github.com/swoole/swoole-src/archive/88fc55029c.tar.gz", "tar.gz"),
+                 ("6.1.7-88fc55029c", "https://github.com/swoole/swoole-src/archive/88fc55029c.tar.gz", "tar.gz"),
+                 ("6.3.0-dev", "https://github.com/swoole/swoole-src/archive/refs/tags/v6.3.0.tar.gz", "tgz"),
+                 ("6.2.4", "https://pecl.php.net/get/swoole-6.2.4.tgz", "tgz"))
+        tree = ast.parse((ROOT / "runtime-v2/ci/build_module.py").read_text())
+        primary = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "primary_source")
+        scope = {"Path": Path}
+        exec(compile(ast.Module(body=[primary], type_ignores=[]), "actual-primary-source", "exec"), scope)
+        for version, url, suffix in cases:
+            with self.subTest(version=version):
+                work = self.root / version
+                (work / "src").mkdir(parents=True)
+                receipt = work / "download-url"
+                command = '\n'.join([helper, 'download_source() { print -r -- "$1" > "$DOWNLOAD_RECEIPT"; /bin/cp "$SOURCE_ARCHIVE" "$2"; }',
+                                     '_download_pecl_source swoole ' + shlex.quote(version)])
+                result = subprocess.run(["/bin/zsh", "-c", command], cwd=self.root,
+                    env=dict(os.environ, SERVBAY_BUILD_SRC_DIR=str(work / "src"), DOWNLOAD_RECEIPT=str(receipt),
+                             SOURCE_ARCHIVE=str(source_archive)), capture_output=True, text=True)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertEqual(url, receipt.read_text().strip())
+                archive = work / "src" / ("swoole-" + version + "." + suffix)
+                self.assertEqual({"version": version, "path": str(archive)}, scope["primary_source"](work, "swoole", version))
+                self.assertEqual(expected_sha, hashlib.sha256(archive.read_bytes()).hexdigest())
 
     def test_imap_scws_and_xdebug_ini_calls_compile_against_exact_rc4_headers(self):
         for recipe, filename in (("imap", "php_imap.c"), ("scws", "phpext/php_scws.c"), ("xdebug", "src/develop/stack.c")):

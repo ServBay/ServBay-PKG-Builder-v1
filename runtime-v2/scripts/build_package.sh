@@ -5260,7 +5260,13 @@ _download_pecl_source() {
         "imap") url="https://pecl.php.net/get/imap-${mod_version}.tgz" ;;
         "imagick") url="https://pecl.php.net/get/imagick-${mod_version}.tgz" ;;
         "swoole")
-            if [[ "$mod_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[a-f0-9]{7,40}$ ]]; then
+            if [[ "$mod_version" == "6.2.0-dev" ]]; then
+                # This exact snapshot declares 6.2.0-dev in swoole_version.h.
+                # Full commit: 88fc55029c3fefce6678477c35a26f3e3cd857c2.
+                # Keep the short-ref archive bytes: SHA256 e2d01bd9e0345b1d122fe65442d690c1e1cfab043a1761cacd189d39ae9e4c09.
+                url="https://github.com/swoole/swoole-src/archive/88fc55029c.tar.gz"
+                mod_source_filename="swoole-${mod_version}.tar.gz"
+            elif [[ "$mod_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[a-f0-9]{7,40}$ ]]; then
                 # 版本格式为 X.Y.Z-commitid，从 GitHub 下载指定 commit
                 local commit_id="${mod_version##*-}"
                 url="https://github.com/swoole/swoole-src/archive/${commit_id}.tar.gz"

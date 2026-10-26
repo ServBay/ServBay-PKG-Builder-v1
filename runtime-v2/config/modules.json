@@ -411,7 +411,7 @@
         "memcached": "3.4.0",
         "pdo_sqlsrv": "5.13.3",
         "phalcon": "5.23.0",
-        "swoole": "6.1.7-88fc55029c",
+        "swoole": "6.2.0-dev",
         "mongodb": "1.21.12",
         "xdebug": "3.4.3",
         "scws": "1.2.4-pre",
