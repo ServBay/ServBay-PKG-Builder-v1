@@ -355,3 +355,11 @@
 -    zend_hash_del(EG(in_autoload), lc_name);
 +    ZEND_ASSERT(zend_hash_exists(&EG(autoload_current_classnames), lc_name));
 +    zend_hash_del(&EG(autoload_current_classnames), lc_name);
+--- thirdparty/php/standard/var_decoder.cc
++++ thirdparty/php/standard/var_decoder.cc
+@@ -49 +49 @@
+-        JSON_G(error_code) = PHP_JSON_ERROR_NONE;
++        php_json_error_details_clear(&JSON_G(error_details));
+@@ -54 +54 @@
+-            JSON_G(error_code) = PHP_JSON_ERROR_SYNTAX;
++            JSON_G(error_details) = {PHP_JSON_ERROR_SYNTAX, 0, 0};
