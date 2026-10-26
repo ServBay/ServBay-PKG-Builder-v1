@@ -1,0 +1,369 @@
+"""Behavior tests for the parameterized Windows PostgreSQL producer."""
+
+import ctypes
+import hashlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest import mock
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location(
+    "postgresql_pipeline", ROOT / "runtime-windows/ci/postgresql_v2_pipeline.py")
+pipeline = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(pipeline)
+REAL_REPACKER = pipeline.load_repacker()
+
+
+class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="servbay-pg-pipeline-unit-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.producer = {"commit": "a" * 40, "run_id": "123", "run_attempt": 2}
+
+    def test_official_url_and_streamed_source_hash_are_exact(self):
+        payload = b"actual source bytes" * 100
+        stream = io.BytesIO(payload)
+        stream.geturl = lambda: pipeline.source_url("11.22", 1)
+        with mock.patch.object(pipeline, "urlopen", return_value=stream) as request:
+            result = pipeline.download_source("11.22", 1, self.root / "source.zip")
+        self.assertEqual(request.call_args.args[0],
+                         "https://get.enterprisedb.com/postgresql/postgresql-11.22-1-windows-x64-binaries.zip")
+        self.assertEqual(result["sha256"], hashlib.sha256(payload).hexdigest())
+        self.assertEqual(result["bytes"], len(payload))
+        self.assertEqual(result["version"], "11.22")
+        for version, revision in [("19.beta2", 1), ("9.6", 1), ("11.22", 0), ("11.22/evil", 1)]:
+            with self.subTest(version=version, revision=revision), self.assertRaises(ValueError):
+                pipeline.source_url(version, revision)
+
+    def test_output_exists_refuses_before_network_and_preserves_bytes(self):
+        output = self.root / "existing"
+        output.mkdir()
+        (output / "keep").write_bytes(b"untouched")
+        with mock.patch.object(pipeline, "download_source") as download:
+            with self.assertRaises(ValueError):
+                pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+        download.assert_not_called()
+        self.assertEqual((output / "keep").read_bytes(), b"untouched")
+
+    def test_subprocess_whitelist_and_failure_never_disclose_output(self):
+        raw = subprocess.CompletedProcess([], 9, "SECRET-from-stdout", "SECRET-from-stderr")
+        with mock.patch.dict(os.environ, {"GH_TOKEN": "SECRET", "GITHUB_TOKEN": "SECRET",
+                                         "AWS_SECRET_ACCESS_KEY": "SECRET"}), \
+                mock.patch.object(pipeline.subprocess, "run", return_value=raw) as run:
+            result = pipeline.run(["postgres.exe", "--version"])
+        self.assertEqual(result.returncode, 9)
+        env = run.call_args.kwargs["env"]
+        self.assertFalse(set(env) & {"GH_TOKEN", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY"})
+        with self.assertRaises(RuntimeError) as caught:
+            pipeline.require_ok(result, "startup")
+        self.assertNotIn("SECRET", str(caught.exception))
+
+    def test_failure_summary_preserves_safe_stage_probe_and_exit(self):
+        error = pipeline.ProbeFailure("startup", 7)
+        error.pipeline_stage = "native"
+        summary = pipeline.failure_summary(error)
+        self.assertIn("stage=native", summary)
+        self.assertIn("probe=startup", summary)
+        self.assertIn("exit=7", summary)
+        error = ValueError("SECRET external output")
+        error.pipeline_stage = "download"
+        summary = pipeline.failure_summary(error)
+        self.assertIn("stage=download", summary)
+        self.assertIn("ValueError", summary)
+        self.assertNotIn("SECRET", summary)
+
+    def fixture(self):
+        root = self.root / "postgresql/17"
+        (root / "bin").mkdir(parents=True)
+        return root
+
+    def runner(self, root, failures=None, bad=None):
+        failures, bad = failures or {}, bad or {}
+        calls = []
+        def invoke(command, **kwargs):
+            command = [str(item) for item in command]
+            calls.append(command)
+            name, args = Path(command[0]).stem, command[1:]
+            key = name
+            stdout = ""
+            if name == "pg_config":
+                flag = args[0][2:]
+                values = {"version": "PostgreSQL 17.11", "bindir": str(root / "bin"),
+                          "sharedir": str(root / "share"), "pkglibdir": str(root / "lib"),
+                          "includedir-server": str(root / "include/server"),
+                          "cc": "cl", "configure": "EDB options", "cflags": "/MD", "ldflags": "/DLL"}
+                stdout = bad.get(flag, values[flag])
+            elif args == ["--version"]:
+                key = name + "_version"
+                stdout = bad.get(name, f"{name} (PostgreSQL) 17.11")
+            elif name == "initdb":
+                (root / "data").mkdir()
+                (root / "data/PG_VERSION").write_text("17\n")
+            elif name == "pg_ctl":
+                key = "start" if "start" in args else "stop"
+            elif name == "psql":
+                key = "query"
+                stdout = json.dumps(bad.get("sql", {"server_version": "17.11", "server_encoding": "UTF8",
+                                    "data_directory": str(root / "data"),
+                                    "compiler": "PostgreSQL 17.11, compiled by Visual C++ build 1937, 64-bit"}))
+            return subprocess.CompletedProcess(command, failures.get(key, 0), stdout, "sensitive diagnostics")
+        return invoke, calls
+
+    def observe(self, root, **kwargs):
+        runner, calls = self.runner(root, kwargs.pop("failures", None), kwargs.pop("bad", None))
+        system = {"os_architecture": "X64", "process_architecture": "X64", "processor_name": "actual cpu",
+                  "processor_architecture_code": 9, "process_environment_architecture": "AMD64",
+                  "os_version": "10.0.26100", "native_machine": 34404, "process_machine": 0}
+        system.update(kwargs.pop("machine", {}))
+        with mock.patch.object(pipeline, "machine_evidence", return_value=system), \
+                mock.patch.object(pipeline, "free_port", return_value=54329), \
+                mock.patch.object(pipeline, "cleanup_observation", return_value=kwargs.pop("cleanup", (0, 0))), \
+                mock.patch.object(pipeline, "crt_evidence", return_value={"crt": "imports: msvcr120.dll", "files": []}):
+            result = pipeline.collect_native(root, {"filename": "core.7z", "sha256": "b" * 64, "bytes": 99},
+                                             "17.11", runner=runner)
+        return result, calls
+
+    def test_observed_values_are_preserved_and_stop_is_always_attempted(self):
+        root = self.fixture()
+        (native, sidecar, compatibility), calls = self.observe(root)
+        self.assertEqual(native["processor_name"], "actual cpu")
+        self.assertEqual(native["pg_config"]["bindir"], str(root / "bin"))
+        self.assertEqual(native["database"]["data_directory"], str(root / "data"))
+        self.assertEqual(native["database"]["stop_exit"], 0)
+        self.assertEqual(compatibility, {"distribution": "windows-x64", "toolchain": "Visual C++ build 1937",
+                                         "crt": "imports: msvcr120.dll"})
+        self.assertEqual(sidecar["machine"]["os_version"], "10.0.26100")
+        self.assertTrue(any("stop" in command for command in calls))
+
+    def test_each_database_failure_and_residual_blocks_native_success(self):
+        for kind in ("initdb", "start", "query", "stop", "processes", "listeners"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/17"
+                (root / "bin").mkdir(parents=True)
+                kwargs = {"failures": {kind: 7}} if kind in ("initdb", "start", "query", "stop") else {
+                    "cleanup": (1, 0) if kind == "processes" else (0, 1)}
+                with self.assertRaises((RuntimeError, ValueError)):
+                    self.observe(root, **kwargs)
+
+    def test_version_paths_and_sql_identity_must_match(self):
+        cases = [{"version": "PostgreSQL 18.6"}, {"bindir": str(self.root / "wrong")},
+                 {"postgres": "postgres (PostgreSQL) 18.6"},
+                 {"sql": {"server_version": "18.6", "server_encoding": "UTF8",
+                          "data_directory": "<data>", "compiler": "Visual C++ build 1937"}},
+                 {"sql": {"server_version": "17.11", "server_encoding": "UTF8",
+                          "data_directory": str(self.root / "wrong"), "compiler": "Visual C++ build 1937"}}]
+        cases.extend({key: str(self.root / "wrong")} for key in ("sharedir", "pkglibdir", "includedir-server"))
+        cases.extend({name: name + " (PostgreSQL) 18.6"} for name in ("initdb", "pg_ctl", "psql"))
+        for bad in cases:
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/17"
+                (root / "bin").mkdir(parents=True)
+                if bad.get("sql", {}).get("data_directory") == "<data>":
+                    bad["sql"]["data_directory"] = str(root / "data")
+                with self.assertRaises((ValueError, RuntimeError)):
+                    self.observe(root, bad=bad)
+
+    def test_arm64_emulation_is_rejected_before_database_work(self):
+        root = self.fixture()
+        with self.assertRaisesRegex(ValueError, "emulation"):
+            self.observe(root, machine={"os_architecture": "ARM64", "native_machine": 0xAA64,
+                                        "processor_architecture_code": 12, "process_machine": 0x8664})
+
+    def test_windows_short_paths_identify_the_same_pgconfig_and_data_directories(self):
+        root = self.fixture()
+        for relative in ("share", "lib", "include/server"):
+            (root / relative).mkdir(parents=True)
+        buffer = ctypes.create_unicode_buffer(32768)
+        count = ctypes.windll.kernel32.GetShortPathNameW(str(root), buffer, len(buffer))
+        self.assertGreater(count, 0, "GetShortPathNameW must observe the actual fixture")
+        short = Path(buffer.value)
+        print("short_path_alias_observed=" + str(str(short).casefold() != str(root).casefold()))
+        bad = {"bindir": str(short / "bin"), "sharedir": str(short / "share"),
+               "pkglibdir": str(short / "lib"), "includedir-server": str(short / "include/server"),
+               "sql": {"server_version": "17.11", "server_encoding": "UTF8",
+                       "data_directory": str(short / "data"), "compiler": "Visual C++ build 1937"}}
+        (native, sidecar, compatibility), calls = self.observe(root, bad=bad)
+        self.assertEqual(native["pg_config"]["bindir"], str(short / "bin"))
+        self.assertEqual(native["database"]["data_directory"], str(short / "data"))
+
+    def test_missing_compiler_and_wrong_encoding_are_rejected(self):
+        root = self.fixture()
+        for encoding, compiler in (("UTF8", "unsupported compiler"), ("WIN1252", "Visual C++ build 1937")):
+            with self.subTest(encoding=encoding, compiler=compiler), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/17"
+                (root / "bin").mkdir(parents=True)
+                with self.assertRaises(ValueError):
+                    self.observe(root, bad={"sql": {"server_version": "17.11", "server_encoding": encoding,
+                                                    "data_directory": str(root / "data"), "compiler": compiler}})
+
+    def test_cleanup_observation_failure_is_never_converted_to_zero(self):
+        root = self.fixture()
+        (root / "bin/postgres.exe").write_bytes(b"payload")
+        failure = subprocess.CompletedProcess([], 1, "SECRET", "SECRET")
+        with mock.patch.object(pipeline, "powershell", side_effect=RuntimeError("CIM failed")):
+            with self.assertRaisesRegex(RuntimeError, "CIM failed"):
+                pipeline.cleanup_observation(root, 54329)
+        with self.assertRaises(RuntimeError):
+            pipeline.crt_evidence(root, runner=lambda command: failure, dumpbin="dumpbin.exe")
+
+    def test_crt_rejects_incomplete_inspection_and_no_payload(self):
+        root = self.fixture()
+        with self.assertRaises(ValueError):
+            pipeline.crt_evidence(root, dumpbin="dumpbin.exe")
+        (root / "bin/postgres.exe").write_bytes(b"payload")
+        with self.assertRaises(ValueError):
+            pipeline.crt_evidence(root, dumpbin="dumpbin.exe", runner=lambda command:
+                                 subprocess.CompletedProcess(command, 0, "not a dumpbin result", ""))
+
+    def test_crt_includes_all_payload_exe_dll_and_delay_imports(self):
+        root = self.fixture()
+        (root / "bin/postgres.exe").write_bytes(b"a")
+        (root / "bin/helper.dll").write_bytes(b"b")
+        seen = []
+        def runner(command):
+            seen.append(Path(command[-1]).name)
+            value = "MSVCR120.dll" if command[-1].endswith("helper.dll") else "KERNEL32.dll"
+            return subprocess.CompletedProcess(command, 0,
+                "File Type: DLL\n  Section contains the following delay load imports:\n    " + value + "\n  Summary\n", "")
+        result = pipeline.crt_evidence(root, runner=runner, dumpbin="dumpbin.exe")
+        self.assertEqual(set(seen), {"postgres.exe", "helper.dll"})
+        self.assertEqual(result["crt"], "imports: msvcr120.dll")
+        self.assertEqual(result["dependencies"], ["msvcr120.dll"])
+
+    def fake_repacker(self):
+        def prepare(source, identity, output, **kwargs):
+            output.mkdir()
+            (output / "core.7z").write_bytes(b"archive bytes")
+            audit = {"archive": {"filename": "core.7z", "bytes": 13, "sha256": "b" * 64},
+                     "files": [{"target_path": "postgresql/17/bin/postgres.exe", "sha256": "c" * 64}]}
+            (output / "postgresql-repack-manifest.json").write_text(json.dumps(audit))
+            return audit
+        def extract(package, expected, seven, output):
+            (output / "verified/postgresql/17/bin").mkdir(parents=True)
+        def finalize(package, identity, source, url, native, producer, minimum, compatibility, output, **kwargs):
+            self.assertNotIn("GH_TOKEN", os.environ)
+            self.assertEqual(json.loads(native.read_text()), {"observed": "native"})
+            output.mkdir()
+            (output / "meta.json").write_text(json.dumps({"producer": producer, "source_url": url,
+                                                        "minimum_os": minimum, "version": identity["version"]}))
+            (output / "core.7z").write_bytes(package.read_bytes())
+        return SimpleNamespace(package_meta=REAL_REPACKER.package_meta,
+                               _identity=REAL_REPACKER._identity, prepare_postgresql_core=mock.Mock(side_effect=prepare),
+                               _verify_archive=mock.Mock(side_effect=extract),
+                               finalize_postgresql_core=mock.Mock(side_effect=finalize))
+
+    def test_pipeline_binds_actual_source_producer_and_native_before_export(self):
+        repacker = self.fake_repacker()
+        archive = self.root / "source.zip"
+        archive.write_bytes(b"real frozen source")
+        source = {"path": str(archive), "version": "17.11", "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bytes": archive.stat().st_size,
+                  "url": pipeline.source_url("17.11", 5)}
+        output = self.root / "formal"
+        with mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                mock.patch.object(pipeline, "download_source", return_value=source), \
+                mock.patch.object(pipeline, "collect_native", return_value=({"observed": "native"}, {"compiler": "actual"}, {"crt": "actual"})), \
+                mock.patch.dict(os.environ, {"GH_TOKEN": "SECRET"}):
+            pipeline.pipeline("17.11", 5, self.producer, output, "7z", minimum_os="10.0")
+        self.assertEqual(repacker.prepare_postgresql_core.call_args.args[0], source)
+        self.assertEqual(repacker.prepare_postgresql_core.call_args.args[1]["arch"], "x86_64")
+        self.assertEqual(repacker.finalize_postgresql_core.call_args.args[5], self.producer)
+        self.assertEqual(json.loads((output / "source-evidence.json").read_text())["source"]["sha256"], source["sha256"])
+        self.assertEqual(json.loads((output / "meta.json").read_text())["minimum_os"], "10.0")
+        self.assertEqual((output / "core.7z").read_bytes(), b"archive bytes")
+
+    def test_cli_workflow_producer_passes_real_contract_and_exports(self):
+        repacker = self.fake_repacker()
+        archive = self.root / "source.zip"
+        archive.write_bytes(b"real frozen source")
+        source = {"path": str(archive), "version": "17.11", "url": pipeline.source_url("17.11", 5),
+                  "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bytes": archive.stat().st_size}
+        output = self.root / "cli-formal"
+        arguments = ["postgresql_v2_pipeline.py", "--version", "17.11", "--edb-revision", "5",
+                     "--minimum-os", "10.0", "--commit", "a" * 40, "--run-id", "123", "--run-attempt", "2",
+                     "--output", str(output), "--seven-zip", "7z"]
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, "argv", arguments), \
+                mock.patch.object(sys, "stdout", stdout), mock.patch.object(sys, "stderr", stderr), \
+                mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                mock.patch.object(pipeline, "download_source", return_value=source), \
+                mock.patch.object(pipeline, "collect_native", return_value=({"observed": "native"}, {}, {})):
+            status = 0
+            try:
+                pipeline.main()
+            except SystemExit as error:
+                status = error.code
+        self.assertEqual(status, 0, stderr.getvalue())
+        self.assertEqual(repacker.finalize_postgresql_core.call_args.args[5], self.producer)
+        metadata = json.loads((output / "meta.json").read_text())
+        self.assertEqual(metadata["producer"], self.producer)
+        self.assertEqual(REAL_REPACKER.package_meta._state.validate_producer(metadata["producer"]), self.producer)
+        self.assertEqual(repacker.prepare_postgresql_core.call_args.args[1]["arch"], "x86_64")
+
+    def test_cli_invalid_producer_json_is_rejected_without_silent_normalization(self):
+        cases = [{**self.producer, "repository": "SECRET-invalid-extra-field"},
+                 {**self.producer, "run_id": 123}]
+        for producer in cases:
+            with self.subTest(producer_type=type(producer["run_id"]).__name__):
+                path = self.root / "producer.json"
+                path.write_text(json.dumps(producer), encoding="utf-8")
+                output = self.root / "must-not-export"
+                arguments = ["postgresql_v2_pipeline.py", "--version", "17.11", "--edb-revision", "5",
+                             "--minimum-os", "10.0", "--producer", str(path), "--output", str(output),
+                             "--seven-zip", "7z"]
+                stderr = io.StringIO()
+                with mock.patch.object(sys, "argv", arguments), mock.patch.object(sys, "stderr", stderr), \
+                        mock.patch.object(pipeline, "download_source") as download:
+                    with self.assertRaises(SystemExit) as caught:
+                        pipeline.main()
+                self.assertEqual(caught.exception.code, 1)
+                self.assertNotIn("SECRET", stderr.getvalue())
+                download.assert_not_called()
+                self.assertFalse(output.exists())
+
+    def test_changed_download_source_never_finalizes(self):
+        repacker = self.fake_repacker()
+        archive = self.root / "source.zip"
+        archive.write_bytes(b"changed source")
+        source = {"path": str(archive), "url": pipeline.source_url("17.11", 5),
+                  "sha256": "0" * 64, "bytes": archive.stat().st_size}
+        output = self.root / "formal"
+        with mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                mock.patch.object(pipeline, "download_source", return_value=source), \
+                mock.patch.object(pipeline, "collect_native", return_value=({"observed": "native"}, {}, {})):
+            with self.assertRaisesRegex(ValueError, "changed before finalization"):
+                pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+        repacker.finalize_postgresql_core.assert_not_called()
+        self.assertFalse(output.exists())
+
+    def test_native_or_extraction_failure_never_calls_finalize_or_exports(self):
+        for kind in ("native", "extract"):
+            with self.subTest(kind=kind):
+                repacker = self.fake_repacker()
+                if kind == "extract":
+                    repacker._verify_archive.side_effect = RuntimeError("probe failed")
+                output = self.root / kind
+                archive = self.root / (kind + ".zip")
+                archive.write_bytes(b"source")
+                source = {"path": str(archive), "url": "official", "bytes": archive.stat().st_size,
+                          "sha256": hashlib.sha256(archive.read_bytes()).hexdigest()}
+                with mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                        mock.patch.object(pipeline, "download_source", return_value=source), \
+                        mock.patch.object(pipeline, "collect_native", side_effect=RuntimeError("probe failed")):
+                    with self.assertRaises(RuntimeError):
+                        pipeline.pipeline("17.11", 5, self.producer, output, "7z")
+                repacker.finalize_postgresql_core.assert_not_called()
+                self.assertFalse(output.exists())
+
+
+if __name__ == "__main__":
+    unittest.main()
