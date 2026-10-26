@@ -5479,11 +5479,11 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.1.7-88fc55029c\"}": {
-      "consecutive_failures": 2,
+      "consecutive_failures": 3,
       "last_collected_producer": {
-        "commit": "354c39819bdab131b4475de5d01719e2356d72bf",
+        "commit": "0d62cbeccf7c8ee1bf08385c45ef742547a8b07c",
         "run_attempt": 1,
-        "run_id": "40301435776"
+        "run_id": "40303665974"
       },
       "record": {
         "arch": "arm64",
@@ -5506,15 +5506,6 @@
         "recipe_name": "swoole",
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
-      },
-      "reservation": {
-        "claimed_at": "2026-10-26T09:58:24+00:00",
-        "expires_at": "2026-10-26T17:58:24+00:00",
-        "producer": {
-          "commit": "0d62cbeccf7c8ee1bf08385c45ef742547a8b07c",
-          "run_attempt": 1,
-          "run_id": "40303665974"
-        }
       },
       "status": "build-failed"
     },
