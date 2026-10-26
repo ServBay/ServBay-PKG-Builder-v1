@@ -91,10 +91,40 @@ class PipelineTests(unittest.TestCase):
         namespace = {"failure": error, "depth": depth}
         try:
             exec(compile(source, str(filename), "exec"), namespace)
-        except OSError as captured:
+        except Exception as captured:
             captured.pipeline_stage = "finalize"
             return captured
-        self.fail("Controlled OSError must actually be raised")
+        self.fail("Controlled exception must actually be raised")
+
+    def test_non_oserror_summary_retains_bounded_safe_project_frames(self):
+        for error_type in (ValueError, RuntimeError):
+            with self.subTest(error_type=error_type.__name__):
+                error = self.error_in_frame(ROOT / "runtime-windows/ci/postgresql_v2_pipeline.py",
+                                            error_type("SECRET arbitrary output"), depth=5)
+                summary = pipeline.failure_summary(error)
+                self.assertIn("stage=finalize error_type=" + error_type.__name__, summary)
+                self.assertEqual(summary.count("frame="), 3)
+                self.assertRegex(summary, r"frame=runtime-windows/ci/postgresql_v2_pipeline\.py:[1-9][0-9]*")
+                self.assertNotIn("SECRET", summary)
+                self.assertNotIn(str(ROOT), summary)
+
+    def test_non_oserror_summary_rejects_untrusted_frames_and_numeric_attributes(self):
+        for error_type in (ValueError, RuntimeError):
+            for filename in (self.root / "SECRET-external.py", ROOT / "tests/SECRET-not-allowed.py",
+                             ROOT.parent / (ROOT.name + "-SECRET") / "runtime-windows/repack_postgresql_v2.py"):
+                with self.subTest(error_type=error_type.__name__, kind="untrusted_frame"):
+                    error = error_type("SECRET arbitrary output")
+                    error.errno, error.winerror = True, 17
+                    summary = pipeline.failure_summary(self.error_in_frame(filename, error))
+                    for forbidden in ("frame=", "errno=", "winerror=", "SECRET", str(ROOT)):
+                        self.assertNotIn(forbidden, summary)
+
+    def test_probe_failure_summary_keeps_fixed_probe_exit_without_frames(self):
+        error = self.error_in_frame(ROOT / "runtime-windows/ci/postgresql_v2_pipeline.py",
+                                    pipeline.ProbeFailure("query", 9), depth=5)
+        summary = pipeline.failure_summary(error)
+        self.assertIn("stage=finalize probe=query exit=9", summary)
+        self.assertNotIn("frame=", summary)
 
     def test_oserror_summary_retains_numeric_codes_and_safe_project_frame(self):
         error = OSError(errno.EXDEV, "SECRET message", "SECRET source", 17, "SECRET destination")
