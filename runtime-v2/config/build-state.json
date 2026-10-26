@@ -5509,6 +5509,41 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"swoole\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.2.0-dev\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "host": {
+          "abi": {
+            "debug": false,
+            "extension_build": "API20260924,NTS",
+            "module_api": 20260924,
+            "zend_extension_api": 420260924,
+            "zend_extension_build": "API420260924,NTS",
+            "zts": false
+          },
+          "series": "8.6",
+          "type": "php"
+        },
+        "kind": "php-extension",
+        "name": "swoole",
+        "os": "macos",
+        "recipe_name": "swoole",
+        "runtime_version": "v2",
+        "version": "6.2.0-dev"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-26T10:13:18+00:00",
+        "expires_at": "2026-10-26T18:13:18+00:00",
+        "producer": {
+          "commit": "9d299d42d246051ec87d8bf0e0f53fba368af4be",
+          "run_attempt": 1,
+          "run_id": "40305625443"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
       "artifact_expires_at": "2026-11-02T07:18:19Z",
       "artifact_id": "12632854015",
