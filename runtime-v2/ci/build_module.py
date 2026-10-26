@@ -76,7 +76,7 @@ def verify_native_payload(payload, arch):
         raise ValueError("The module stage contains no actual native module libraries")
 
 
-def verify_php_payload(prefix, payload, provides):
+def verify_php_payload(prefix, payload, provides, host_version=None):
     # Reflection checks the actual loaded module. Correct stdout accompanied by a
     # startup warning must not turn a missing/incompatible module into success.
     args = [str(Path(prefix) / "bin/php"), "-n", "-d", "display_errors=stderr", "-d", "extension_dir=" + str(payload)]
@@ -89,6 +89,12 @@ def verify_php_payload(prefix, payload, provides):
     rows = json.loads(result.stdout)
     if [row[0].lower() for row in rows] != [name.lower() for name in provides] or any(not row[1] for row in rows):
         raise ValueError("Actual PHP modules did not report their names and versions")
+    if str(host_version).startswith("8.6.") and any(name.lower() == "phalcon" for name in provides):
+        check = subprocess.run(args + [str(Path(__file__).with_name("php86_phalcon_session_check.php"))],
+                               capture_output=True, text=True, timeout=30)
+        if check.returncode or check.stderr.strip():
+            reason = check.stderr.strip() or "PHP exited " + str(check.returncode)
+            raise ValueError("Phalcon session verification failed: " + reason)
     return rows
 
 
@@ -138,7 +144,7 @@ def build_module(record, host_archive, host_sha256, host_version, base_root, wor
             payload, configs, provides = collect_php(stage, prefix, series, probe["extension_dir"], Path(directory) / "payload")
             if set(provides) != {record["name"], *bundled}:
                 raise ValueError("Fresh PHP payload differs from its exact module/bundled ownership")
-            loaded = verify_php_payload(prefix, payload, provides)
+            loaded = verify_php_payload(prefix, payload, provides, host_version=host_version)
             if any(dict(loaded).get(name) != version for name, version in bundled.items()):
                 raise ValueError("The actual bundled PHP module version differs from its explicit source")
             actual_version = next((version for name, version in loaded if name.lower() == record["name"].lower()), None)

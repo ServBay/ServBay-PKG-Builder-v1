@@ -348,3 +348,10 @@
 @@ -374 +374 @@
 -    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "l|llb", &worker_num, &ipc_type, &msgq_key, &enable_coroutine) ==
 +    if (zend_parse_parameters(ZEND_NUM_ARGS(), "l|llb", &worker_num, &ipc_type, &msgq_key, &enable_coroutine) ==
+--- ext-src/swoole_coroutine.cc
++++ ext-src/swoole_coroutine.cc
+@@ -975,2 +975,2 @@
+-    ZEND_ASSERT(EG(in_autoload) != nullptr);
+-    zend_hash_del(EG(in_autoload), lc_name);
++    ZEND_ASSERT(zend_hash_exists(&EG(autoload_current_classnames), lc_name));
++    zend_hash_del(&EG(autoload_current_classnames), lc_name);
