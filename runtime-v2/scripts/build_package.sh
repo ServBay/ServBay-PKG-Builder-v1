@@ -5301,8 +5301,12 @@ _build_php_mod_memcached() {
             _apply_single_patch "${PATCH_DIR}/php8.5/memcached.diff" "p0" || return 1
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
-            _apply_single_patch "${PATCH_DIR}/php8.5/memcached.diff" "p0" || return 1
-            _apply_single_patch "${PATCH_DIR}/php8.6/memcached.patch" "p0" || return 1
+            if [[ "$mod_version" == "3.4.0" ]]; then
+                _apply_single_patch "${PATCH_DIR}/php8.6/memcached-3.4.0.patch" "p0" || return 1
+            else
+                _apply_single_patch "${PATCH_DIR}/php8.5/memcached.diff" "p0" || return 1
+                _apply_single_patch "${PATCH_DIR}/php8.6/memcached.patch" "p0" || return 1
+            fi
         fi
 
         "${php_bin_dir}/phpize" || return 1
@@ -5339,6 +5343,7 @@ _build_php_mod_xdebug() {
             # xdebug 3.4.3 原始版本检查是 < 80500，需要改成 < 80700
             sed -i '' 's/80500/80700/' configure
             _apply_single_patch "${PATCH_DIR}/php8.5/xdebug-3.4.3-php8.5.patch" "p0" || return 1
+            _apply_single_patch "${PATCH_DIR}/php8.6/xdebug-ini.patch" "p0" || return 1
             # PHP 8.6: zval_dtor 已移除，需要替换为 zval_ptr_dtor_nogc
             log_message "INFO" "  -> Applying PHP 8.6 zval_dtor fix for xdebug..."
             find . -name "*.c" -exec sed -i '' 's/zval_dtor(/zval_ptr_dtor_nogc(/g' {} \;
@@ -5376,7 +5381,11 @@ _build_php_mod_apcu() {
     unpack_package "${mod_name}-${mod_version}" "${mod_name}-${mod_version}.tgz" || return 1
     {
         if [[ "$php_version_major" == "8.6" ]]; then
-            _apply_single_patch "${PATCH_DIR}/php8.6/apcu.patch" "p0" || return 1
+            if [[ "$mod_version" == "5.1.28" ]]; then
+                _apply_single_patch "${PATCH_DIR}/php8.6/apcu-5.1.28.patch" "p0" || return 1
+            else
+                _apply_single_patch "${PATCH_DIR}/php8.6/apcu.patch" "p0" || return 1
+            fi
         fi
 
         "${php_bin_dir}/phpize" || return 1
@@ -5440,6 +5449,9 @@ _build_php_mod_imap() {
     _download_pecl_source "$mod_name" "$mod_version" || return 1
     unpack_package "${mod_name}-${mod_version}" "${mod_name}-${mod_version}.tgz" || return 1
     {
+        if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${PATCH_DIR}/php8.6/imap.patch" "p0" || return 1
+        fi
         "${php_bin_dir}/phpize" || return 1
         # macOS Kerberos is available but pkg-config can't find it, set environment variables
         local SDK_PATH=$(xcrun --show-sdk-path)
@@ -5474,6 +5486,9 @@ _build_php_mod_scws() {
     {
         touch README && aclocal && autoconf -ivf && autoheader && glibtoolize --automake --copy --debug --force && automake --add-missing || return 1
         cd phpext || return 1
+        if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${PATCH_DIR}/php8.6/scws.patch" "p0" || return 1
+        fi
         "${php_bin_dir}/phpize" || return 1
         ./configure --with-php-config="${php_config}" --with-scws="${SERVBAY_COMMON_PATH}" || return 1
         _install_php_module || return 1
@@ -5532,6 +5547,7 @@ _build_php_mod_swoole() {
             _apply_single_patch "${PATCH_DIR}/php8.5/swoole.diff" "p0" || return 1
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${PATCH_DIR}/php8.6/swoole-rc4.patch" "p0" || return 1
             # snapshot 版本 (6.1.7-commitid) 需要 PHP 8.6 API 修复
             log_message "INFO" "  -> Applying PHP 8.6 fixes for swoole..."
             # 修改版本检查 (源码可能是 > 80500 或 >= 80600，两种都匹配)
@@ -5584,6 +5600,9 @@ _build_php_mod_sqlsrv() {
     _download_pecl_source "$mod_name" "$mod_version" || return 1
     unpack_package "${mod_name}-${mod_version}" "${mod_name}-${mod_version}.tgz" || return 1
     {
+        if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${PATCH_DIR}/php8.6/sqlsrv.patch" "p0" || return 1
+        fi
         "${php_bin_dir}/phpize" || return 1
         ./configure --with-php-config="${php_config}" || return 1
         _install_php_module || return 1
@@ -5612,6 +5631,9 @@ _build_php_mod_pdo_sqlsrv() {
             sed -i '' 's|zval_ptr_dtor( &dbh->query_stmt_zval );|if (dbh->query_stmt_obj) { OBJ_RELEASE(dbh->query_stmt_obj); dbh->query_stmt_obj = NULL; }|' php_pdo_sqlsrv_int.h
             # Fix 2: error_mode changed from enum pdo_error_mode to uint8_t
             sed -i '' 's|pdo_error_mode prev_err_mode = dbh->error_mode;|pdo_error_mode prev_err_mode = static_cast<pdo_error_mode>(dbh->error_mode);|' pdo_dbh.cpp
+        fi
+        if [[ "$php_version_major" == "8.6" ]]; then
+            _apply_single_patch "${PATCH_DIR}/php8.6/pdo_sqlsrv.patch" "p0" || return 1
         fi
         "${php_bin_dir}/phpize" || return 1
         ./configure --with-php-config="${php_config}" || return 1
@@ -5648,7 +5670,11 @@ _build_php_mod_phalcon() {
                 _apply_single_patch "${PATCH_DIR}/php8.5/phalcon.diff" "p0" || return 1
             fi
             if [[ "$php_version_major" == "8.6" ]]; then
-                _apply_single_patch "${PATCH_DIR}/php8.5/phalcon.diff" "p0" || return 1
+                if [[ "$mod_version" == "5.23.0" ]]; then
+                    _apply_single_patch "${PATCH_DIR}/php8.6/phalcon-rc4.patch" "p0" || return 1
+                else
+                    _apply_single_patch "${PATCH_DIR}/php8.5/phalcon.diff" "p0" || return 1
+                fi
                 # PHP 8.6: zval_dtor 已移除，需要替换为 zval_ptr_dtor_nogc
                 log_message "INFO" "  -> Applying PHP 8.6 zval API fixes for phalcon..."
                 sed -i '' 's/zval_dtor(/zval_ptr_dtor_nogc(/g' build/phalcon/phalcon.zep.c

@@ -269,19 +269,23 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **目标**: 在上游 `40272362001` 完成后，使用经审查并推送的入口消费其 exact attempt；不重编已成功的 RC4 原始输入。
 **成功标准**: Windows x64 上原始 ABI、准备后的全部模块、Imagick PNG、finalize 和正式 7z 再加载全部成功；正式 ZIP/每个归档 SHA/producer/native 结果可回读，所有失败单元明确报告，不将运行中 job 当作完成。
 **测试**: GitHub 原生 runner 实跑；核对 artifact ZIP digest、内部 package SHA、正式 meta/manifest 及实际 native JSON，确认版本为 RC4、模块数与 selected 一致。
-**状态**: 未开始
+**状态**: 进行中。Windows入口提交 `7ca3c8c4fb7409d84f7e4e1b2fa3ef71e271cf0b`、Portable collector提交 `b614c80d50c417f22a92a78be2540c750c7559f8` 已推送。原生 x64 run `40277883444` 于06:06 UTC启动，显式 `module_revision=1`，只消费原producer，不重编。
+
+06:20 UTC：该原生run的AMD64及16模块两轮加载、PNG、正式7z回读全部通过，但native诊断保存全量phpinfo，父在导出复核中确认包含GH_TOKEN环境项，因此该诊断artifact `12631365752` 不可交付/发布。wrapper正改为PHP环境明确allowlist、只导出解析后的版本/ABI、失败也不回显原始phpinfo，并补哨兵秘密回归；之后用同producer再生成干净产物。已按用户删除规则请求仅删除这份artifact，待明确答复；不记录或输出令牌值。
 
 ## 阶段 RC4-3: LIVE 发布、API 与 CDN 回读
 **目标**: 把 Windows v2 正式 ZIP 交给已有 windows-assets 路由，并持续收口已启动的 macOS v1/v2、Windows v1 发布。
 **成功标准**: 全部目标的 Uploader LIVE 步骤成功；公开 package API 的 PHP8.6 为 `8.6.0RC4`，模块记录与 core default_modules 的 version/revision/hash/ABI 一致；每个目标下载 URL 的真实字节 SHA 等于 Builder/元数据/API。留存精确 run/attempt/commit、注册结果和 hash，不以 check-only/CI 绿灯代替注册。
 **测试**: 对精确 artifact 运行现有 Uploader plan/dry-run，随后 `dry_run=false`；查询真实 API、下载 CDN 全部 core 和引用模块验证 SHA。对失败仅补对应单元，禁止无关全量重跑。
-**状态**: 未开始
+**状态**: 进行中。06:03 UTC已确认公开API的macOS v1 arm64/x86_64、Windows v1 x64全部为RC4；三包API hash、Builder package SHA和CDN实际下载SHA一致。macOS v2已注册的8模块CDN SHA一致；macOS v2 core/其余模块和Windows v2尚未完成。
 
 ## 阶段 RC4-M: macOS v2 的 PHP 8.6 扩展兼容修复
 **目标**: 修复本次真实构建发现的 9 个扩展、双架构共 18 个失败单元：memcached 3.4.0、APCu 5.1.28、Phalcon 5.23.0 的旧补丁不再适用；SQLSRV 5.13.3、IMAP 1.0.3、SCWS 1.2.4-pre、Xdebug 3.4.3 使用了已移除的 INI 宏；PDO_SQLSRV 5.13.3 和 Swoole 6.1.7-88fc55029c 使用旧的 stream/error API。保留已通过的核心包和其余 4 个模块，不减少模块、不修改版本、不绕过编译或 finalize 门禁。
 **成功标准**: 按 exact 上游源码和 PHP 8.6.0RC4 实际头文件修复 PHP8.6 专属补丁/接线；worker 仅负责 `runtime-v2/scripts/build_package.sh` 的 PHP8.6 扩展部分、必要的 `runtime-v2/patch/php8.6/*` 和对应行为测试，保留该脚本中并行提交 b67168ad 的 PostgreSQL/ICU 修复。新增增量经独立只读影响锥审查（最多两轮），线上双架构 13 个模块和 final core 均成功后进入发布。
 **测试**: 全量逐 job 日志分类、exact 源码补丁应用和必要的 C/C++ 编译/行为回归；新 recipe 提交在 GitHub runner 上实际编译，最终 core/module 原生加载和 ABI 检查全部通过。旧 SHA 的 rerun 不代表修复代码已验证；不能拿 candidate core 代替正式 core。
 **状态**: 进行中
+
+代码审查已在最多两轮内通过：第1轮独立找到SQL两opener的未命名context、Swoole剩余21处参数宏和实际启用php84 curl两处INI调用，共3个P1；原worker修正后，第2轮独立Spec PASS / Quality PASS，3个delta测试及26/26逐处变异通过。完整源码测试8/8及既有recipe18/18通过；保留全部模块与原行为，待新提交在双架构CI实际编译/加载。
 
 **执行记录**：2026-10-26 05:20 UTC，macOS v1 双架构正式 artifacts 已生成；其 ZIP/package SHA 已独立下载验证：arm64 package `e02bda6e6d92671819beb0508727f850bab9067e61fa91b171016441196cf0eb`，x86_64 package `13003c398ab4b2b7163fcd32b872490bc0f4050c1ad647f39616e74df88a162f`。macOS v2 arm64 仅 candidate core，不是可发布 final core；Intel core、Windows upstream/扩展仍在进行。Windows v1 API 的正确架构参数为 `x64`，Windows v2 归一化为 `x86_64`。Windows v2 beta3 当前 API 已正式发布，但不能将旧包验证结果借给 RC4。
 

@@ -1,0 +1,11 @@
+--- build/phalcon/phalcon.zep.c
++++ build/phalcon/phalcon.zep.c
+@@ -2187,7 +2187,7 @@
+ static inline int zephir_maybe_separate_zval(zval* z)
+ {
+ 	if (!Z_REFCOUNTED_P(z) || (Z_REFCOUNT_P(z) > 1 && !Z_ISREF_P(z))) {
+-		if (!(Z_COPYABLE_P(z) && !Z_REFCOUNTED_P(z))) {
++		if (!((Z_TYPE_P(z) == IS_ARRAY) && !Z_REFCOUNTED_P(z))) {
+ 			Z_DELREF_P(z);
+ 		}
+ 		zval_copy_ctor_func(z);
