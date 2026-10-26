@@ -14,7 +14,7 @@
 # php	8.3.36	php-8.3.36-windows-x64.zip
 # php	8.4.27	php-8.4.27-windows-x64.zip
 # php	8.5.12	php-8.5.12-windows-x64.zip
-# php	8.6.0beta3	php-8.6.0beta3-windows-x64.zip
+php	8.6.0RC4	php-8.6.0RC4-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
