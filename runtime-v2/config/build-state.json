@@ -11887,6 +11887,15 @@
         "runtime_version": "v2",
         "version": "6.1.7-88fc55029c"
       },
+      "reservation": {
+        "claimed_at": "2026-10-26T09:58:28+00:00",
+        "expires_at": "2026-10-26T17:58:28+00:00",
+        "producer": {
+          "commit": "0d62cbeccf7c8ee1bf08385c45ef742547a8b07c",
+          "run_attempt": 1,
+          "run_id": "40303672904"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"host\":{\"abi\":{\"debug\":false,\"extension_build\":\"API20260924,NTS\",\"module_api\":20260924,\"zend_extension_api\":420260924,\"zend_extension_build\":\"API420260924,NTS\",\"zts\":false},\"series\":\"8.6\",\"type\":\"php\"},\"kind\":\"php-extension\",\"name\":\"xdebug\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.3\"}": {
