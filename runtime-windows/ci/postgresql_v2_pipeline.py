@@ -20,6 +20,11 @@ from urllib.request import urlopen
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_ENV = {"SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "TEMP", "TMP", "PATH", "COMSPEC", "PATHEXT"}
 STAGES = {"arguments", "work_access", "prepare", "extract", "download", "native", "finalize", "export"}
+ERROR_FRAME_FILES = {
+    "runtime-windows/ci/postgresql_v2_pipeline.py", "runtime-windows/repack_postgresql_v2.py",
+    "runtime-windows/repack_pgvector_v2.py", "runtime-v2/ci/core_manifest.py",
+    "runtime-v2/ci/module_manifest.py", "runtime/ci/windows_archive.py", "runtime/ci/package_meta.py",
+}
 
 
 class ProbeFailure(RuntimeError):
@@ -33,7 +38,30 @@ def failure_summary(error):
     stage = getattr(error, "pipeline_stage", "arguments")
     stage = stage if stage in STAGES else "arguments"
     detail = str(error) if isinstance(error, ProbeFailure) else "error_type=" + type(error).__name__
+    if isinstance(error, OSError):
+        for name in ("errno", "winerror"):
+            value = getattr(error, name, None)
+            if type(value) is int:
+                detail += f" {name}={value}"
+        frames, trace = [], error.__traceback__
+        while trace is not None:
+            try:
+                path = Path(trace.tb_frame.f_code.co_filename)
+                relative = path.relative_to(ROOT).as_posix()
+                if (relative in ERROR_FRAME_FILES and path.resolve().is_relative_to(ROOT.resolve())
+                        and type(trace.tb_lineno) is int and trace.tb_lineno > 0):
+                    frames.append(f"frame={relative}:{trace.tb_lineno}")
+            except (OSError, ValueError, TypeError):
+                pass
+            trace = trace.tb_next
+        if frames:
+            detail += " " + " ".join(frames[-3:])
     return f"PostgreSQL producer failed stage={stage} {detail}; formal output was not exported."
+
+
+def safe_drive(path):
+    drive = Path(path).drive.upper()
+    return drive if re.fullmatch(r"[A-Z]:", drive) else "unavailable"
 
 
 def load_repacker():
@@ -123,7 +151,8 @@ def prepare_work_directory(work, *, runner=run):
             or before["others"] != after["others"] or before["protected"] != after["protected"]):
         raise ValueError("Work access was not verified or existing security changed")
     return {"python_version": sys.version.split()[0], "work_access_ready": after["ready"],
-            "owner_matches_user": after["owner"] == sid, "owner_preserved": before["owner"] == after["owner"]}
+            "owner_matches_user": after["owner"] == sid, "owner_preserved": before["owner"] == after["owner"],
+            "system_temp_drive": safe_drive(tempfile.gettempdir()), "work_drive": safe_drive(work)}
 
 
 def machine_evidence(runner=run):
@@ -327,7 +356,9 @@ def pipeline(version, edb_revision, producer, output, seven_zip, *, build_revisi
             print("PostgreSQL runtime python_version=" + runtime["python_version"]
                   + " work_access_ready=" + str(runtime["work_access_ready"]).lower()
                   + " owner_matches_user=" + str(runtime["owner_matches_user"]).lower()
-                  + " owner_preserved=" + str(runtime["owner_preserved"]).lower(), flush=True)
+                  + " owner_preserved=" + str(runtime["owner_preserved"]).lower()
+                  + " system_temp_drive=" + runtime["system_temp_drive"]
+                  + " work_drive=" + runtime["work_drive"], flush=True)
             progress("download")
             filename = f"postgresql-{version}-{edb_revision}-windows-x64-binaries.zip"
             source = download_source(version, edb_revision, work / filename)

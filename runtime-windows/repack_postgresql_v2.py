@@ -462,7 +462,7 @@ def finalize_postgresql_core(package, identity, source_path, source_url, native_
     host = {"type": "postgresql", "series": row["version"].split(".", 1)[0],
             "version": row["version"], "package_sha256": archive_sha,
             "abi": {"major": int(row["version"].split(".", 1)[0])}}
-    with tempfile.TemporaryDirectory(prefix="servbay-postgresql-finalize-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="servbay-postgresql-finalize-", dir=output.parent) as temporary:
         temporary = Path(temporary)
         canonical = temporary / filename
         shutil.copyfile(package, canonical)
