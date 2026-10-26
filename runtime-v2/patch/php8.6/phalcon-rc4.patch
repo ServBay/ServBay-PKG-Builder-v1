@@ -9,3 +9,32 @@
  			Z_DELREF_P(z);
  		}
  		zval_copy_ctor_func(z);
+--- build/phalcon/phalcon.zep.c
++++ build/phalcon/phalcon.zep.c
+@@ -250824,0 +250825 @@
++	zend_class_implements(phalcon_session_adapter_abstractadapter_ce, 1, php_session_id_iface_entry);
+@@ -250827,0 +250829,10 @@
++}
++
++static PHP_METHOD(Phalcon_Session_Adapter_AbstractAdapter, create_sid)
++{
++    ZEND_PARSE_PARAMETERS_NONE();
++    zend_string *id = php_session_create_id(NULL);
++    if (UNEXPECTED(id == NULL)) {
++        RETURN_THROWS();
++    }
++    RETURN_STR(id);
+@@ -251167,0 +251179 @@
++	zend_class_implements(phalcon_session_adapter_noop_ce, 1, php_session_id_iface_entry);
+--- build/phalcon/phalcon.zep.h
++++ build/phalcon/phalcon.zep.h
+@@ -11675,0 +11676 @@
++static PHP_METHOD(Phalcon_Session_Adapter_AbstractAdapter, create_sid);
+@@ -11685,0 +11687,3 @@
++ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_phalcon_session_adapter_abstractadapter_create_sid, 0, 0, IS_STRING, 0)
++ZEND_END_ARG_INFO()
++
+@@ -11727,0 +11732 @@
++	PHP_ME(Phalcon_Session_Adapter_AbstractAdapter, create_sid, arginfo_phalcon_session_adapter_abstractadapter_create_sid, ZEND_ACC_PUBLIC)
+@@ -16692,0 +16698 @@
++	PHP_ME(Phalcon_Session_Adapter_AbstractAdapter, create_sid, arginfo_phalcon_session_adapter_abstractadapter_create_sid, ZEND_ACC_PUBLIC)

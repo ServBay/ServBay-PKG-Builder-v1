@@ -269,7 +269,7 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **目标**: 在上游 `40272362001` 完成后，使用经审查并推送的入口消费其 exact attempt；不重编已成功的 RC4 原始输入。
 **成功标准**: Windows x64 上原始 ABI、准备后的全部模块、Imagick PNG、finalize 和正式 7z 再加载全部成功；正式 ZIP/每个归档 SHA/producer/native 结果可回读，所有失败单元明确报告，不将运行中 job 当作完成。
 **测试**: GitHub 原生 runner 实跑；核对 artifact ZIP digest、内部 package SHA、正式 meta/manifest 及实际 native JSON，确认版本为 RC4、模块数与 selected 一致。
-**状态**: 进行中。Windows入口提交 `7ca3c8c4fb7409d84f7e4e1b2fa3ef71e271cf0b`、Portable collector提交 `b614c80d50c417f22a92a78be2540c750c7559f8` 已推送。原生 x64 run `40277883444` 于06:06 UTC启动，显式 `module_revision=1`，只消费原producer，不重编。
+**状态**: 已完成。干净原生 x64 run `40281499583`（head `b55f2b4de8536c5b8c51b1694e5361cf1ab68a50`）成功，原producer仍为 `40272362001` attempt1，不重编。artifact `12633375467` ZIP SHA `c8c656d6f884864c3e0069e2a7feb05a3e652e0ab3fdd4fa62d7a7e55e9d5e16`；正式ZIP SHA `604e3ceb74411cc803d510c6576f86a48c89c024af4adf93f5753aaa772b992d`，core SHA `f642c694e6584be5bb7e6ce39004d58f1ca626ba519be71d54c8fc4e132fa47d`。独立产物审查 Spec PASS / Quality PASS：17份metadata/归档、16份manifest/默认引用、两轮共32条原生加载及Imagick PNG全部通过；导出无全量phpinfo或凭据模式。此状态不代替LIVE/API/CDN验收。
 
 06:20 UTC：该原生run的AMD64及16模块两轮加载、PNG、正式7z回读全部通过，但native诊断保存全量phpinfo，父在导出复核中确认包含GH_TOKEN环境项，因此该诊断artifact `12631365752` 不可交付/发布。wrapper正改为PHP环境明确allowlist、只导出解析后的版本/ABI、失败也不回显原始phpinfo，并补哨兵秘密回归；之后用同producer再生成干净产物。已按用户删除规则请求仅删除这份artifact，待明确答复；不记录或输出令牌值。
 
@@ -300,6 +300,22 @@ Legacy PHP：`build-windows-php-legacy.yml` 已改为同时产出 v2 split 资�
 **新增运行事实**：旧已发布8模块manifest的base为2.1.2，当前run候选/plan的base为2.1.3（arm64 Runtime SHA `d2940bb56fafe67f4f6e7982cf7bdc3c716bc81cf20826774d0e5df11009a547`、Devlib SHA `1f033b80c22fc03e14ac32f030caca3f5036e84eefff19bed8635908689527a7`；Intel以当前plan为准）。因此旧8模块在新plan中不再兼容，state也不会冒用旧producer。两个新失败由job `121432350396`、`121432350405` 实际日志确认；其余已成功单元证明上一轮对应修复，但不能代替新的revision1整套产物。
 
 本阶段代码第1轮独立Spec PASS / Quality PASS，覆盖23个相关文件；独立21项管线/producer、2项新增真实源码测试通过，4个revision、1个诊断和3个源码调用点变异均被识别，Actionlint语法与表达式通过。无需第2轮；真实原生CI和Phalcon诊断仍未完成。
+
+修复提交 `3472f71e53ef38e20f1defe9dac2ddc802ed19ca` 已推送，精确目标run `40283045159` 于06:59 UTC启动，core revision0、macOS module revision1，双架构基座2.1.3。
+
+07:23 UTC：本run双架构candidate core成功，26模块已完成21成功/4失败，Intel MongoDB仍运行。APCu双架构已通过；新增真实失败仅Swoole `swoole_coroutine.cc:975/976` 的 `EG(in_autoload)` 字段移除，以及Phalcon五个SessionHandler类缺少 `create_sid()` 的启动警告。Phalcon此次严格诊断门禁已准确输出原因，不能屏蔽。worker仅补现有Swoole/Phalcon专属patch与真实行为测试；第二轮独立审查覆盖本轮delta。required default模块仍为memcache/memcached/redis，Swoole/Phalcon为可选模块；待final core产生后可按原契约先发布有效core/成功模块，再从公开schema2 host请求仅补剩余模块，不伪造candidate来源或重编成功core。
+
+07:07 UTC：Windows同一正式ZIP已上传既有Release `windows-v2-php-20261026` 的新增asset `php-8.6.0RC4-formal.zip`，未覆盖旧asset。Release digest和实际下载82,101,213字节SHA均与已审产物一致；Uploader dry-run `40283795396` 已启动，待计划门禁通过后LIVE。
+
+07:13 UTC：Windows v2 dry-run `40283795396` 校验通过，LIVE `40283915516` 已完成：`published=true`、17项注册、OSS/R2共34项后端SHA回读成功、无未执行项。公开package API已为RC4/core revision0、16个默认引用与正式manifest一致；extension API的全部16项revision1/version/hash/manifest均匹配，core与16模块共17个CDN真实下载SHA全部一致。证据集中在 `/tmp/servbay-php-rc4-release-d8heet_i/windows-public-verification.json` 和 `windows-publication-result.json`。Windows v2已完成，剩余macOS v2双架构。
+
+07:32 UTC：macOS run `40283045159` 已结束，22模块/两个final core成功，仅Swoole/Phalcon双架构4项失败。父独立下载24个正式artifact，逐份ZIP digest、package SHA、模块manifest SHA、producer/base及core三个default_modules的revision1/version/SHA一致。core arm64 SHA `b35083cf69644ac8006a4cfe0f2e4fd58ee95b855e218b19940bf2abbc28a63d`，Intel SHA `7b8b111aca39e39dc4bd2375f4140d1549ee7838279ca93fae6f8dab031e8058`。Uploader dry-run `40286057541` 的24项计划和这些产物逐项一致且通过；LIVE `40286253700` 执行中。自动dispatch `40285811425` 仍因公开下载基址缺失在plan前失败，手动传入已有CDN地址，不修改变量。
+
+07:38 UTC：macOS LIVE `40286253700` 完成，`published=true`、24项注册、OSS/R2共48项后端SHA回读成功，无未执行项。公开API两个core均RC4且manifest/default模块revision1匹配；22扩展的version/revision/hash/manifest匹配，全部24个CDN字节SHA一致。由真实公开core记录生成两个catalog-host请求，后续仅补Swoole/Phalcon，不重编core。至此六个core目标均已LIVE/API/CDN闭环，不能据此把剩余4模块冒称完成。
+
+本阶段最后源码delta：Swoole原核心autoload递归表改用内嵌 `EG(autoload_current_classnames)`，保留原删除当前类guard及协程队列/yield/resume；270个选定源的EG/CG成员链语法核对通过。Phalcon两个根类AbstractAdapter/Noop的方法表共用官方 `php_session_create_id(NULL)` 处理器，具体类继承并实现SessionIdInterface；真实头/方法表/生成器委托/参数和异常行为13项源码测试通过，四处逐项变异被识别。新增原生SID功能用例检查四具体类SID与active handler回调，恢复session/INI；父仅对显式已验证8.6 host_version接线，旧5.6/7.x不会让旧parser读取新PHP文件。原Reflection/任何stderr/名称版本检查保持；外部进程失败/诊断及旧host排除10项离线回归通过，4项父接线逐点内存变异被识别。第二轮最后一次delta审查进行中，真实双架构编译和SID功能仍待验。
+
+07:41 UTC：第2轮最终delta独立审查Spec PASS / Quality PASS，覆盖约19个相关文件，独立10项producer/4项源码探针、成功返回及非Phalcon排除、4个接线缺陷变异均通过。已核对真实RC4 lookup guard、官方SID生成器和用户handler回调、两个根类/四具体类及已验证host_version来源。阶段N两轮代码审查收口；下一步只跑四个剩余原生模块及API/CDN，不重审无变动代码。
 
 Phalcon在该run双架构均已编译、链接并通过dlopen，但 `verify_php_payload` 读取stdout时仅报JSONDecodeError，真实启动诊断被JSON错误掩盖。父仅给PHP验证命令显式设置 `display_errors=stderr`，沿用原有“任何stderr即失败”条件，不放宽解析或忽略诊断；新增外部行为回归先RED（只能看到JSON错误）、后GREEN（读到诊断原因且仍阻断），ModuleProducerTests 8/8离线通过。此两文件增量一并纳入本阶段影响锥审查；后续真实CI用准确诊断继续定位Phalcon，不能把加载成功误报为完整验证成功。
 

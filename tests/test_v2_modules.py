@@ -448,6 +448,34 @@ class ModuleProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PHP module loading emitted diagnostics: Deprecated: fixture startup reason"):
             self.helper().verify_php_payload(prefix, payload, ["phalcon"])
 
+    def test_phalcon_session_behavior_failure_blocks_an_otherwise_loaded_module(self):
+        prefix, payload = self.root / "host", self.root / "payload"
+        (prefix / "bin").mkdir(parents=True)
+        payload.mkdir()
+        php = prefix / "bin/php"
+        for status, diagnostic in ((0, "fixture SID behavior failed"), (1, "fixture SID behavior failed"), (1, "")):
+            with self.subTest(status=status, diagnostic=diagnostic):
+                php.write_text("#!/bin/sh\ncase \"$*\" in *.php) "
+                               "printf '%s' " + shlex.quote(diagnostic) + " >&2; exit " + str(status) + ";; *) "
+                               "printf '%s' '[[\"phalcon\",\"5.23.0\"]]' ;; esac\n")
+                php.chmod(0o755)
+                reason = diagnostic or "PHP exited " + str(status)
+                with self.assertRaisesRegex(ValueError, "Phalcon session verification failed: " + reason):
+                    self.helper().verify_php_payload(prefix, payload, ["phalcon"], host_version="8.6.0RC4")
+
+    def test_older_phalcon_hosts_do_not_execute_the_php86_session_check(self):
+        prefix, payload = self.root / "host", self.root / "payload"
+        (prefix / "bin").mkdir(parents=True)
+        payload.mkdir()
+        php = prefix / "bin/php"
+        php.write_text("#!/bin/sh\ncase \"$*\" in *.php) exit 9 ;; *) "
+                       "printf '%s' '[[\"phalcon\",\"3.4.5\"]]' ;; esac\n")
+        php.chmod(0o755)
+        for version in ("5.6.40", "7.2.34", "8.5.12"):
+            with self.subTest(version=version):
+                self.assertEqual([["phalcon", "3.4.5"]],
+                                 self.helper().verify_php_payload(prefix, payload, ["phalcon"], host_version=version))
+
     def test_pg_provides_rejects_missing_or_invalid_actual_control_default_version(self):
         for text in ("# default_version = '0.8.1'\n", "default_version='0.8.1'\ndefault_version='0.8.2'\n"):
             with self.subTest(control=text):

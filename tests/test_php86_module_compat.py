@@ -62,15 +62,22 @@ class PHP86SourceCompatibilityTests(unittest.TestCase):
         self.assertTrue(sentinel.is_file(), recipe + " did not reach phpize after applying real patches:\n" + result.stdout + result.stderr)
         return source
 
-    def compile_probe(self, code, extra=(), cxx=False):
+    def compile_probe(self, code, extra=(), cxx=False, run=False):
         source = self.root / ("probe.cc" if cxx else "probe.c")
         source.write_text('#include "php.h"\n#include "php_ini.h"\n#include "php_streams.h"\n' + code)
-        command = ["/usr/bin/clang++" if cxx else "/usr/bin/clang", "-fsyntax-only", "-Werror=implicit-function-declaration"]
+        command = ["/usr/bin/clang++" if cxx else "/usr/bin/clang", "-Werror=implicit-function-declaration"]
+        if not run:
+            command.append("-fsyntax-only")
         command += ["-std=c++17"] if cxx else ["-std=gnu11"]
         for part in ("", "main", "Zend", "TSRM"):
             command += ["-I", str(self.include / part)]
+        if run:
+            command += ["-o", str(self.root / "probe")]
         result = subprocess.run(command + list(extra) + [str(source)], capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        if run:
+            result = subprocess.run([str(self.root / "probe")], capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
     def test_imap_scws_and_xdebug_ini_calls_compile_against_exact_rc4_headers(self):
         for recipe, filename in (("imap", "php_imap.c"), ("scws", "phpext/php_scws.c"), ("xdebug", "src/develop/stack.c")):
@@ -117,6 +124,61 @@ extern php_stream_ops sqlsrv_stream_ops;
         source = self.prepare("apcu")
         self.compile_probe("", extra=("-I", str(source), str(source / "apc_persist.c")))
 
+    def test_swoole_autoload_hook_removes_only_the_current_core_guard_before_coroutine_coordination(self):
+        source = self.prepare("swoole")
+        text = (source / "ext-src/swoole_coroutine.cc").read_text()
+        start = text.index("static zend_class_entry *swoole_coroutine_autoload(")
+        start = text.index("    ZEND_ASSERT(", start)
+        end = text.index("    if (UNEXPECTED(SWOOLE_G(in_autoload)", start)
+        guard = text[start:end]
+        code = r"""
+#include <cstdlib>
+zend_executor_globals executor_globals;
+static zval marker;
+static zend_string *current_key = reinterpret_cast<zend_string *>(1);
+static bool present = true;
+static int deletions = 0;
+extern "C" zval *zend_hash_find(const HashTable *table, zend_string *key) {
+    return table == &EG(autoload_current_classnames) && key == current_key && present ? &marker : nullptr;
+}
+extern "C" zend_result zend_hash_del(HashTable *table, zend_string *key) {
+    if (table != &EG(autoload_current_classnames) || key != current_key || !present) return FAILURE;
+    present = false;
+    deletions++;
+    return SUCCESS;
+}
+#undef ZEND_ASSERT
+#define ZEND_ASSERT(condition) do { if (!(condition)) std::abort(); } while (0)
+static void enter_hook(zend_string *lc_name) {
+""" + guard + r"""
+}
+int main() {
+    enter_hook(current_key);
+    if (present || deletions != 1) return 1;
+    // The next coroutine's core lookup can insert the same class guard again.
+    present = true;
+    enter_hook(current_key);
+    return present || deletions != 2;
+}
+"""
+        self.compile_probe(code, cxx=True, run=True)
+
+    def test_swoole_selected_executor_compiler_globals_and_member_chains_compile(self):
+        source = self.prepare("swoole")
+        parts = ("ext-src", "src", "include", "thirdparty/php/sockets", "thirdparty/php/standard",
+                 "thirdparty/php/streams", "thirdparty/php84/curl", "thirdparty/pdo_sqlite")
+        expressions = set()
+        for part in parts:
+            for filename in (source / part).rglob("*"):
+                if filename.suffix not in (".c", ".cc", ".cpp", ".h"):
+                    continue
+                code = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', "", filename.read_text(errors="replace"), flags=re.S)
+                expressions.update(re.findall(r"\b(?:EG|CG)\(\s*[A-Za-z_]\w*\s*\)(?:(?:->|\.)[A-Za-z_]\w*)*", code))
+        self.assertGreaterEqual(len(expressions), 28)
+        for expression in sorted(expressions):
+            with self.subTest(expression=expression):
+                self.compile_probe("void probe() { (void)(" + expression + "); }", cxx=True)
+
     def test_swoole_process_pool_actual_parse_call_compiles_without_removed_throw_alias(self):
         source = self.prepare("swoole")
         text = (source / "ext-src/swoole_process_pool.cc").read_text()
@@ -141,6 +203,79 @@ extern php_stream_ops sqlsrv_stream_ops;
         destructors = re.findall(r"zval_(?:dtor|ptr_dtor_nogc)\(return_value\);", (source / "php_memcached.c").read_text())
         self.assertEqual(4, len(destructors))
         self.compile_probe("void probe(zval *return_value) {\n" + "\n".join(destructors) + "\n}")
+
+    def test_phalcon_both_session_root_method_tables_delegate_sid_creation_to_php_core(self):
+        source = self.prepare("phalcon") / "build/phalcon"
+        header = (source / "phalcon.zep.h").read_text()
+        implementation = (source / "phalcon.zep.c").read_text()
+        tables = []
+        stubs = []
+        for name, symbol in (("AbstractAdapter", "abstractadapter"), ("Noop", "noop")):
+            start = header.index("static PHP_METHOD(Phalcon_Session_Adapter_" + name + ",")
+            table_start = header.index("ZEPHIR_INIT_FUNCS(phalcon_session_adapter_" + symbol + "_method_entry)", start)
+            end = header.index("\n};", table_start) + 3
+            block = header[start:end]
+            tables.append(block)
+            for owner, method in re.findall(r"PHP_ME\(([^,]+), ([^,]+),", block):
+                if method != "create_sid":
+                    stubs.append("static PHP_METHOD(" + owner + ", " + method + ") {}")
+        method = re.search(r"static PHP_METHOD\(Phalcon_Session_Adapter_AbstractAdapter, create_sid\)\n\{.*?\n}", implementation, re.S)
+        code = r"""
+extern "C" {
+#include "ext/session/php_session.h"
+}
+#include <cstring>
+#include <cstdlib>
+#include <initializer_list>
+#define ZEPHIR_INIT_FUNCS(name) static const zend_function_entry name[] =
+zend_executor_globals executor_globals;
+static zend_string *generated_id;
+static int generated_calls = 0, wrong_arguments = 0;
+static bool generation_fails = false;
+static zend_object generation_exception;
+extern "C" zend_string *php_session_create_id(void **mod_data) {
+    if (mod_data != nullptr) std::abort();
+    generated_calls++;
+    if (generation_fails) {
+        EG(exception) = &generation_exception;
+        return nullptr;
+    }
+    return generated_id;
+}
+extern "C" void zend_wrong_parameters_none_error(void) { wrong_arguments++; }
+""" + "\n".join(tables + stubs) + "\n" + (method.group() if method else "") + r"""
+static const zend_function_entry *find_sid(const zend_function_entry *table) {
+    for (; table->fname; table++) if (!std::strcmp(table->fname, "create_sid")) return table;
+    return nullptr;
+}
+int main() {
+    const zend_function_entry *first = find_sid(phalcon_session_adapter_abstractadapter_method_entry);
+    const zend_function_entry *second = find_sid(phalcon_session_adapter_noop_method_entry);
+    if (!first || !second || first->handler != second->handler) return 1;
+    if (first->num_args || second->num_args || !(first->flags & ZEND_ACC_PUBLIC) || !(second->flags & ZEND_ACC_PUBLIC)) return 2;
+    if (ZEND_TYPE_PURE_MASK(first->arg_info[0].type) != MAY_BE_STRING) return 3;
+    generated_id = static_cast<zend_string *>(std::calloc(1, sizeof(zend_string) + 32));
+    ZSTR_LEN(generated_id) = 26;
+    zend_execute_data execute = {};
+    zval result;
+    for (const zend_function_entry *entry : { first, second }) {
+        ZVAL_UNDEF(&result);
+        entry->handler(&execute, &result);
+        if (Z_TYPE(result) != IS_STRING || Z_STR(result) != generated_id) return 4;
+    }
+    if (generated_calls != 2) return 5;
+    generation_fails = true;
+    ZVAL_UNDEF(&result);
+    first->handler(&execute, &result);
+    if (!Z_ISUNDEF(result) || generated_calls != 3 || EG(exception) != &generation_exception) return 6;
+    ZEND_CALL_NUM_ARGS(&execute) = 1;
+    first->handler(&execute, &result);
+    if (wrong_arguments != 1 || generated_calls != 3) return 7;
+    std::free(generated_id);
+    return 0;
+}
+"""
+        self.compile_probe(code, cxx=True, run=True)
 
     def test_phalcon_current_amalgamation_compiles_against_rc4_headers(self):
         source = self.prepare("phalcon") / "build/phalcon"
