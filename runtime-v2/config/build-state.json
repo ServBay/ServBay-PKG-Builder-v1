@@ -6043,7 +6043,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
+      "artifact_expires_at": "2026-11-03T08:36:14Z",
+      "artifact_id": "12718829918",
+      "artifact_name": "pkg2-macos-arm64-package-nginx-1.31.8-r2",
+      "artifact_zip_sha256": "f9477a9dc28da2c052eef1b1510fb9d99d55957e321def9635e68867d43b4aef",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
+        "run_attempt": 1,
+        "run_id": "40474329893"
+      },
+      "package_sha256": "e2a93108656a6b2da483ecc53ff374bba420ece5f375781e5dba725ed9dcfef5",
+      "producer": {
+        "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
+        "run_attempt": 1,
+        "run_id": "40474329893"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 2,
@@ -6054,16 +6069,7 @@
         "runtime_version": "v2",
         "version": "1.31.8"
       },
-      "reservation": {
-        "claimed_at": "2026-10-27T08:33:43+00:00",
-        "expires_at": "2026-10-27T16:33:43+00:00",
-        "producer": {
-          "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
-          "run_attempt": 1,
-          "run_id": "40474329893"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
@@ -12497,7 +12503,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"nginx\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.31.8\"}": {
+      "artifact_expires_at": "2026-11-03T08:36:23Z",
+      "artifact_id": "12720072313",
+      "artifact_name": "pkg2-macos-x86_64-package-nginx-1.31.8-r2",
+      "artifact_zip_sha256": "7836849388b2ae9cc6e2e061113d86205dd22563b63dc0a8ba470dcba17a62f2",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
+        "run_attempt": 1,
+        "run_id": "40474329893"
+      },
+      "package_sha256": "220329879c802983d61ae457814f08a05309bd508b7a4c98b59ce3554c7deb28",
+      "producer": {
+        "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
+        "run_attempt": 1,
+        "run_id": "40474329893"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 2,
@@ -12508,16 +12529,7 @@
         "runtime_version": "v2",
         "version": "1.31.8"
       },
-      "reservation": {
-        "claimed_at": "2026-10-27T08:33:43+00:00",
-        "expires_at": "2026-10-27T16:33:43+00:00",
-        "producer": {
-          "commit": "13be0c280c0a44bf95b47d2d6cee2bfdc6474903",
-          "run_attempt": 1,
-          "run_id": "40474329893"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
