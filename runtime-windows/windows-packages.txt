@@ -40,8 +40,8 @@
 # python	3.11.9
 # python	3.12.10
 # python	3.13.17
-python	3.14.10
-python	3.15.2
+# python	3.14.10
+# python	3.15.2
 # go	1.11.13
 # go	1.12.17
 # go	1.13.15
@@ -150,15 +150,15 @@ postgresql	19.beta2
 # git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.40.11
+ollama	0.40.12
 # memcached	1.6.45
 # mailpit	1.32.0
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.56.0
+# meilisearch	1.56.0
 # simple-acme	2.4.1
-cloudflared	2026.10.4
+cloudflared	2026.10.5
 # frp	0.71.1
 # pinggy	0.6.1
 # ngrok	3.39.13	VUnfuMhAnU
@@ -174,4 +174,4 @@ cloudflared	2026.10.4
 # mongodb	8.2.12
 # mongodb	8.3.13
 # mongosh	2.14.0
-# mongotools	100.19.1
+mongotools	100.20.0
