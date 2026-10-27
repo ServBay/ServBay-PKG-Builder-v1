@@ -313,7 +313,8 @@ def collect_native(root, archive, version, *, runner=run):
     if (sql["server_version"] != version or sql["server_encoding"] != "UTF8"
             or os.path.normcase(str(Path(sql["data_directory"]).resolve())) != os.path.normcase(str(data.resolve()))):
         raise ValueError("Database version/encoding/path differs")
-    compilers = re.findall(r"Visual C\+\+ build [0-9]+", sql["compiler"])
+    compilers = re.findall(r"(?<![A-Za-z0-9_.+-])(?:Visual C\+\+ build [0-9]+|msvc-[0-9]+\.[0-9]+\.[0-9]+)"
+                          r"(?![A-Za-z0-9_.+-])", sql["compiler"])
     if len(compilers) != 1:
         raise ValueError("Actual SQL compiler identity is required")
     native = {"schema": "servbay.windows-postgresql-core-native.v1", "archive": archive,
