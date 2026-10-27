@@ -6176,6 +6176,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-27T09:27:10+00:00",
+        "expires_at": "2026-10-27T17:27:10+00:00",
+        "producer": {
+          "commit": "55f018610763ce56b709e1b0fc0075615e71392c",
+          "run_attempt": 1,
+          "run_id": "40480843320"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"19.beta4\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
@@ -12664,6 +12687,29 @@
         "version": "8.4.27"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":3,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"18.6\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 3,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "18.6"
+      },
+      "reservation": {
+        "claimed_at": "2026-10-27T09:27:10+00:00",
+        "expires_at": "2026-10-27T17:27:10+00:00",
+        "producer": {
+          "commit": "55f018610763ce56b709e1b0fc0075615e71392c",
+          "run_attempt": 1,
+          "run_id": "40480843320"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":4,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
