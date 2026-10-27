@@ -578,7 +578,7 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
                   'download_source() { print -r -- "$1" >> "$CALLS"; [[ "$1" == *cppjieba* ]] && cp "$COMPONENT" "$2" || cp "$MAIN" "$2"; }',
                   'unpack_package() { mkdir -p "$SERVBAY_BUILD_SRC_DIR/$1"; /usr/bin/tar -xzf "$SERVBAY_BUILD_SRC_DIR/$2" --strip-components=1 -C "$SERVBAY_BUILD_SRC_DIR/$1"; builtin cd "$SERVBAY_BUILD_SRC_DIR/$1"; }',
                   'cmake() { print -r -- "$*" >> "$CALLS"; [[ -f libjieba/include/cppjieba/Jieba.hpp ]] || return 9; if [[ $1 == --install ]]; then mkdir -p "$DESTDIR$PREFIX/lib"; print native > "$DESTDIR$PREFIX/lib/pg_jieba.so"; fi; return 0; }',
-                  '_install_pg_jieba_loader_alias() {\n' + self.extract(self.text, "_install_pg_jieba_loader_alias") + '\n}',
+                  '_install_pg_module_loader_alias() {\n' + self.extract(self.text, "_install_pg_module_loader_alias") + '\n}',
                   '_build_pgsql_mod_pg_jieba() {\n' + self.extract(self.text, "_build_pgsql_mod_pg_jieba") + '\n}',
                   '_build_pgsql_mod_pg_jieba 2.0.1 18.6 18 ' + shlex.quote(str(prefix))]
         result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)], capture_output=True, text=True)
@@ -596,6 +596,72 @@ class PostgreSQLModuleRecipeTests(unittest.TestCase):
             (assets / "modules.json").write_text(json.dumps({"recipes": {"pg_jieba": {"source_pins": {"2.0.1": wrong}}}}))
             result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)], capture_output=True, text=True)
             self.assertNotEqual(0, result.returncode, changed + result.stdout + result.stderr)
+
+    def test_pgrouting_uses_the_postgresql_loader_suffix_from_the_actual_host(self):
+        for scenario in ("dylib", "so", "bad_header", "broken_loader"):
+            with self.subTest(scenario=scenario):
+                work = self.root / scenario
+                prefix = work / "base/packages/postgresql/18"
+                config = prefix / "bin/pg_config"
+                config.parent.mkdir(parents=True)
+                headers = prefix / "include/server"
+                headers.mkdir(parents=True)
+                suffix = ".so" if scenario == "so" else ".dylib"
+                (headers / "pg_config.h").write_text('/* #define DLSUFFIX ".wrong" */\n' +
+                    ("" if scenario == "bad_header" else '#define DLSUFFIX "' + suffix + '"\n'))
+                config.write_text("#!/bin/sh\ncase \"$1\" in --includedir-server) printf '%s' " +
+                    shlex.quote(str(headers)) + ";; --pkglibdir) printf '%s' " +
+                    shlex.quote(str(prefix / "lib")) + ";; esac\n")
+                config.chmod(0o755)
+                boost = work / "boost/include/boost"
+                boost.mkdir(parents=True)
+                (boost / "version.hpp").write_text("fixture")
+                source = work / "source"
+                source.mkdir()
+                stage = work / "stage"
+                env = dict(os.environ, SERVBAY_RECIPE_LIBRARY_ONLY="1", SERVBAY_BASE_FULL_PATH=str(work / "base"),
+                           SERVBAY_BUILD_ROOT=str(work), PREFIX=str(prefix),
+                           STAGE=str(stage), SOURCE=str(source), BOOST=str(boost.parent.parent),
+                           WORK=str(work), BROKEN="1" if scenario == "broken_loader" else "")
+                script = r'''
+source "$1" || exit 1
+DESTDIR="$STAGE"
+SERVBAY_BUILD_DIR="$WORK"
+SERVBAY_BUILD_SRC_DIR="$WORK"
+SERVBAY_COMMON_LIB_PATH="$WORK/common/lib"
+CPU_NUMBER=2
+log_message() { :; }
+download_source() { :; }
+unpack_package() { builtin cd "$SOURCE"; }
+cleanup_source_directory() { :; }
+brew() { print -r -- "$BOOST"; }
+cmake() {
+    if [[ $1 == --install ]]; then
+        mkdir -p "$DESTDIR$PREFIX/lib"
+        print native > "$DESTDIR$PREFIX/lib/libpgrouting-3.8.so"
+        [[ -z "$BROKEN" ]] || ln -s missing.so "$DESTDIR$PREFIX/lib/libpgrouting-3.8.dylib"
+    fi
+    return 0
+}
+_build_pgsql_mod_pgrouting 3.8.0 18.6 18 "$PREFIX"
+'''
+                result = subprocess.run(["/bin/zsh", "-c", script, "pgrouting-test",
+                    str(ROOT / "runtime-v2/scripts/build_package.sh")], env=env, capture_output=True, text=True)
+                staged = Path(str(stage) + str(prefix)) / "lib"
+                loader = staged / ("libpgrouting-3.8" + suffix)
+                if scenario in {"bad_header", "broken_loader"}:
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    if scenario == "broken_loader":
+                        self.assertEqual(Path("missing.so"), loader.readlink())
+                else:
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertTrue(loader.is_file(), "PostgreSQL loader target is missing")
+                    self.assertEqual(b"native\n", loader.read_bytes())
+                    if suffix == ".dylib":
+                        self.assertEqual(Path("libpgrouting-3.8.so"), loader.readlink())
+                    else:
+                        self.assertFalse(loader.is_symlink())
+                self.assertFalse((prefix / "lib/libpgrouting-3.8.so").exists())
 
     def test_vector_uses_exact_pgxs_pkglibdir_destdir_and_disables_native_cpu(self):
         source = self.root / "source"

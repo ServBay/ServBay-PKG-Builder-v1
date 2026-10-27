@@ -1997,6 +1997,11 @@ _build_pgsql_mod_pgrouting() {
         cd "$SERVBAY_BUILD_DIR"
         return 1
     fi
+    _install_pg_module_loader_alias "$pg_config" "$extension_libdir" "libpgrouting-3.8" || {
+        log_message "ERROR" "pgRouting PostgreSQL loader target is missing."
+        cd "$SERVBAY_BUILD_DIR"
+        return 1
+    }
     log_message "INFO" "  -> pgRouting module verified successfully."
 
     cd "$SERVBAY_BUILD_DIR"
@@ -2064,9 +2069,10 @@ _build_pgsql_mod_pgvector() {
     cleanup_source_directory "$mod_package_fullname"
 }
 
-_install_pg_jieba_loader_alias() {
+_install_pg_module_loader_alias() {
     local pg_config=$1
     local extension_libdir=$2
+    local module_name=$3
     local server_include dl_suffix loader
     server_include=$("$pg_config" --includedir-server) || return 1
     dl_suffix=$(python3 - "${server_include}/pg_config.h" <<'PY'
@@ -2079,13 +2085,13 @@ if len(suffixes) != 1:
 print(suffixes[0])
 PY
     ) || return 1
-    loader="${extension_libdir}/pg_jieba${dl_suffix}"
+    loader="${extension_libdir}/${module_name}${dl_suffix}"
     if [[ ! -e "$loader" && ! -L "$loader" ]]; then
-        [[ -f "${extension_libdir}/pg_jieba.so" ]] || return 1
-        ln -s pg_jieba.so "$loader" || return 1
+        [[ -f "${extension_libdir}/${module_name}.so" ]] || return 1
+        ln -s "${module_name}.so" "$loader" || return 1
     fi
     if [[ ! -f "$loader" ]]; then
-        log_message "ERROR" "pg_jieba loader target is missing: ${loader}"
+        log_message "ERROR" "PostgreSQL module loader target is missing: ${loader}"
         return 1
     fi
 }
@@ -2155,7 +2161,7 @@ if p.get("sql_version") == "1.1.1":
         cd "$SERVBAY_BUILD_DIR"
         return 1
     fi
-    _install_pg_jieba_loader_alias "$pg_config" "$extension_libdir" || return 1
+    _install_pg_module_loader_alias "$pg_config" "$extension_libdir" "pg_jieba" || return 1
     if [[ ${#source_values} == 6 ]]; then
         local extension_sharedir="${DESTDIR}$($pg_config --sharedir)/extension"
         install -m 644 "${PATCH_DIR}/pgsql/pg_jieba--1.1.0--1.1.1.sql" "$extension_sharedir/" || return 1

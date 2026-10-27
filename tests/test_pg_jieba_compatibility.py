@@ -128,7 +128,7 @@ class PgJiebaCompatibilityTests(unittest.TestCase):
                     fi
                     return 0
                   }''',
-                  '_install_pg_jieba_loader_alias() {\n' + self.extract(self.text, "_install_pg_jieba_loader_alias") + '\n}',
+                  '_install_pg_module_loader_alias() {\n' + self.extract(self.text, "_install_pg_module_loader_alias") + '\n}',
                   'build_pg_jieba() {\n' + self.extract(self.text, "_build_pgsql_mod_pg_jieba") + '\n}',
                   'build_pg_jieba test 18.6 18 "$PREFIX"']
         result = subprocess.run(["/bin/zsh", "-c", "\n".join(script)], capture_output=True, text=True)
