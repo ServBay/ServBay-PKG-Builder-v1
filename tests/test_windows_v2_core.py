@@ -185,6 +185,30 @@ class WindowsCoreTests(unittest.TestCase):
         host['package_sha256'] = 'a' * 64
         with self.assertRaises(ValueError): self.dep.core_provides(archive, host, os_name='windows', seven_zip=SEVEN_ZIP)
 
+    def test_prerelease_core_consumers_keep_public_source_and_exact_internal_host(self):
+        self.profile.write_text(json.dumps({'schema_version': 1, 'os': 'windows',
+            'hosts': {'postgresql': {'19': {}}}, 'recipes': {}}))
+        for version, actual in (('19.beta2', '19beta2'), ('19.rc1', '19rc1')):
+            with self.subTest(version=version):
+                archive = self.pack('postgresql-' + version + '-windows-x86_64.7z', {
+                    'postgresql/19/include/server/pg_config.h': f'#define PG_VERSION "{actual}"\n#define PG_VERSION_NUM 190000\n'.encode(),
+                    'postgresql/19/share/extension/plpgsql.control': b"default_version = '1.0'\n"})
+                host = dict(type='postgresql', series='19', version=actual, abi={'major': 19}, package_sha256=self.sha(archive))
+                record = {**self.record, 'name': 'postgresql', 'version': version}
+                candidate = self.core.create_candidate(archive, record, self.producer, None, '10.0',
+                    {'version': version, 'path': str(self.source)}, host, windows_compatibility=COMPAT)
+                result = self.core.finalize_core(candidate, archive, [], [], self.producer,
+                    self.root / ('out-' + version), config=self.profile, seven_zip=SEVEN_ZIP)
+                self.assertEqual(result['meta']['version'], version)
+                self.assertEqual(result['meta']['source']['version'], version)
+                self.assertEqual(result['meta']['package_manifest']['host']['version'], actual)
+                self.assertEqual(result['meta']['package_manifest']['host']['abi'], {'major': 19})
+                self.assertEqual(self.dep.core_provides(archive, host, os_name='windows', seven_zip=SEVEN_ZIP), {'plpgsql'})
+                for wrong in (version, '19.0', '19beta1'):
+                    with self.subTest(wrong=wrong), self.assertRaises(ValueError):
+                        self.core.create_candidate(archive, record, self.producer, None, '10.0',
+                            {'version': version, 'path': str(self.source)}, {**host, 'version': wrong}, windows_compatibility=COMPAT)
+
     def test_pg_wrong_or_ambiguous_header_version_is_rejected(self):
         for i, header in enumerate((b'#define PG_VERSION "18.5"\n', b'#define PG_VERSION "18.6"\n#define PG_VERSION "18.7"\n', b'/* #define PG_VERSION "18.6" */\n')):
             archive, host = self.pg('18.' + str(i + 7), header)

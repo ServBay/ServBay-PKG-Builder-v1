@@ -8,6 +8,8 @@ import io
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -45,6 +47,27 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["bytes"], len(payload))
         self.assertEqual(result["version"], "11.22")
         for version, revision in [("19.beta2", 1), ("9.6", 1), ("11.22", 0), ("11.22/evil", 1)]:
+            with self.subTest(version=version, revision=revision), self.assertRaises(ValueError):
+                pipeline.source_url(version, revision)
+
+    def test_prerelease_official_url_revision_and_streamed_identity_are_exact(self):
+        for version, segment in (("19.beta2", "19.0-beta2"), ("19.rc1", "19.0-rc1")):
+            with self.subTest(version=version):
+                expected = f"https://get.enterprisedb.com/postgresql/postgresql-{segment}-windows-x64-binaries.zip"
+                stream = io.BytesIO(b"observed prerelease source")
+                stream.geturl = lambda: expected
+                with mock.patch.object(pipeline, "urlopen", return_value=stream):
+                    try:
+                        result = pipeline.download_source(version, None, self.root / (version + ".zip"))
+                    except ValueError:
+                        self.fail("An exact beta/rc source with absent EDB revision must download")
+                self.assertEqual(result["url"], expected)
+                self.assertEqual(result["version"], version)
+                self.assertEqual(result["sha256"], hashlib.sha256(b"observed prerelease source").hexdigest())
+        for version, revision in (("19.beta2", 0), ("19.rc1", 1), ("19.0", None), ("19beta2", None),
+                                  ("19.alpha1", None), ("19.devel", None), ("19.beta0", None),
+                                  ("19.rc01", None), ("19.beta2rc1", None), ("9.beta1", None),
+                                  ("19.BETA2", None), ("19.Rc1", None)):
             with self.subTest(version=version, revision=revision), self.assertRaises(ValueError):
                 pipeline.source_url(version, revision)
 
@@ -160,7 +183,7 @@ class PipelineTests(unittest.TestCase):
         (root / "bin").mkdir(parents=True)
         return root
 
-    def runner(self, root, failures=None, bad=None, cwd_callback=None):
+    def runner(self, root, failures=None, bad=None, cwd_callback=None, actual_version="17.11"):
         failures, bad = failures or {}, bad or {}
         calls = []
         def invoke(command, **kwargs):
@@ -173,30 +196,31 @@ class PipelineTests(unittest.TestCase):
             stdout = ""
             if name == "pg_config":
                 flag = args[0][2:]
-                values = {"version": "PostgreSQL 17.11", "bindir": str(root / "bin"),
+                values = {"version": "PostgreSQL " + actual_version, "bindir": str(root / "bin"),
                           "sharedir": str(root / "share"), "pkglibdir": str(root / "lib"),
                           "includedir-server": str(root / "include/server"),
                           "cc": "cl", "configure": "EDB options", "cflags": "/MD", "ldflags": "/DLL"}
                 stdout = bad.get(flag, values[flag])
             elif args == ["--version"]:
                 key = name + "_version"
-                stdout = bad.get(name, f"{name} (PostgreSQL) 17.11")
+                stdout = bad.get(name, f"{name} (PostgreSQL) {actual_version}")
             elif name == "initdb":
                 (root / "data").mkdir()
-                (root / "data/PG_VERSION").write_text("17\n")
+                (root / "data/PG_VERSION").write_text(re.match(r"[0-9]+", actual_version)[0] + "\n")
             elif name == "pg_ctl":
                 key = "start" if "start" in args else "stop"
             elif name == "psql":
                 key = "query"
-                stdout = json.dumps(bad.get("sql", {"server_version": "17.11", "server_encoding": "UTF8",
+                stdout = json.dumps(bad.get("sql", {"server_version": actual_version, "server_encoding": "UTF8",
                                     "data_directory": str(root / "data"),
                                     "compiler": "PostgreSQL 17.11, compiled by Visual C++ build 1937, 64-bit"}))
             return subprocess.CompletedProcess(command, failures.get(key, 0), stdout, "sensitive diagnostics")
         return invoke, calls
 
     def observe(self, root, **kwargs):
+        version = kwargs.pop("version", "17.11")
         runner, calls = self.runner(root, kwargs.pop("failures", None), kwargs.pop("bad", None),
-                                    kwargs.pop("cwd_callback", None))
+                                    kwargs.pop("cwd_callback", None), kwargs.pop("actual_version", "17.11"))
         runner = kwargs.pop("runner_override", runner)
         system = {"os_architecture": "X64", "process_architecture": "X64", "processor_name": "actual cpu",
                   "processor_architecture_code": 9, "process_environment_architecture": "AMD64",
@@ -207,8 +231,41 @@ class PipelineTests(unittest.TestCase):
                 mock.patch.object(pipeline, "cleanup_observation", return_value=kwargs.pop("cleanup", (0, 0))), \
                 mock.patch.object(pipeline, "crt_evidence", return_value={"crt": "imports: msvcr120.dll", "files": []}):
             result = pipeline.collect_native(root, {"filename": "core.7z", "sha256": "b" * 64, "bytes": 99},
-                                             "17.11", runner=runner)
+                                             version, runner=runner)
         return result, calls
+
+    def test_prerelease_native_retains_exact_internal_versions_at_every_observation(self):
+        for version, actual in (("19.beta2", "19beta2"), ("19.rc1", "19rc1")):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/19"
+                (root / "bin").mkdir(parents=True)
+                compiler = f"PostgreSQL {actual} on x86_64-windows, compiled by msvc-19.44.35228, 64-bit"
+                try:
+                    (native, sidecar, compatibility), _ = self.observe(root, version=version, actual_version=actual,
+                        bad={"sql": {"server_version": actual, "server_encoding": "UTF8",
+                                     "data_directory": str(root / "data"), "compiler": compiler}})
+                except ValueError:
+                    self.fail("Native beta/rc observations must match the mapped internal version")
+                self.assertEqual(native["pg_config"]["version"], "PostgreSQL " + actual)
+                self.assertEqual(native["executables"], {name: f"{name} (PostgreSQL) {actual}"
+                                 for name in ("postgres", "initdb", "pg_ctl", "psql")})
+                self.assertEqual(native["database"]["server_version"], actual)
+                self.assertEqual(native["database"]["initialized_pg_version"], "19")
+                self.assertEqual(sidecar["sql_version"], compiler)
+                self.assertEqual(compatibility["toolchain"], "msvc-19.44.35228")
+
+    def test_prerelease_native_never_confuses_equal_major_beta_rc_or_ga_versions(self):
+        cases = [{"version": "PostgreSQL 19.beta2"}, {"version": "PostgreSQL 19rc1"}]
+        cases.extend({name: f"{name} (PostgreSQL) 19.0"} for name in ("postgres", "initdb", "pg_ctl", "psql"))
+        for bad in cases + [{"sql_version": value} for value in ("19.beta2", "19beta1", "19rc1", "19.0")]:
+            with self.subTest(kind=next(iter(bad))), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/19"
+                (root / "bin").mkdir(parents=True)
+                if "sql_version" in bad:
+                    bad = {"sql": {"server_version": bad["sql_version"], "server_encoding": "UTF8",
+                                   "data_directory": str(root / "data"), "compiler": "msvc-19.44.35228"}}
+                with self.assertRaises(ValueError):
+                    self.observe(root, version="19.beta2", actual_version="19beta2", bad=bad)
 
     def test_observed_values_are_preserved_and_stop_is_always_attempted(self):
         root = self.fixture()
@@ -364,11 +421,12 @@ class PipelineTests(unittest.TestCase):
             output.mkdir()
             (output / "core.7z").write_bytes(b"archive bytes")
             audit = {"archive": {"filename": "core.7z", "bytes": 13, "sha256": "b" * 64},
-                     "files": [{"target_path": "postgresql/17/bin/postgres.exe", "sha256": "c" * 64}]}
+                     "files": [{"target_path": "postgresql/" + identity["version"].split(".")[0]
+                                + "/bin/postgres.exe", "sha256": "c" * 64}]}
             (output / "postgresql-repack-manifest.json").write_text(json.dumps(audit))
             return audit
         def extract(package, expected, seven, output):
-            (output / "verified/postgresql/17/bin").mkdir(parents=True)
+            (output / "verified" / Path(next(iter(expected))).parent).mkdir(parents=True)
         def finalize(package, identity, source, url, native, producer, minimum, compatibility, output, **kwargs):
             self.assertNotIn("GH_TOKEN", os.environ)
             self.assertEqual(json.loads(native.read_text()), {"observed": "native"})
@@ -377,9 +435,135 @@ class PipelineTests(unittest.TestCase):
                                                         "minimum_os": minimum, "version": identity["version"]}))
             (output / "core.7z").write_bytes(package.read_bytes())
         return SimpleNamespace(package_meta=REAL_REPACKER.package_meta,
+                               _release_version=REAL_REPACKER._release_version,
                                _identity=REAL_REPACKER._identity, prepare_postgresql_core=mock.Mock(side_effect=prepare),
                                _verify_archive=mock.Mock(side_effect=extract),
                                finalize_postgresql_core=mock.Mock(side_effect=finalize))
+
+    def test_prerelease_cli_omits_revision_and_preserves_public_source_identity(self):
+        for version in ("19.beta2", "19.rc1"):
+            with self.subTest(version=version):
+                repacker = self.fake_repacker()
+                archive = self.root / (version + "-input.zip")
+                archive.write_bytes(b"pinned prerelease source")
+                url = "https://get.enterprisedb.com/postgresql/postgresql-19.0-" + version.split(".")[1] + "-windows-x64-binaries.zip"
+                source = {"path": str(archive), "version": version, "url": url,
+                          "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bytes": archive.stat().st_size}
+                output = self.root / (version + "-formal")
+                arguments = ["postgresql_v2_pipeline.py", "--version", version, "--minimum-os", "10.0",
+                             "--commit", "a" * 40, "--run-id", "123", "--run-attempt", "2",
+                             "--output", str(output), "--seven-zip", "7z"]
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with mock.patch.object(sys, "argv", arguments), mock.patch.object(sys, "stdout", stdout), \
+                        mock.patch.object(sys, "stderr", stderr), \
+                        mock.patch.object(pipeline, "load_repacker", return_value=repacker), \
+                        mock.patch.object(pipeline, "download_source", return_value=source) as download, \
+                        mock.patch.object(pipeline, "collect_native", return_value=({"observed": "native"}, {}, {})) as native:
+                    status = 0
+                    try:
+                        pipeline.main()
+                    except SystemExit as error:
+                        status = error.code
+                self.assertEqual(status, 0, "Exact prerelease CLI must export without an EDB revision")
+                self.assertEqual(download.call_args.args[:2], (version, None))
+                self.assertEqual(download.call_args.args[2].name, url.rsplit("/", 1)[1])
+                self.assertEqual(native.call_args.args[0].parts[-2:], ("postgresql", "19"))
+                metadata = json.loads((output / "meta.json").read_text())
+                self.assertEqual(metadata["version"], version)
+                self.assertEqual(metadata["producer"], self.producer)
+                evidence = json.loads((output / "source-evidence.json").read_text())
+                self.assertEqual(evidence["source"]["version"], version)
+                self.assertIsNone(evidence["edb_revision"])
+
+    def test_stable_cli_without_revision_refuses_before_network(self):
+        arguments = ["postgresql_v2_pipeline.py", "--version", "19.0", "--minimum-os", "10.0",
+                     "--commit", "a" * 40, "--run-id", "123", "--run-attempt", "2",
+                     "--output", str(self.root / "stable-missing-revision"), "--seven-zip", "7z"]
+        with mock.patch.object(sys, "argv", arguments), mock.patch.object(sys, "stderr", io.StringIO()), \
+                mock.patch.object(pipeline, "download_source") as download:
+            with self.assertRaises(SystemExit) as caught:
+                pipeline.main()
+        self.assertNotEqual(caught.exception.code, 0)
+        download.assert_not_called()
+
+    def workflow_script(self, job):
+        text = (ROOT / ".github/workflows/build-windows-v2-postgresql.yml").read_text()
+        if job == "prepare":
+            text = text.split("        run: |\n", 1)[1].split("\n  build:", 1)[0]
+        else:
+            text = text.rsplit("        run: |\n", 1)[1].split("\n      - uses:", 1)[0]
+        return "\n".join(line[10:] for line in text.splitlines())
+
+    def test_prerelease_workflow_matrix_executes_nullable_revision_contract(self):
+        executable = shutil.which("pwsh")
+        if not executable:
+            self.skipTest("The workflow matrix requires its target PowerShell 7")
+        def runner(command):
+            return pipeline.run([executable, *command[1:]])
+        output = self.root / "github-output"
+        script = self.workflow_script("prepare")
+        for version, revision in (("17.11", 5), ("19.beta2", None), ("19.rc1", None)):
+            with self.subTest(version=version):
+                rows = [{"version": version, "edb_revision": revision}]
+                prefix = "$env:PACKAGES_JSON=" + pipeline.ps_literal(json.dumps(rows)) + "; "
+                prefix += "$env:BUILD_REVISION='0'; $env:GITHUB_OUTPUT=" + pipeline.ps_literal(output) + "; "
+                try:
+                    pipeline.powershell(prefix + script, runner)
+                except pipeline.ProbeFailure:
+                    self.fail("Workflow prepare must accept exact stable/beta/rc revision semantics")
+                lines = output.read_text(encoding="utf-8-sig").splitlines()
+                self.assertEqual(json.loads(next(line[9:] for line in lines if line.startswith("packages="))), rows)
+                output.write_text("")
+        for row in ({"version": "19.beta2", "edb_revision": 1}, {"version": "19.rc1", "edb_revision": 0},
+                    {"version": "19.0", "edb_revision": None}, {"version": "19.beta2"},
+                    {"version": "19.alpha1", "edb_revision": None}, {"version": "19.beta0", "edb_revision": None}):
+            prefix = "$env:PACKAGES_JSON=" + pipeline.ps_literal(json.dumps([row])) + "; "
+            prefix += "$env:BUILD_REVISION='0'; $env:GITHUB_OUTPUT=" + pipeline.ps_literal(output) + "; "
+            with self.subTest(row=row), self.assertRaises(pipeline.ProbeFailure):
+                pipeline.powershell(prefix + script, runner)
+
+    def test_prerelease_workflow_build_forwards_exact_cli_without_empty_revision(self):
+        output = self.root / "workflow-arguments.json"
+        observer = ("function Get-Command { @{Source='Observe-Producer'} }; "
+                    "function Observe-Producer { param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Captured); "
+                    "[IO.File]::WriteAllText(" + pipeline.ps_literal(output) + ", (ConvertTo-Json -InputObject @($Captured) -Compress)); "
+                    "$global:LASTEXITCODE=0 }; ")
+        for version, revision in (("17.11", "5"), ("19.beta2", ""), ("19.rc1", "")):
+            prefix = observer + "$env:PG_VERSION=" + pipeline.ps_literal(version) + "; $env:EDB_REVISION=" + pipeline.ps_literal(revision) + "; "
+            prefix += "$env:BUILD_REVISION='0'; $env:PRODUCER_COMMIT='" + "a" * 40 + "'; "
+            prefix += "$env:PRODUCER_RUN_ID='123'; $env:PRODUCER_RUN_ATTEMPT='2'; "
+            with self.subTest(version=version):
+                pipeline.powershell(prefix + self.workflow_script("build"))
+                arguments = json.loads(output.read_text())
+                self.assertEqual(arguments[arguments.index("--version") + 1], version)
+                if revision:
+                    self.assertEqual(arguments[arguments.index("--edb-revision") + 1], revision)
+                else:
+                    self.assertNotIn("--edb-revision", arguments)
+                self.assertEqual(arguments[arguments.index("--run-id") + 1], "123")
+
+    def test_prerelease_workflow_single_object_branches_reject_noncanonical_case_and_revision(self):
+        # PS5 can exercise these branches with one object; the target PS7 array matrix is separate.
+        output = self.root / "single-object-output"
+        for version, revision, accepted in (("19.beta2", None, True), ("19.rc1", None, True),
+                                            ("17.11", 5, True), ("19.BETA2", None, False),
+                                            ("19.Rc1", None, False), ("19.beta2", 1, False),
+                                            ("19.rc1", 0, False), ("19.0", None, False)):
+            row = {"version": version, "edb_revision": revision}
+            prefix = "$env:PACKAGES_JSON=" + pipeline.ps_literal(json.dumps(row)) + "; "
+            prefix += "$env:BUILD_REVISION='0'; $env:GITHUB_OUTPUT=" + pipeline.ps_literal(output) + "; "
+            with self.subTest(version=version, revision=revision):
+                if accepted:
+                    try:
+                        pipeline.powershell(prefix + self.workflow_script("prepare"))
+                    except pipeline.ProbeFailure:
+                        self.fail("Canonical beta/rc or stable workflow object must pass")
+                    rows = output.read_text(encoding="utf-8-sig").splitlines()
+                    self.assertEqual(json.loads(next(line[9:] for line in rows if line.startswith("packages="))), [row])
+                    output.write_text("")
+                else:
+                    with self.assertRaises(pipeline.ProbeFailure):
+                        pipeline.powershell(prefix + self.workflow_script("prepare"))
 
     def security_snapshot(self, path):
         script = ("$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "

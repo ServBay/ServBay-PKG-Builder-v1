@@ -374,8 +374,14 @@ class WindowsPostgresqlRepackTests(unittest.TestCase):
         with mock.patch.object(zipfile, "ZipFile", side_effect=mutate_then_open):
             self.reject(arguments)
 
-    def finalization_fixture(self):
-        arguments = self.arguments(label="postgresql-18.6-windows-x64-binaries.zip")
+    def finalization_fixture(self, version="18.6", actual="18.6", number=180006):
+        major = version.split(".")[0]
+        identity = {**self.identity, "version": version}
+        payload = dict(self.payload)
+        payload["pgsql/include/server/pg_config.h"] = (
+            f'#define PG_VERSION "{actual}"\n#define PG_VERSION_NUM {number}\n').encode()
+        arguments = self.arguments(payload, identity=identity, source={"version": version},
+                                   label="postgresql-" + version + "-windows-x64-binaries.zip")
         diagnostic = self.module().prepare_postgresql_core(**arguments)
         package = arguments["output_dir"] / diagnostic["archive"]["filename"]
         native = self.base / "native-core-result.json"
@@ -388,17 +394,17 @@ class WindowsPostgresqlRepackTests(unittest.TestCase):
             "processor_architecture_code": 9,
             "process_environment_architecture": "AMD64",
             "pg_config": {
-                "version": "PostgreSQL 18.6",
-                "bindir": "C:/tmp/POSTGR~1/18/bin",
-                "sharedir": "C:/tmp/postgresql/18/share",
-                "pkglibdir": "C:/tmp/postgresql/18/lib",
-                "includedir_server": "C:/tmp/postgresql/18/include/server",
+                "version": "PostgreSQL " + actual,
+                "bindir": "C:/tmp/POSTGR~1/" + major + "/bin",
+                "sharedir": "C:/tmp/postgresql/" + major + "/share",
+                "pkglibdir": "C:/tmp/postgresql/" + major + "/lib",
+                "includedir_server": "C:/tmp/postgresql/" + major + "/include/server",
             },
-            "executables": {name: f"{name} (PostgreSQL) 18.6"
+            "executables": {name: f"{name} (PostgreSQL) {actual}"
                             for name in ("postgres", "initdb", "pg_ctl", "psql")},
             "database": {
-                "initialized_pg_version": "18", "server_version": "18.6",
-                "server_encoding": "UTF8", "data_directory": "C:/tmp/postgresql/18/data",
+                "initialized_pg_version": major, "server_version": actual,
+                "server_encoding": "UTF8", "data_directory": "C:/tmp/postgresql/" + major + "/data",
                 "query_exit": 0, "startup_exit": 0, "stop_exit": 0,
                 "remaining_processes": 0, "listeners": 0,
             },
@@ -406,7 +412,75 @@ class WindowsPostgresqlRepackTests(unittest.TestCase):
         producer = {"commit": "b" * 40, "run_id": "4567", "run_attempt": 1}
         compatibility = {"distribution": "windows-x64", "toolchain": "msvc-fixture", "crt": "msvc-static"}
         return (package, arguments["source"]["path"], native, producer, compatibility,
-                self.base / "formal-postgresql")
+                self.base / ("formal-postgresql-" + version))
+
+    def test_prerelease_prepares_and_finalizes_public_identity_with_exact_native_host(self):
+        for version, actual in (("19.beta2", "19beta2"), ("19.rc1", "19rc1")):
+            with self.subTest(version=version):
+                try:
+                    package, source, native, producer, compatibility, output = self.finalization_fixture(version, actual, 190000)
+                    result = self.module().finalize_postgresql_core(
+                        package, {**self.identity, "version": version}, source,
+                        "https://get.enterprisedb.com/postgresql/postgresql-19.0-" + version.split(".")[1] + "-windows-x64-binaries.zip",
+                        native, producer, "10.0", compatibility, output, seven_zip=SEVEN_ZIP)
+                except ValueError:
+                    self.fail("Exact beta/rc header and native evidence must yield a formal package")
+                meta = json.loads((output / "meta.json").read_text())
+                receipt = json.loads((output / "postgresql-finalization.json").read_text())
+                self.assertEqual(meta["version"], version)
+                self.assertEqual(meta["source"]["version"], version)
+                self.assertEqual(meta["major"], "19")
+                self.assertEqual(meta["package_root"], "postgresql/19")
+                self.assertEqual(meta["filename"], f"postgresql-{version}-windows-x86_64.7z")
+                self.assertEqual(meta["package_manifest"]["host"], {
+                    "type": "postgresql", "series": "19", "version": actual, "abi": {"major": 19}})
+                self.assertEqual(receipt["native"]["pg_config_version"], "PostgreSQL " + actual)
+                self.assertEqual(meta["producer"], producer)
+                self.assertEqual(meta["sha256"], digest(result["package"].read_bytes()))
+                self.assertEqual(self.module().package_meta.artifact_name(meta),
+                                 "pkg2-windows-x86_64-package-postgresql-" + version)
+                self.assertTrue(all(path.startswith("postgresql/19/") for path in
+                                    self.module().windows_archive.archive_hashes(result["package"], SEVEN_ZIP)))
+
+    def test_prerelease_header_rejects_wrong_numeric_or_same_major_release_identity(self):
+        for actual, number in (("19beta2", 190002), ("19rc1", 190000), ("19.0", 190000),
+                               ("19.beta2", 190000), ("19beta1", 190000)):
+            payload = dict(self.payload)
+            payload["pgsql/include/server/pg_config.h"] = (
+                f'#define PG_VERSION "{actual}"\n#define PG_VERSION_NUM {number}\n').encode()
+            with self.subTest(actual=actual, number=number):
+                self.reject(self.arguments(payload, identity={**self.identity, "version": "19.beta2"},
+                                           source={"version": "19.beta2"}))
+
+    def test_prerelease_source_and_identity_reject_internal_unknown_or_nonpositive_notation(self):
+        arguments = self.arguments()
+        module = self.module()
+        for version in ("19beta2", "19.alpha1", "19.devel", "19.beta0", "19.rc01", "19.BETA2", "19.Rc1"):
+            with self.subTest(version=version, boundary="identity"), self.assertRaises(ValueError):
+                module._identity({**self.identity, "version": version})
+            with self.subTest(version=version, boundary="source"), self.assertRaises(ValueError):
+                module._source({**arguments["source"], "version": version})
+
+    def test_prerelease_native_rejects_dotted_or_other_release_at_each_version_field(self):
+        try:
+            package, source, native, producer, compatibility, output = self.finalization_fixture("19.beta2", "19beta2", 190000)
+        except ValueError:
+            self.fail("The exact prerelease fixture must prepare before testing negative native evidence")
+        original = json.loads(native.read_text())
+        cases = [("pg_config", "version"), ("database", "server_version")]
+        cases += [("executables", name) for name in ("postgres", "initdb", "pg_ctl", "psql")]
+        for section, key in cases:
+            for wrong in ("19.beta2", "19rc1", "19.0"):
+                bad = copy.deepcopy(original)
+                bad[section][key] = ("PostgreSQL " + wrong if section == "pg_config" else
+                                     f"{key} (PostgreSQL) {wrong}" if section == "executables" else wrong)
+                native.write_text(json.dumps(bad))
+                with self.subTest(section=section, key=key, wrong=wrong), self.assertRaises(ValueError):
+                    self.module().finalize_postgresql_core(
+                        package, {**self.identity, "version": "19.beta2"}, source,
+                        "https://get.enterprisedb.com/postgresql/postgresql-19.0-beta2-windows-x64-binaries.zip",
+                        native, producer, "10.0", compatibility, output, seven_zip=SEVEN_ZIP)
+                self.assertFalse(output.exists())
 
     def test_native_core_evidence_finalizes_schema2_core_without_default_modules(self):
         package, source, native, producer, compatibility, output = self.finalization_fixture()

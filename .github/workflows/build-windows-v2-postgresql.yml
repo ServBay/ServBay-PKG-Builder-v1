@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       packages_json:
-        description: 'Exact stable versions and EDB revisions: [{"version":"17.11","edb_revision":5}]'
+        description: 'Exact versions; stable needs positive edb_revision, beta/rc needs null'
         required: true
         type: string
       build_revision:
@@ -37,9 +37,12 @@ jobs:
           foreach ($row in $rows) {
             $fields = @($row.PSObject.Properties.Name | Sort-Object)
             if (($fields -join ',') -ne 'edb_revision,version') { throw 'Unexpected package fields' }
-            if ($row.version -isnot [string] -or $row.version -notmatch '^[1-9][0-9]*\.[0-9]+$' -or
-                [int]($row.version.Split('.')[0]) -lt 10) { throw 'Stable PostgreSQL >=10 required' }
-            if (($row.edb_revision -isnot [long] -and $row.edb_revision -isnot [int]) -or
+            if ($row.version -isnot [string] -or $row.version -cnotmatch '^[1-9][0-9]*\.(?:[0-9]+|(?:beta|rc)[1-9][0-9]*)$' -or
+                [int]($row.version.Split('.')[0]) -lt 10) { throw 'PostgreSQL >=10 stable or beta/rc required' }
+            $prerelease = $row.version -cmatch '\.(?:beta|rc)[1-9][0-9]*$'
+            if ($prerelease) {
+              if ($null -ne $row.edb_revision) { throw 'Prerelease EDB revision must be null' }
+            } elseif (($row.edb_revision -isnot [long] -and $row.edb_revision -isnot [int]) -or
                 $row.edb_revision -lt 1) { throw 'Positive integer EDB revision required' }
             if ($seen.ContainsKey($row.version)) { throw 'Duplicate PostgreSQL version' }
             $seen[$row.version] = $true
@@ -75,7 +78,9 @@ jobs:
           $seven = 'C:\Program Files\7-Zip\7z.exe'
           if (-not (Test-Path -LiteralPath $seven -PathType Leaf)) { throw 'Installed 7-Zip is required' }
           $python = (Get-Command python -ErrorAction Stop).Source
-          & $python runtime-windows/ci/postgresql_v2_pipeline.py --version $env:PG_VERSION --edb-revision $env:EDB_REVISION --build-revision $env:BUILD_REVISION --minimum-os 10.0 --commit $env:PRODUCER_COMMIT --run-id $env:PRODUCER_RUN_ID --run-attempt $env:PRODUCER_RUN_ATTEMPT --output postgresql-output --seven-zip $seven
+          $producerArguments = @('--version', $env:PG_VERSION, '--build-revision', $env:BUILD_REVISION, '--minimum-os', '10.0', '--commit', $env:PRODUCER_COMMIT, '--run-id', $env:PRODUCER_RUN_ID, '--run-attempt', $env:PRODUCER_RUN_ATTEMPT, '--output', 'postgresql-output', '--seven-zip', $seven)
+          if (-not [string]::IsNullOrEmpty($env:EDB_REVISION)) { $producerArguments += @('--edb-revision', $env:EDB_REVISION) }
+          & $python runtime-windows/ci/postgresql_v2_pipeline.py @producerArguments
           if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL producer failed' }
       - uses: actions/upload-artifact@v4
         with:
