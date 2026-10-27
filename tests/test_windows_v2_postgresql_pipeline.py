@@ -222,6 +222,48 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(sidecar["machine"]["os_version"], "10.0.26100")
         self.assertTrue(any("stop" in command for command in calls))
 
+    def test_observed_modern_msvc_identity_keeps_full_precision_and_sql_text(self):
+        root = self.fixture()
+        text = "PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35229, 64-bit"
+        try:
+            (native, sidecar, compatibility), calls = self.observe(root, bad={"sql": {
+                "server_version": "17.11", "server_encoding": "UTF8",
+                "data_directory": str(root / "data"), "compiler": text}})
+        except ValueError:
+            self.fail("The observed modern MSVC identity must pass native collection")
+        self.assertEqual(compatibility["toolchain"], "msvc-19.44.35229")
+        self.assertEqual(sidecar["sql_version"], text)
+        self.assertEqual(native["database"]["server_version"], "17.11")
+        self.assertTrue(any("stop" in command for command in calls))
+
+    def test_three_actual_legacy_sql_compiler_samples_keep_existing_identity(self):
+        samples = (
+            ("PostgreSQL 10.23, compiled by Visual C++ build 1800, 64-bit", "Visual C++ build 1800"),
+            ("PostgreSQL 11.22, compiled by Visual C++ build 1914, 64-bit", "Visual C++ build 1914"),
+            ("PostgreSQL 14.24, compiled by Visual C++ build 1944, 64-bit", "Visual C++ build 1944"))
+        for text, expected in samples:
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/17"
+                (root / "bin").mkdir(parents=True)
+                (_, sidecar, compatibility), _ = self.observe(root, bad={"sql": {
+                    "server_version": "17.11", "server_encoding": "UTF8",
+                    "data_directory": str(root / "data"), "compiler": text}})
+                self.assertEqual(compatibility["toolchain"], expected)
+                self.assertEqual(sidecar["sql_version"], text)
+
+    def test_missing_unsupported_ambiguous_or_partial_compiler_identities_are_rejected(self):
+        for text in ("", "unsupported compiler", "gcc-19.44.35229", "msvc-19.44",
+                     "msvc-19.44.35229.1", "msvc-19.44.35229suffix", "prefixmsvc-19.44.35229",
+                     "msvc-19.44.35229 msvc-19.44.35229",
+                     "Visual C++ build 1944 msvc-19.44.35229",
+                     "Visual C++ build 1944 Visual C++ build 1944"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "postgresql/17"
+                (root / "bin").mkdir(parents=True)
+                with self.assertRaises(ValueError):
+                    self.observe(root, bad={"sql": {"server_version": "17.11", "server_encoding": "UTF8",
+                                                  "data_directory": str(root / "data"), "compiler": text}})
+
     def test_each_database_failure_and_residual_blocks_native_success(self):
         for kind in ("initdb", "start", "query", "stop", "processes", "listeners"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
