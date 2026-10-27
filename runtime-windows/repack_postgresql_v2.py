@@ -60,11 +60,18 @@ def _sha256(value, field):
     return value
 
 
+def _release_version(version):
+    if (not isinstance(version, str)
+            or not re.fullmatch(r"[1-9][0-9]*\.(?:[0-9]+|(?:beta|rc)[1-9][0-9]*)", version)
+            or int(version.split(".", 1)[0]) < 10):
+        raise ValueError("PostgreSQL requires major.minor or major.betaN/rcN with major >=10")
+    return core_manifest._hosts.pg_release_version(version)
+
+
 def _source(source):
     if not isinstance(source, dict) or not SOURCE_FIELDS <= set(source) or set(source) - SOURCE_FIELDS - {"url"}:
         raise ValueError("Source requires exact path/version/sha256/bytes and optional public URL")
-    if not isinstance(source["version"], str) or not re.fullmatch(r"[0-9]+[.][0-9]+", source["version"]):
-        raise ValueError("PostgreSQL source version must be a stable major.minor")
+    _release_version(source["version"])
     _sha256(source["sha256"], "source")
     if type(source["bytes"]) is not int or source["bytes"] <= 0:
         raise ValueError("Source bytes must be a positive integer")
@@ -105,10 +112,7 @@ def _identity(identity):
             or row["kind"] != "package" or row["name"] != "postgresql"
             or row["arch"] != "x86_64"):
         raise ValueError("Expected a v2 Windows x86_64 PostgreSQL package identity")
-    if not isinstance(row["version"], str) or not re.fullmatch(r"[0-9]+[.][0-9]+", row["version"]):
-        raise ValueError("PostgreSQL package version must be a stable major.minor")
-    if int(row["version"].split(".", 1)[0]) < 10:
-        raise ValueError("Windows PostgreSQL v2 requires major 10 or newer")
+    _release_version(row["version"])
     return row
 
 
@@ -187,10 +191,10 @@ def _postgresql_header(data):
     numbers = re.findall(r"(?m)^\s*#\s*define\s+PG_VERSION_NUM\s+([0-9]+)\s*$", text)
     if len(versions) != 1 or len(numbers) != 1:
         raise ValueError("pg_config.h requires exactly one effective PG_VERSION/PG_VERSION_NUM")
-    if not re.fullmatch(r"[0-9]+[.][0-9]+", versions[0]):
-        raise ValueError("pg_config.h PG_VERSION is not a stable major.minor")
-    major_text, minor_text = versions[0].split(".", 1)
-    major, minor = int(major_text), int(minor_text)
+    match = re.fullmatch(r"([0-9]+)(?:[.]([0-9]+)|(?:beta|rc)[1-9][0-9]*)", versions[0])
+    if not match:
+        raise ValueError("pg_config.h PG_VERSION is not a supported actual release")
+    major, minor = int(match[1]), int(match[2]) if match[2] is not None else 0
     expected_number = major * 10000 + minor
     if int(numbers[0]) != expected_number:
         raise ValueError("pg_config.h PG_VERSION_NUM does not match PG_VERSION")
@@ -294,7 +298,7 @@ def prepare_postgresql_core(source, identity, output_dir, *, seven_zip=None):
         with zipfile.ZipFile(frozen) as archive:
             header_data = archive.read(records[header_name])
         header = _postgresql_header(header_data)
-        if header["version"] != row["version"]:
+        if header["version"] != _release_version(row["version"]):
             raise ValueError("pg_config.h version differs from the package identity")
 
         required = {"pgsql/bin/" + name for name in REQUIRED_BINARIES}
@@ -391,6 +395,7 @@ def prepare_postgresql_core(source, identity, output_dir, *, seven_zip=None):
 
 
 def _native_core_evidence(path, archive_sha256, archive_bytes, filename, version, layout):
+    release_version = _release_version(version)
     value = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict) or set(value) != _NATIVE_KEYS:
         raise ValueError("PostgreSQL native evidence has unexpected or missing fields")
@@ -406,7 +411,7 @@ def _native_core_evidence(path, archive_sha256, archive_bytes, filename, version
     if not isinstance(pg_config, dict) or set(pg_config) != {
             "version", "bindir", "sharedir", "pkglibdir", "includedir_server"}:
         raise ValueError("PostgreSQL native pg_config evidence is incomplete")
-    if pg_config["version"] != "PostgreSQL " + version:
+    if pg_config["version"] != "PostgreSQL " + release_version:
         raise ValueError("PostgreSQL native pg_config version differs")
     def at_layout_path(value, relative):
         if not isinstance(value, str):
@@ -420,7 +425,7 @@ def _native_core_evidence(path, archive_sha256, archive_bytes, filename, version
         if not at_layout_path(pg_config[key], dirname):
             raise ValueError("PostgreSQL native pg_config path differs: " + key)
     executables = value["executables"]
-    expected = {name: f"{name} (PostgreSQL) {version}" for name in ("postgres", "initdb", "pg_ctl", "psql")}
+    expected = {name: f"{name} (PostgreSQL) {release_version}" for name in ("postgres", "initdb", "pg_ctl", "psql")}
     if executables != expected:
         raise ValueError("PostgreSQL native executable evidence differs")
     database = value["database"]
@@ -428,7 +433,7 @@ def _native_core_evidence(path, archive_sha256, archive_bytes, filename, version
             "initialized_pg_version", "server_version", "server_encoding", "data_directory",
             "query_exit", "startup_exit", "stop_exit", "remaining_processes", "listeners"}
             or database["initialized_pg_version"] != version.split(".", 1)[0]
-            or database["server_version"] != version or database["server_encoding"] != "UTF8"
+            or database["server_version"] != release_version or database["server_encoding"] != "UTF8"
             or not at_layout_path(database["data_directory"], "data")):
         raise ValueError("PostgreSQL native database identity differs")
     for key in ("query_exit", "startup_exit", "stop_exit", "remaining_processes", "listeners"):
@@ -460,7 +465,7 @@ def finalize_postgresql_core(package, identity, source_path, source_url, native_
               "url": source_url}
     _source(source)
     host = {"type": "postgresql", "series": row["version"].split(".", 1)[0],
-            "version": row["version"], "package_sha256": archive_sha,
+            "version": _release_version(row["version"]), "package_sha256": archive_sha,
             "abi": {"major": int(row["version"].split(".", 1)[0])}}
     with tempfile.TemporaryDirectory(prefix="servbay-postgresql-finalize-", dir=output.parent) as temporary:
         temporary = Path(temporary)

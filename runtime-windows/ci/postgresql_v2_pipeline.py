@@ -236,9 +236,14 @@ def crt_evidence(root, *, runner=run, dumpbin=None):
 
 
 def source_url(version, revision):
-    if (not isinstance(version, str) or not re.fullmatch(r"[1-9][0-9]*\.[0-9]+", version)
-            or int(version.split(".")[0]) < 10 or type(revision) is not int or revision < 1):
-        raise ValueError("Stable PostgreSQL >=10 and positive EDB revision are required")
+    release_version = load_repacker()._release_version(version)
+    if release_version != version:
+        if revision is not None:
+            raise ValueError("PostgreSQL prereleases have no EDB revision")
+        major, preview = version.split(".")
+        return f"https://get.enterprisedb.com/postgresql/postgresql-{major}.0-{preview}-windows-x64-binaries.zip"
+    if type(revision) is not int or revision < 1:
+        raise ValueError("Stable PostgreSQL requires a positive EDB revision")
     return f"https://get.enterprisedb.com/postgresql/postgresql-{version}-{revision}-windows-x64-binaries.zip"
 
 
@@ -260,6 +265,7 @@ def download_source(version, revision, destination):
 
 
 def collect_native(root, archive, version, *, runner=run):
+    release_version = load_repacker()._release_version(version)
     def native_run(command, *, capture_output=True):
         return runner(command, cwd=root / "bin", capture_output=capture_output)
 
@@ -272,7 +278,7 @@ def collect_native(root, archive, version, *, runner=run):
     for key in ("version", "bindir", "sharedir", "pkglibdir", "includedir-server", "cc", "configure", "cflags", "ldflags"):
         actual = require_ok(native_run([root / "bin/pg_config.exe", "--" + key]), "pg_config " + key)
         (pgconfig if key in ("version", "bindir", "sharedir", "pkglibdir", "includedir-server") else flags)[key.replace("-", "_")] = actual
-    if pgconfig["version"] != "PostgreSQL " + version:
+    if pgconfig["version"] != "PostgreSQL " + release_version:
         raise ValueError("pg_config version differs")
     for key, relative in (("bindir", "bin"), ("sharedir", "share"), ("pkglibdir", "lib"), ("includedir_server", "include/server")):
         if os.path.normcase(str(Path(pgconfig[key]).resolve())) != os.path.normcase(str((root / relative).resolve())):
@@ -280,7 +286,7 @@ def collect_native(root, archive, version, *, runner=run):
     executables = {}
     for name in ("postgres", "initdb", "pg_ctl", "psql"):
         actual = require_ok(native_run([root / ("bin/" + name + ".exe"), "--version"]), name + " version")
-        if actual != f"{name} (PostgreSQL) {version}":
+        if actual != f"{name} (PostgreSQL) {release_version}":
             raise ValueError("Executable version differs: " + name)
         executables[name] = actual
     crt = crt_evidence(root, runner=runner)
@@ -310,7 +316,7 @@ def collect_native(root, archive, version, *, runner=run):
         require_ok(stop, "stop")
         if remaining != 0 or listeners != 0:
             raise ValueError("PostgreSQL cleanup left processes or listeners")
-    if (sql["server_version"] != version or sql["server_encoding"] != "UTF8"
+    if (sql["server_version"] != release_version or sql["server_encoding"] != "UTF8"
             or os.path.normcase(str(Path(sql["data_directory"]).resolve())) != os.path.normcase(str(data.resolve()))):
         raise ValueError("Database version/encoding/path differs")
     compilers = re.findall(r"(?<![A-Za-z0-9_.+-])(?:Visual C\+\+ build [0-9]+|msvc-[0-9]+\.[0-9]+\.[0-9]+)"
@@ -362,7 +368,7 @@ def pipeline(version, edb_revision, producer, output, seven_zip, *, build_revisi
                   + " system_temp_drive=" + runtime["system_temp_drive"]
                   + " work_drive=" + runtime["work_drive"], flush=True)
             progress("download")
-            filename = f"postgresql-{version}-{edb_revision}-windows-x64-binaries.zip"
+            filename = source_url(version, edb_revision).rsplit("/", 1)[1]
             source = download_source(version, edb_revision, work / filename)
             # The repacker launches 7-Zip internally; apply the same allowlist to it too.
             with runtime_environment():
@@ -408,7 +414,7 @@ def pipeline(version, edb_revision, producer, output, seven_zip, *, build_revisi
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
-    parser.add_argument("--edb-revision", type=int, required=True)
+    parser.add_argument("--edb-revision", type=int)
     parser.add_argument("--build-revision", type=int, default=0)
     parser.add_argument("--minimum-os", required=True)
     parser.add_argument("--producer", type=Path)
