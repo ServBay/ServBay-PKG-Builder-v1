@@ -403,6 +403,9 @@ jobs:
       arch: ${{ matrix.arch }}
       version_type: ${{ matrix.version_type }}
       checkout_ref: main
+      # Rides through async ollama builds so the release-ready callback
+      # republishes with this round's publish mode.
+      upload_dry_run: ${{ needs.check.outputs.upload_dry_run }}
     secrets: inherit
 
   collect-macos-v2:

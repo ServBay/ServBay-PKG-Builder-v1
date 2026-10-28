@@ -33,6 +33,12 @@ on:
         description: 'Optional git ref to checkout'
         required: false
         default: ''
+      upload_dry_run:
+        description: 'dry_run flag forwarded to the Uploader when this build goes async'
+        required: false
+        type: choice
+        options: [true, false]
+        default: 'true'
   workflow_call:
     inputs:
       pkg:
@@ -55,6 +61,11 @@ on:
         type: string
         required: false
         default: ''
+      upload_dry_run:
+        description: 'dry_run flag forwarded to the Uploader when this build goes async'
+        type: string
+        required: false
+        default: 'true'
 
 permissions:
   contents: read
@@ -62,7 +73,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Stage 1 may poll an upstream build up to ~90min; release-already-built is instant.
+    # Non-ollama Stage 1 may poll an upstream build up to ~90min;
+    # release-already-built is instant; ollama dispatches and goes async below.
     timeout-minutes: 120
     env:
       ARCH: ${{ inputs.arch }}
@@ -85,11 +97,13 @@ jobs:
       - name: Ensure upstream release ready
         # ai-gateway and disk-cleaner have no upstream compile to dispatch — they
         # download their own prebuilt assets from private releases in Stage 2.
+        id: upstream
         if: ${{ inputs.pkg != 'ai-gateway' && inputs.pkg != 'disk-cleaner' }}
         env:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}
           VERSION_TYPE: ${{ inputs.version_type }}
+          UPLOAD_DRY_RUN: ${{ inputs.upload_dry_run }}
           GH_TOKEN: ${{ secrets.UPSTREAM_DISPATCH_PAT || github.token }}
         run: |
           set -euo pipefail
@@ -100,7 +114,12 @@ jobs:
             ollama)
               REPO="ServBay/Ollama-Windows-Portable"; WF="build_ollama_windows.yml"
               TAG="v${VERSION}"
-              DISPATCH_ARGS=(-f "ollama_version=${VERSION}")
+              # builder_dry_run rides through the upstream workflow into its
+              # release-ready callback (build-windows-async.yml), so the async
+              # republish keeps this round's publish mode. Upstream only accepts
+              # inputs it declares -- adding the flag here must not leak to the
+              # other packages' DISPATCH_ARGS.
+              DISPATCH_ARGS=(-f "ollama_version=${VERSION}" -f "builder_dry_run=${UPLOAD_DRY_RUN}")
               ;;
             python)
               REPO="ServBay/Python-Windows-Portable"; WF="package_python_install.yml"
@@ -166,6 +185,20 @@ jobs:
           echo "release ${TAG} missing/empty; dispatching upstream build on ${REPO}..."
           gh workflow run "$WF" -R "$REPO" "${DISPATCH_ARGS[@]}"
 
+          # ollama's upstream build compiles llama.cpp plus two CUDA toolchains
+          # and takes 3.5-4.5h (2026-10-24 runs: 3h45m / 4h18m). Blocking here
+          # burns a runner slot for the whole wait, so it finishes async: the
+          # upstream workflow fires build-windows-async.yml via
+          # repository_dispatch once the release is published, and that
+          # workflow repackages and signals the Uploader. If the callback is
+          # lost, the next nightly self-heals through the
+          # release-already-built path above.
+          if [ "$PKG" = "ollama" ]; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+            echo "dispatched ${TAG}; async callback will finish packaging (upload_dry_run=${UPLOAD_DRY_RUN})"
+            exit 0
+          fi
+
           # Poll THIS tag's release directly rather than tracking a run id. When several
           # versions are dispatched in parallel (a nightly that finds php 8.2/8.3/8.4/8.5
           # all bumped), matching the "latest run" races and can pick another version's
@@ -194,6 +227,7 @@ jobs:
       # and writes ./dist-windows/<pkg>/<arch>/... and ./build_windows_packages.log, so it
       # MUST run from inside runtime-windows/. The -p filter key is exactly "<name>-<version>".
       - name: Build Windows package
+        if: ${{ steps.upstream.outputs.pending != 'true' }}
         working-directory: runtime-windows
         env:
           PKG: ${{ inputs.pkg }}
@@ -210,6 +244,7 @@ jobs:
       # build_windows output: dist-windows/<pkg>/<arch>/<pkg>-<version>-windows-<arch>.7z
       - name: Generate meta.json
         id: meta
+        if: ${{ steps.upstream.outputs.pending != 'true' }}
         working-directory: runtime-windows
         env:
           PKG: ${{ inputs.pkg }}
@@ -251,6 +286,7 @@ jobs:
           cat "dist-windows/${PKG}/${ARCH}/meta.json"
 
       - name: Upload package artifact
+        if: ${{ steps.upstream.outputs.pending != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: pkg-windows-${{ env.ARCH }}-${{ inputs.pkg }}-${{ inputs.version }}

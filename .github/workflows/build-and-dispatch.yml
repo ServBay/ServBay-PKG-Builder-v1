@@ -166,6 +166,9 @@ jobs:
       version: ${{ inputs.windows_version }}
       arch: ${{ inputs.windows_arch }}
       version_type: ${{ inputs.windows_version_type }}
+      # Rides through async ollama builds so the release-ready callback
+      # republishes with this round's publish mode.
+      upload_dry_run: ${{ format('{0}', inputs.upload_dry_run) }}
     secrets: inherit
 
   build-windows-legacy:
