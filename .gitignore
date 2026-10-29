@@ -19,3 +19,6 @@ id_rsa*
 # --- 系统 ---
 .DS_Store
 *.pyc
+
+# 本地工作计划，不提交到公开仓库
+/IMPLEMENTATION_PLAN.md
