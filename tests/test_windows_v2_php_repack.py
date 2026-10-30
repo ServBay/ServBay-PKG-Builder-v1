@@ -15,6 +15,9 @@ from unittest.mock import patch
 import zipfile
 
 
+HANDOFF_PRODUCER = {"commit": "b" * 40, "run_id": "987654321", "run_attempt": 2}
+
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "runtime-windows/repack_php_v2.py"
 SEVEN_ZIP = os.environ.get("SEVEN_ZIP") or shutil.which("7zz") or shutil.which("7z")
@@ -435,6 +438,7 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
                 self.base / (label + "-output"),
                 core_source_url="https://windows.php.net/downloads/releases/",
                 module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+                handoff_producer=HANDOFF_PRODUCER,
                 seven_zip=SEVEN_ZIP,
             )
         finalize(False, "no-coders")
@@ -460,11 +464,24 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
             {"distribution": "windows-x64", "toolchain": "msvc-vs16", "crt": "vc14-runtime"},
             output, core_source_url="https://windows.php.net/downloads/releases/",
             module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+            handoff_producer=HANDOFF_PRODUCER,
             seven_zip=SEVEN_ZIP,
         )
         core_meta = json.loads((output / "core/meta.json").read_text())
         self.assertEqual(core_meta["package_manifest"]["default_modules"], [])
         self.assertEqual(result["modules"], {})
+
+    def test_finalization_requires_a_valid_explicit_handoff_producer(self):
+        args = (self.output, {}, self.base / "missing-native", [], "10.0", {}, self.base / "formal")
+        keywords = {"core_source_url": "https://windows.php.net/downloads/releases/",
+                    "module_source_url": "https://github.com/ServBay/PHP-Windows-Portable"}
+        with self.assertRaises(TypeError):
+            self.module.finalize_php_payloads(*args, **keywords)
+        for value in (None, {}, {**HANDOFF_PRODUCER, "run_attempt": 0},
+                      {**HANDOFF_PRODUCER, "commit": "invalid"}):
+            with self.subTest(producer=value), self.assertRaises(ValueError):
+                self.module.finalize_php_payloads(*args, **keywords, handoff_producer=value)
+        self.assertFalse((self.base / "formal").exists())
 
     def test_native_evidence_finalizes_core_and_every_selected_module(self):
         self.finalize_with_native_evidence()
@@ -497,13 +514,17 @@ class WindowsV2PHPRepackTests(unittest.TestCase):
             {"distribution": "windows-x64", "toolchain": "msvc-vs16", "crt": "vc14-runtime"},
             output, core_source_url="https://windows.php.net/downloads/releases/",
             module_source_url="https://github.com/ServBay/PHP-Windows-Portable",
+            handoff_producer=HANDOFF_PRODUCER,
             seven_zip=SEVEN_ZIP,
         )
         core_meta = json.loads((output / "core/meta.json").read_text())
+        self.assertEqual(core_meta["producer"], HANDOFF_PRODUCER)
+        self.assertEqual(audit["producer"], self.index["build_context"]["producer"])
         self.assertEqual(len(core_meta["package_manifest"]["default_modules"]), len(VERSIONS))
         self.assertEqual(set(result["modules"]), set(VERSIONS))
         for name in VERSIONS:
             meta = json.loads((output / name / "meta.json").read_text())
+            self.assertEqual(meta["producer"], HANDOFF_PRODUCER)
             self.assertEqual(meta["host"]["abi"], ABI)
             self.assertNotIn("base", meta)
 
