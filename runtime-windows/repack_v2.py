@@ -32,13 +32,13 @@ SUPPORTED = {
     "go", "ruby", "openjdk", "maven", "mysql", "mariadb", "mongodb",
     "apache", "git", "openssl", "phpmyadmin", "mongosh", "mongotools",
     "ai-gateway", "disk-cleaner", "adminer",
-    "mailpit", "ollama", "minio", "meilisearch", "memcached", "rust", "simple-acme",
+    "mailpit", "ollama", "minio", "meilisearch", "memcached", "rust",
     "deno", "bun", "caddy", "cloudflared", "frp", "ngrok", "pinggy",
 }
 TREE_PRESERVING = {
     "go", "ruby", "openjdk", "maven", "mysql", "mariadb", "mongodb",
     "apache", "git", "openssl", "phpmyadmin", "mongosh", "mongotools",
-    "ai-gateway", "disk-cleaner", "memcached", "simple-acme",
+    "ai-gateway", "disk-cleaner", "memcached",
 }
 ROOT_BINARY = {
     "mailpit", "ollama", "minio", "meilisearch",
