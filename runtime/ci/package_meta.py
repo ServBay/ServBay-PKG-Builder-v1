@@ -37,7 +37,9 @@ def package_metadata(name, version):
               "adminer": "Adminer", "phpmyadmin": "phpMyAdmin", "subversion": "Subversion",
               "frp": "frp", "cloudflared": "Cloudflared", "ngrok": "ngrok", "pinggy": "Pinggy",
               "meilisearch": "Meilisearch", "typesense": "Typesense", "minio": "MinIO",
-              "ai-gateway": "ServBay AI Gateway", "disk-cleaner": "ServBay DiskCleaner", "composer": "Composer"}
+              "mcp": "ServBay MCP", "ai-gateway": "ServBay AI Gateway", "disk-cleaner": "ServBay DiskCleaner", "composer": "Composer"}
+    if name == "mcp" and not re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", version):
+        raise ValueError("MCP needs its real SemVer version")
     if name not in labels:
         raise ValueError(f"No verified v2 package metadata mapping: {name}")
     match = re.match(r"^(\d+)(?:\.(\d+))?", version)
@@ -126,6 +128,9 @@ def metadata_fields(identity, producer, base, minimum_os, source):
     if row["os"] == "windows":
         if base is not None:
             raise ValueError("Windows v2 metadata must not have a base")
+    elif row["kind"] == "package" and row["name"] == "mcp":
+        if base is not None:
+            raise ValueError("MCP must not have a Runtime/Devlib base")
     else:
         if not isinstance(base, dict) or set(base) != {"version", "runtime_sha256", "devlib_sha256"}:
             raise ValueError("The fixed Runtime/Devlib base identity is incomplete")
@@ -158,7 +163,7 @@ def metadata_fields(identity, producer, base, minimum_os, source):
         origin["url"] = source["url"]
     meta = {key: row[key] for key in ("runtime_version", "os", "kind", "name", "version", "arch", "build_revision")}
     meta.update(schema_version=2, producer=producer, minimum_os=minimum_os, source=origin)
-    if row["os"] == "macos":
+    if row["os"] == "macos" and base is not None:
         meta["base"] = dict(base)
     if "host" in row:
         meta["host"] = row["host"]

@@ -57,6 +57,7 @@ _PACKAGES = {
     "bun": (False, "bin/bun.exe", "bin/bun"),
     "adminer": (False, "index.php", "index.php"),
     "phpmyadmin": (False, "index.php", "index.php"),
+    "mcp": (False, "bin/servbay-mcp.exe", "bin/servbay-mcp"),
     "ai-gateway": (False, "bin/servbay-ai-gateway.exe", "bin/servbay-ai-gateway"),
     "disk-cleaner": (False, "bin/servbay-diskcleaner.exe", "bin/servbay-diskcleaner"),
     "nginx": (False, "sbin/nginx.exe", "sbin/nginx"),
