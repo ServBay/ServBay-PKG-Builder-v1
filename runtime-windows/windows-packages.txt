@@ -145,20 +145,20 @@ postgresql	19.beta2
 # nginx	1.31.8
 # redis	7.4.11
 # composer	2.2.31
-composer	2.11.1
+# composer	2.11.1
 # adminer	6.2.0
 # git	2.56.0
 # openssl	3.6.1
 # phpmyadmin	5.2.3
 # ollama	0.40.13
 # memcached	1.6.45
-# mailpit	1.32.0
+mailpit	1.33.0
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
 # meilisearch	1.56.0
 # simple-acme	2.4.1
-cloudflared	2026.10.7
+# cloudflared	2026.10.7
 # frp	0.71.1
 # pinggy	0.6.1
 # ngrok	3.39.13	VUnfuMhAnU
