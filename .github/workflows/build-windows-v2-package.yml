@@ -28,6 +28,33 @@ on:
         required: true
         type: string
         default: "10.0"
+      build_revision:
+        description: Explicit API-reviewed Windows v2 rebuild revision
+        type: number
+        default: 0
+  workflow_call:
+    inputs:
+      pkg:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      source_url:
+        required: true
+        type: string
+      source_sha256:
+        required: true
+        type: string
+      minimum_os:
+        type: string
+        default: "10.0"
+      build_revision:
+        type: number
+        default: 0
+    outputs:
+      artifact_name:
+        value: ${{ jobs.repack.outputs.artifact_name }}
 
 permissions:
   contents: read
@@ -36,8 +63,12 @@ jobs:
   repack:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      artifact_name: ${{ steps.artifact.outputs.artifact_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -55,13 +86,13 @@ jobs:
           curl --fail --location --retry 3 --output "input/${source_filename}" "${SOURCE_URL}"
           actual="$(sha256sum "input/${source_filename}" | awk '{print $1}')"
           [[ "${actual}" == "${SOURCE_SHA256}" ]] || { echo "::error::Source SHA256 mismatch"; exit 1; }
-      - name: Repack Windows v2 payload
+      - name: Prepare exact Windows producer inputs
         env:
           PKG: ${{ inputs.pkg }}
           VERSION: ${{ inputs.version }}
+          BUILD_REVISION: ${{ inputs.build_revision || 0 }}
           SOURCE_URL: ${{ inputs.source_url }}
           SOURCE_SHA256: ${{ inputs.source_sha256 }}
-          MINIMUM_OS: ${{ inputs.minimum_os }}
           PRODUCER_COMMIT: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -79,12 +110,18 @@ jobs:
           jq -n \
             --arg name "${PKG}" \
             --arg version "${VERSION}" \
-            '{runtime_version:"v2",os:"windows",kind:"package",name:$name,version:$version,arch:"x64",build_revision:0}' > identity.json
+            --argjson revision "${BUILD_REVISION}" \
+            '{runtime_version:"v2",os:"windows",kind:"package",name:$name,version:$version,arch:"x64",build_revision:$revision}' > identity.json
           jq -n \
             --arg commit "${PRODUCER_COMMIT}" \
             --arg run_id "${RUN_ID}" \
             --argjson run_attempt "${RUN_ATTEMPT}" \
             '{commit:$commit,run_id:$run_id,run_attempt:$run_attempt}' > producer.json
+      - name: Repack Windows v2 payload
+        env:
+          MINIMUM_OS: ${{ inputs.minimum_os }}
+        run: |
+          set -euo pipefail
           python runtime-windows/repack_v2.py \
             --source source.json \
             --identity identity.json \
@@ -95,9 +132,22 @@ jobs:
           test -s v2-output/meta.json
           test -s v2-output/repack-manifest.json
           test -n "$(find v2-output -maxdepth 1 -type f -name '*.7z' -print -quit)"
+      - name: Describe verified artifact
+        id: artifact
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'runtime/ci')
+          import package_meta
+          meta = json.loads(Path('v2-output/meta.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('artifact_name=' + package_meta.artifact_name(meta) + '\n')
+          PY
       - uses: actions/upload-artifact@v4
         with:
-          name: pkg2-windows-x86_64-package-${{ inputs.pkg }}-${{ inputs.version }}
+          name: ${{ steps.artifact.outputs.artifact_name }}
           if-no-files-found: error
           path: v2-output/**
           retention-days: 14

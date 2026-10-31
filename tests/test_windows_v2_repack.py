@@ -171,7 +171,6 @@ class WindowsV2RepackTests(unittest.TestCase):
             "ai-gateway": {"bin/servbay-ai-gateway.exe": b"gateway", "share/readme": b"readme"},
             "disk-cleaner": {"bin/servbay-diskcleaner.exe": b"cleaner", "share/readme": b"readme"},
             "memcached": {"bin/memcached.exe": b"server", "include/config.h": b"header"},
-            "simple-acme": {"wacs.exe": b"acme", "plugins/provider.dll": b"plugin"},
             "rust": {"rustc/bin/rustc.exe": b"rustc", "cargo/bin/cargo.exe": b"cargo",
                      "rustc/manifest.in": b"rustc manifest", "cargo/manifest.in": b"cargo manifest",
                      "README.md": b"rust readme",
@@ -184,7 +183,7 @@ class WindowsV2RepackTests(unittest.TestCase):
             "openssl": "3.6.1", "phpmyadmin": "5.2.3", "mongosh": "2.13.0",
             "mongotools": "100.19.1", "ai-gateway": "1.0.0", "disk-cleaner": "1.0.0",
             "memcached": "1.6.45",
-            "simple-acme": "2.4.1", "rust": "1.99.1",
+            "rust": "1.99.1",
         }
         binary_payloads = {
             "mailpit": ("mailpit.exe", "1.32.0"),
@@ -245,10 +244,14 @@ class WindowsV2RepackTests(unittest.TestCase):
                 bad = copy.deepcopy(args)
                 bad["source"][field] = value
                 self.reject(bad)
+
         for field in ("sha256", "bytes", "version"):
             bad = copy.deepcopy(args)
             del bad["source"][field]
             self.reject(bad)
+
+    def test_excluded_simple_acme_cannot_use_the_ordinary_v2_producer(self):
+        self.reject(self.arguments("simple-acme", {"wacs.exe": b"acme"}, version="2.4.1"))
 
     def test_every_required_entry_or_nginx_companion_is_required(self):
         required = {"nginx": ["nginx.exe", "conf/nginx.conf", "conf/mime.types"],
