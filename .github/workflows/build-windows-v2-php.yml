@@ -3,8 +3,12 @@ name: build-windows-v2-php
 on:
   workflow_dispatch:
     inputs:
+      core_revision:
+        description: Explicit API-reviewed unoccupied core revision for this formal manifest
+        required: true
+        type: string
       module_revision:
-        description: Explicit API-reviewed unoccupied module revision (RC4 core remains revision 0)
+        description: Explicit API-reviewed unoccupied module revision for all selected extensions
         required: true
         type: string
 
@@ -41,6 +45,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_DISPATCH_PAT || github.token }}
+          CORE_REVISION: ${{ inputs.core_revision }}
           MODULE_REVISION: ${{ inputs.module_revision }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -54,6 +59,7 @@ jobs:
             --portable-source php-portable `
             --producer-source php-producer `
             --handoff-producer handoff-producer.json `
+            --core-revision "$env:CORE_REVISION" `
             --module-revision "$env:MODULE_REVISION" `
             --seven-zip "$sevenZip" `
             --output-dir php-v2-output

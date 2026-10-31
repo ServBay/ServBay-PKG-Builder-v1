@@ -97,11 +97,13 @@ def parse_abi(info):
             "extension_build": extension, "zend_extension_build": zend, "zts": False, "debug": False}
 
 
-def identities(selected, abi, module_revision):
-    if type(module_revision) is not int or module_revision < 1:
-        raise ValueError("An explicit positive module_revision is required; revision 0 is occupied")
+def identities(selected, abi, module_revision, *, core_revision):
+    if type(core_revision) is not int or not 0 <= core_revision <= 2147483647:
+        raise ValueError("An explicit core_revision between 0 and 2147483647 is required")
+    if type(module_revision) is not int or not 1 <= module_revision <= 2147483647:
+        raise ValueError("An explicit module_revision between 1 and 2147483647 is required; revision 0 is occupied")
     core = {"runtime_version": "v2", "os": "windows", "kind": "package", "name": "php",
-            "version": VERSION, "arch": "x64", "build_revision": 0}
+            "version": VERSION, "arch": "x64", "build_revision": core_revision}
     modules = [{**core, "kind": "php-extension", "name": row["name"],
                 "version": row["ref"][1:] if row["ref"].startswith("v") else row["ref"],
                 "build_revision": module_revision, "host": {"type": "php", "series": "8.6", "abi": dict(abi)}}
@@ -274,10 +276,11 @@ def export_verified(output, build):
         os.rename(exported, output)
 
 
-def pipeline(portable, producer, output, module_revision, seven_zip, *, handoff_producer_file):
+def pipeline(portable, producer, output, module_revision, seven_zip, *, handoff_producer_file, core_revision):
     repacker = load("php_rc4_repacker", ROOT / "runtime-windows/repack_php_v2.py")
     handoff_producer = repacker.package_meta._state.validate_producer(json.loads(
         Path(handoff_producer_file).read_text(encoding="utf-8-sig"), object_pairs_hook=repacker._unique_object))
+    identities([], {}, module_revision, core_revision=core_revision)
     machine = require_native_x64()
     # Read the producer configuration from its immutable Git object, not a working copy.
     selected = json.loads(run(["git", "-C", producer, "show", PRODUCER_COMMIT + ":extensions.php8.6.json"]))
@@ -295,29 +298,29 @@ def pipeline(portable, producer, output, module_revision, seven_zip, *, handoff_
                "core_runtime_filename": f"php-{VERSION}-nts-Win32-vs18-x64.zip",
                "core_devel_filename": f"php-devel-pack-{VERSION}-nts-Win32-vs18-x64.zip"}
     collector._validate_inputs(context, selected)
-    identities(selected, {}, module_revision)
 
     def build(work):
         upstream = upstream_inputs(selected, work / "inputs")
         split = work / "split"
         index = collector.collect_split_assets(work / "inputs/core", work / "inputs/extensions", selected, context, split)
         build_payloads(repacker, split, index, selected, work, module_revision, seven_zip, machine, upstream,
-                       handoff_producer=handoff_producer)
+                       handoff_producer=handoff_producer, core_revision=core_revision)
     export_verified(output, build)
 
 
 def build_payloads(repacker, split, index, selected, work, module_revision, seven_zip, machine, upstream,
-                   *, handoff_producer):
+                   *, handoff_producer, core_revision):
     handoff_producer = repacker.package_meta._state.validate_producer(handoff_producer)
     if len(selected) != 16 or len({row["name"] for row in selected}) != 16:
         raise ValueError("The exact producer must select all 16 modules")
+    identities([], {}, module_revision, core_revision=core_revision)
     split_source = {"path": str(split / "split-assets.json"), "sha256": sha(split / "split-assets.json")}
     core_asset = next(row for row in index["assets"] if row["role"] == "core-runtime")
     raw = work / "raw-core"
     raw.mkdir()
     repacker._zip_inventory(split / core_asset["filename"], core_asset, raw)
     abi = parse_abi(php_run(raw / "php.exe", ["-n", "-i"]))
-    core, modules = identities(selected, abi, module_revision)
+    core, modules = identities(selected, abi, module_revision, core_revision=core_revision)
     evidence = {"source_sha256": core_asset["sha256"], "version": VERSION, "abi": abi}
     prepared = repacker.prepare_php_payloads(split_source, core, modules, evidence,
                                             work / "prepared", seven_zip=seven_zip)
@@ -371,12 +374,14 @@ def main():
     parser.add_argument("--portable-source", type=Path, required=True)
     parser.add_argument("--producer-source", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--core-revision", type=int, required=True)
     parser.add_argument("--module-revision", type=int, required=True)
     parser.add_argument("--seven-zip", required=True)
     parser.add_argument("--handoff-producer", type=Path, required=True)
     args = parser.parse_args()
     pipeline(args.portable_source.absolute(), args.producer_source.absolute(), args.output_dir,
-             args.module_revision, args.seven_zip, handoff_producer_file=args.handoff_producer)
+             args.module_revision, args.seven_zip, handoff_producer_file=args.handoff_producer,
+             core_revision=args.core_revision)
     print(f"Verified {VERSION} native x64 core and all 16 modules: {args.output_dir}")
 
 
