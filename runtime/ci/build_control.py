@@ -20,11 +20,16 @@ def run_decision(runtime_version, pending_only, config_changed, continue_build, 
     return {"build_allowed": bool(continue_build), "dispatch_pending": False}
 
 
-def pending_inputs(dry_run):
+def pending_inputs(dry_run, package=""):
     if type(dry_run) is not bool:
         raise ValueError("The upload dry-run flag must be boolean")
-    return {"runtime_version": "v2", "target": "macos", "pending_only": "true", "continue_build": "true",
-            "upload_dry_run": str(dry_run).lower(), "full_rebuild": "false"}
+    if package and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", package):
+        raise ValueError("Invalid selected package")
+    inputs = {"runtime_version": "v2", "target": "macos", "pending_only": "true", "continue_build": "true",
+              "upload_dry_run": str(dry_run).lower(), "full_rebuild": "false"}
+    if package:
+        inputs["pkg"] = package
+    return inputs
 
 
 def refresh_inputs(event_name, runtime_version="", target="all", pending_only=False,
@@ -62,9 +67,9 @@ def _dispatch(repository, inputs):
                    text=True, check=True)
 
 
-def dispatch_pending(repository, dry_run):
+def dispatch_pending(repository, dry_run, package=""):
     """Create one new workflow run whose checkout and Actions head agree."""
-    _dispatch(repository, pending_inputs(dry_run))
+    _dispatch(repository, pending_inputs(dry_run, package))
 
 
 def dispatch_refresh(repository, **options):
@@ -80,5 +85,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", required=True)
     parser.add_argument("--upload-dry-run", choices=("true", "false"), required=True)
+    parser.add_argument("--pkg", default="")
     arguments = parser.parse_args()
-    dispatch_pending(arguments.repository, arguments.upload_dry_run == "true")
+    dispatch_pending(arguments.repository, arguments.upload_dry_run == "true", arguments.pkg)

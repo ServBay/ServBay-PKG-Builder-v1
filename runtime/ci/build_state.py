@@ -226,12 +226,15 @@ def job_outcomes(records, producer, jobs):
     return outcomes
 
 
-def reconcile_reservations(state, producer, read_owner, now=None):
+def reconcile_reservations(state, producer, read_owner, now=None, *, records=None):
     validate_state(state)
     producer = validate_producer(producer)
     now = now or datetime.now(timezone.utc)
     updated, owners, diagnostics = copy.deepcopy(state), {}, []
+    selected = None if records is None else {identity(record) for record in records}
     for key, unit in state["units"].items():
+        if selected is not None and key not in selected:
+            continue
         reservation = unit.get("reservation")
         if not reservation or reservation["producer"] == producer or _timestamp(reservation["expires_at"]) > now:
             continue
@@ -518,7 +521,7 @@ def github_owner_snapshot(repository, producer, artifact_dir, allow_running=Fals
     return {"run": run, "jobs": jobs, "artifacts": selected, "artifact_dir": directory}
 
 
-def reserve_github(records, producer, repository, artifact_dir, read_state=None, write_state=None, now=None, max_groups=None):
+def reserve_github(records, producer, repository, artifact_dir, read_state=None, write_state=None, now=None, max_groups=None, reconcile_records=None):
     """CAS retry re-reads ownership; one invocation queries each old producer once."""
     if read_state is None or write_state is None:
         read_state, write_state = github_state_store(repository, "runtime-v2/config/build-state.json")
@@ -536,7 +539,7 @@ def reserve_github(records, producer, repository, artifact_dir, read_state=None,
         return snapshots[key]
 
     def operation(state):
-        reconciled = reconcile_reservations(state, producer, read_owner, now)
+        reconciled = reconcile_reservations(state, producer, read_owner, now, records=reconcile_records)
         claimed = reserve_records(reconciled["state"], records, producer, now=now, max_groups=max_groups)
         claimed["diagnostics"] = reconciled["diagnostics"]
         return claimed
@@ -566,6 +569,7 @@ def main():
     reserve.add_argument("--artifact-dir", required=True)
     reserve.add_argument("--max-groups", type=int)
     reserve.add_argument("--runners", action="store_true")
+    reserve.add_argument("--selected-only", action="store_true")
     result = sub.add_parser("result")
     result.add_argument("--state", required=True)
     result.add_argument("--record", required=True)
@@ -596,7 +600,8 @@ def main():
         print(json.dumps({"pending": len(planned["include"]), "blocked": planned["blocked"]}))
     elif args.command == "reserve":
         rows = json.loads(Path(args.records).read_text())["include"]
-        reserved = reserve_github(rows, _producer_argument(args.producer), args.repository, args.artifact_dir, max_groups=args.max_groups)
+        reserved = reserve_github(rows, _producer_argument(args.producer), args.repository, args.artifact_dir, max_groups=args.max_groups,
+                                  reconcile_records=rows if args.selected_only else None)
         state = reserved.pop("state")
         if args.runners:
             for row in reserved["include"]:

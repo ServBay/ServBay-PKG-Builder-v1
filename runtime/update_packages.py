@@ -46,9 +46,14 @@ class PackageUpdater:
     }
 
     def __init__(self, conf_file: str = "packages.conf", dry_run: bool = False, debug: bool = False,
-                 runtime_version: str = "v1"):
+                 runtime_version: str = "v1", package: str = ""):
         if runtime_version not in ("v1", "v2"):
             raise ValueError("runtime_version must be v1 or v2")
+        if package and (runtime_version != "v2" or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", package)):
+            raise ValueError("A selected package requires an explicit Runtime v2 recipe name")
+        if package in ("php", "postgresql"):
+            raise ValueError("Use the existing core/module workflow for PHP or PostgreSQL")
+        self.package = package
         self.runtime_version = runtime_version
         self.conf_file = conf_file
         self.packages = {}
@@ -70,7 +75,8 @@ class PackageUpdater:
     def active_package_records(self):
         """Return active package records from packages.conf for full rebuilds."""
         if self.runtime_version == "v2":
-            return [self._v2_record(row) for row in self._v2_rows() if not row["is_commented"]]
+            return [self._v2_record(row) for row in self._v2_rows() if not row["is_commented"]
+                    and (not self.package or row["name"] == self.package)]
         records = []
         seen = set()
         if not os.path.exists(self.conf_file):
@@ -201,7 +207,10 @@ class PackageUpdater:
         if self.runtime_version == "v2":
             self.packages = {}
             for row in self._v2_rows():
-                self.packages.setdefault(row["name"], []).append(row)
+                if not self.package or row["name"] == self.package:
+                    self.packages.setdefault(row["name"], []).append(row)
+            if self.package and self.package not in self.packages:
+                raise ValueError(f"Selected package is missing from the v2 profile: {self.package}")
             return
         if not os.path.exists(self.conf_file):
             print(f"Error: Config file not found at {self.conf_file}")
@@ -267,6 +276,8 @@ class PackageUpdater:
 
     def _update_v2_conf_file(self, latest_versions):
         """Keep desired versions separate from build success, preserving v1 semantics."""
+        if self.package:
+            latest_versions = {name: version for name, version in latest_versions.items() if name == self.package}
         rows = self._v2_rows()
         lines = Path(self.conf_file).read_text().splitlines(keepends=True)
         replacements, additions = {}, {}
@@ -1205,7 +1216,7 @@ class PackageUpdater:
 
         # Mongo Tools
         print("  Checking mongotools versions...", end=' ')
-        mongotools_versions = self.get_mongotools_versions()
+        mongotools_versions = self.get_mongotools_versions() if not self.package or self.package == "mongotools" else {}
         if 'mongotools' in mongotools_versions:
             latest_versions['mongotools'] = mongotools_versions['mongotools']
             print(f"✓ {mongotools_versions['mongotools']}")
@@ -1214,7 +1225,7 @@ class PackageUpdater:
 
         # ngrok
         print("  Checking ngrok version...", end=' ')
-        ngrok_version = self.get_ngrok_version()
+        ngrok_version = self.get_ngrok_version() if not self.package or self.package == "ngrok" else None
         if ngrok_version:
             latest_versions['ngrok'] = ngrok_version
             print(f"✓ {ngrok_version}")
@@ -1223,7 +1234,7 @@ class PackageUpdater:
 
         # HTTPD
         print("  Checking httpd versions...", end=' ')
-        httpd_versions = self.get_httpd_versions()
+        httpd_versions = self.get_httpd_versions() if not self.package or self.package == "httpd" else {}
         if 'httpd_2.4' in httpd_versions:
             latest_versions['httpd'] = httpd_versions['httpd_2.4']
         print(f"✓ Latest: {httpd_versions.get('httpd_2.4', 'None')}")
@@ -1238,67 +1249,67 @@ class PackageUpdater:
 
         # Node.js
         print("  Checking node versions...", end=' ')
-        node_versions = self.get_node_versions()
+        node_versions = self.get_node_versions() if not self.package or self.package == "node" else {}
         print(f"✓ Found {len(node_versions)} series")
 
         # PHP
         print("  Checking php versions...", end=' ')
-        php_versions = self.get_php_versions()
+        php_versions = self.get_php_versions() if not self.package or self.package == "php" else {}
         print(f"✓ Found {len(php_versions)} series")
 
         # MariaDB
         print("  Checking mariadb versions...", end=' ')
-        mariadb_versions = self.get_mariadb_versions()
+        mariadb_versions = self.get_mariadb_versions() if not self.package or self.package == "mariadb" else {}
         print(f"✓ Found {len(mariadb_versions)} series")
 
         # PostgreSQL
         print("  Checking postgresql versions...", end=' ')
-        postgresql_versions = self.get_postgresql_versions()
+        postgresql_versions = self.get_postgresql_versions() if not self.package or self.package == "postgresql" else {}
         print(f"✓ Found {len(postgresql_versions)} series")
 
         # MySQL
         print("  Checking mysql versions...", end=' ')
-        mysql_versions = self.get_mysql_versions()
+        mysql_versions = self.get_mysql_versions() if not self.package or self.package == "mysql" else {}
         print(f"✓ Found {len(mysql_versions)} series")
 
         # Python
         print("  Checking python versions...", end=' ')
-        python_versions = self.get_python_versions()
+        python_versions = self.get_python_versions() if not self.package or self.package == "python" else {}
         print(f"✓ Found {len(python_versions)} series")
 
         # Go
         print("  Checking go versions...", end=' ')
-        go_versions = self.get_go_versions()
+        go_versions = self.get_go_versions() if not self.package or self.package == "go" else {}
         print(f"✓ Found {len(go_versions)} series")
 
         # .NET SDK
         print("  Checking dotnetsdk versions...", end=' ')
-        dotnet_versions = self.get_dotnet_versions()
+        dotnet_versions = self.get_dotnet_versions() if not self.package or self.package == "dotnetsdk" else {}
         print(f"✓ Found {len(dotnet_versions)} series")
 
         # OpenJDK
         print("  Checking openjdk versions...", end=' ')
-        openjdk_versions = self.get_openjdk_versions()
+        openjdk_versions = self.get_openjdk_versions() if not self.package or self.package == "openjdk" else {}
         print(f"✓ Found {len(openjdk_versions)} series")
 
         # MongoDB
         print("  Checking mongodb versions...", end=' ')
-        mongodb_versions = self.get_mongodb_versions()
+        mongodb_versions = self.get_mongodb_versions() if not self.package or self.package == "mongodb" else {}
         print(f"✓ Found {len(mongodb_versions)} series")
 
         # Ruby
         print("  Checking ruby versions...", end=' ')
-        ruby_versions = self.get_ruby_versions()
+        ruby_versions = self.get_ruby_versions() if not self.package or self.package == "ruby" else {}
         print(f"✓ Found {len(ruby_versions)} series")
 
         # Redis
         print("  Checking redis versions...", end=' ')
-        redis_versions = self.get_redis_versions()
+        redis_versions = self.get_redis_versions() if not self.package or self.package == "redis" else {}
         print(f"✓ Found {len(redis_versions)} series")
 
         # Composer
         print("  Checking composer versions...", end=' ')
-        composer_versions = self.get_composer_versions()
+        composer_versions = self.get_composer_versions() if not self.package or self.package == "composer" else {}
         print(f"✓ Found {len(composer_versions)} series")
 
         # Add multi-version results to latest_versions
@@ -1908,6 +1919,7 @@ def main():
                        help='Check for updates without modifying files')
     parser.add_argument('--runtime-version', choices=('v1', 'v2'), default='v1',
                         help='Package profile; omitted values retain the v1 contract')
+    parser.add_argument('--package', default='', help='One ordinary v2 recipe; empty keeps existing discovery scope')
     parser.add_argument('--github-token', help='GitHub API token for higher rate limits')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug output')
@@ -1925,7 +1937,7 @@ def main():
         os.environ['GITHUB_TOKEN'] = args.github_token
 
     updater = PackageUpdater(conf_file=args.conf, dry_run=args.dry_run, debug=args.debug,
-                             runtime_version=args.runtime_version)
+                             runtime_version=args.runtime_version, package=args.package)
     updater.run(emit_json=args.emit_json, emit_json_file=args.emit_json_file, all_packages=args.all,
                 pending_only=args.pending_only)
 

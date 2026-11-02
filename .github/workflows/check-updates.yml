@@ -12,6 +12,10 @@ on:
         type: choice
         options: [v1, v2, all]
         default: v1
+      pkg:
+        description: One ordinary macOS v2 recipe to discover; empty preserves existing scope
+        type: string
+        default: ''
       target:
         description: 'Platforms to check'
         type: choice
@@ -50,6 +54,7 @@ jobs:
       should_build: ${{ steps.plan.outputs.should_build }}
       upload_dry_run: ${{ steps.plan.outputs.upload_dry_run }}
       runtime_version: ${{ steps.mode.outputs.runtime_version }}
+      pkg: ${{ steps.mode.outputs.pkg }}
       checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
       dispatch_pending: ${{ steps.plan.outputs.dispatch_pending }}
       allow_modules: ${{ steps.plan.outputs.allow_modules }}
@@ -68,6 +73,7 @@ jobs:
         id: mode
         env:
           EVENT_NAME: ${{ github.event_name }}
+          INPUT_PKG: ${{ inputs.pkg }}
           INPUT_TARGET: ${{ inputs.target }}
           INPUT_RUNTIME_VERSION: ${{ inputs.runtime_version }}
           INPUT_CONTINUE_BUILD: ${{ inputs.continue_build }}
@@ -76,6 +82,10 @@ jobs:
           INPUT_PENDING_ONLY: ${{ inputs.pending_only }}
         run: |
           set -euo pipefail
+          pkg="${INPUT_PKG:-}"
+          if [ -n "$pkg" ] && { [ "$EVENT_NAME" != workflow_dispatch ] || [ "${INPUT_RUNTIME_VERSION:-v1}" != v2 ] || [ "${INPUT_TARGET:-all}" = windows ] || [ "${INPUT_FULL_REBUILD:-false}" = true ]; }; then
+            echo '::error::Select one macOS Runtime v2 package without full_rebuild'; exit 1
+          fi
           if [ "$EVENT_NAME" = "schedule" ]; then
             runtime_version="v1"
             target="all"
@@ -114,6 +124,7 @@ jobs:
           case "$full_rebuild" in true|false) ;; *) full_rebuild="false" ;; esac
 
           {
+            echo "pkg=$pkg"
             echo "runtime_version=$runtime_version"
             echo "target=$target"
             echo "continue_build=$continue_build"
@@ -126,6 +137,7 @@ jobs:
 
       - name: Check package updates
         env:
+          PKG: ${{ steps.mode.outputs.pkg }}
           TARGET: ${{ steps.mode.outputs.target }}
           RUNTIME_VERSION: ${{ steps.mode.outputs.runtime_version }}
           FULL_REBUILD: ${{ steps.mode.outputs.full_rebuild }}
@@ -143,11 +155,13 @@ jobs:
 
           if [ "$TARGET" = "all" ] || [ "$TARGET" = "macos" ]; then
             if [ "$RUNTIME_VERSION" = v2 ]; then
+              package_flag=()
+              if [ -n "${PKG:-}" ]; then package_flag=(--package "$PKG"); fi
               pending_flag=()
               if [ "$PENDING_ONLY" = true ]; then pending_flag=(--pending-only); fi
-              python3 runtime/update_packages.py --runtime-version v2 "${pending_flag[@]}" \
+              python3 runtime/update_packages.py --runtime-version v2 "${pending_flag[@]}" "${package_flag[@]}" \
                 --conf runtime-v2/config/packages.conf --all --emit-json-file macos-desired.json
-              if [ "$PENDING_ONLY" != true ]; then
+              if [ "$PENDING_ONLY" != true ] && [ -z "${PKG:-}" ]; then
                 python3 runtime-v2/ci/update_modules.py --config runtime-v2/config/modules.json \
                   --packages-conf runtime-v2/config/packages.conf --output module-updates.json
               fi
@@ -201,6 +215,7 @@ jobs:
         id: plan
         env:
           RUNTIME_VERSION: ${{ steps.mode.outputs.runtime_version }}
+          PKG: ${{ steps.mode.outputs.pkg }}
           CONTINUE_BUILD: ${{ steps.mode.outputs.continue_build }}
           UPLOAD_DRY_RUN: ${{ steps.mode.outputs.upload_dry_run }}
           PENDING_ONLY: ${{ steps.mode.outputs.pending_only }}
@@ -218,8 +233,13 @@ jobs:
               os.environ["CONFIG_CHANGED"] == "true", os.environ["CONTINUE_BUILD"] == "true",
               os.environ.get("GITHUB_SHA"), checkout)
           records = json.loads(Path("macos-matrix.json").read_text())
+          package = os.environ.get("PKG", "")
           if os.environ["RUNTIME_VERSION"] == "v2":
               import build_profile, build_state
+              if package:
+                  desired = json.loads(Path("macos-desired.json").read_text())["include"]
+                  selected = {build_state.identity(row) for row in desired if row.get("recipe_name", row["name"]) == package}
+                  records["include"] = [row for row in records["include"] if build_state.identity(row) in selected]
               # Discovery may include future concurrent config updates; only this checkout can supply inputs.
               available, missing = [], []
               for row in records["include"]:
@@ -233,7 +253,8 @@ jobs:
                   producer = {"commit": os.environ["GITHUB_SHA"], "run_id": os.environ["GITHUB_RUN_ID"],
                               "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"])}
                   reserved = build_state.reserve_github(available, producer, os.environ["GITHUB_REPOSITORY"],
-                      Path(os.environ["RUNNER_TEMP"]) / "v2-reservation-recovery", max_groups=256)
+                      Path(os.environ["RUNNER_TEMP"]) / "v2-reservation-recovery", max_groups=256,
+                      **({"reconcile_records": available} if package else {}))
               scheduled = build_profile.workflow_plan(reserved["include"])
               records = {"include": scheduled["records"]}
               matrix = scheduled["matrix"]
@@ -250,7 +271,7 @@ jobs:
           print("windows_count=" + str(len(windows["include"])))
           print("should_build=" + str(decision["build_allowed"] and bool(records["include"] or windows["include"])).lower())
           print("dispatch_pending=" + str(decision["dispatch_pending"]).lower())
-          print("allow_modules=" + str(os.environ["RUNTIME_VERSION"] == "v2" and decision["build_allowed"]).lower())
+          print("allow_modules=" + str(os.environ["RUNTIME_VERSION"] == "v2" and decision["build_allowed"] and not package).lower())
           print("checkout_ref=" + (os.environ["GITHUB_SHA"] if os.environ["RUNTIME_VERSION"] == "v2" else checkout))
           print("upload_dry_run=" + os.environ["UPLOAD_DRY_RUN"])
           PY
@@ -315,7 +336,8 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ needs.check.outputs.upload_dry_run }}
-        run: python3 runtime/ci/build_control.py --repository "$GITHUB_REPOSITORY" --upload-dry-run "$DRY_RUN"
+          PKG: ${{ needs.check.outputs.pkg }}
+        run: python3 runtime/ci/build_control.py --repository "$GITHUB_REPOSITORY" --upload-dry-run "$DRY_RUN" --pkg "$PKG"
 
   build-macos:
     needs: check
@@ -328,6 +350,7 @@ jobs:
       runtime_version: ${{ needs.check.outputs.runtime_version }}
       build_revision: ${{ matrix.build_revision || 0 }}
       pkg: ${{ matrix.recipe_name || matrix.name }}
+      scope_reservations: ${{ needs.check.outputs.pkg != '' }}
       version: ${{ matrix.version }}
       arch: ${{ matrix.arch }}
       checkout_ref: ${{ needs.check.outputs.checkout_ref }}
@@ -410,7 +433,7 @@ jobs:
 
   collect-macos-v2:
     needs: [check, build-macos, plan-module-hosts, build-module-hosts]
-    if: ${{ always() && needs.check.outputs.runtime_version == 'v2' && needs.check.outputs.allow_modules == 'true' }}
+    if: ${{ always() && needs.check.outputs.runtime_version == 'v2' && (needs.check.outputs.allow_modules == 'true' || needs.check.outputs.macos_count != '0') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

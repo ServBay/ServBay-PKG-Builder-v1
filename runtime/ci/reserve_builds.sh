@@ -18,9 +18,14 @@ import build_control
 build_control.run_decision('v2', False, False, True, os.environ['GITHUB_SHA'], os.environ['CHECKOUT_SHA'])
 Path('producer.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'], 'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])}))
 PYCODE
+  case "${SCOPE_RESERVATIONS:-false}" in
+    true) set -- --selected-only ;;
+    false|'') set -- ;;
+    *) echo 'Invalid explicit reservation scope' >&2; exit 1 ;;
+  esac
   python3 "$script_dir/build_state.py" reserve --state runtime-v2/config/build-state.json \
     --records matrix.json --matrix matrix.json --producer producer.json \
-    --repository "$GITHUB_REPOSITORY" --artifact-dir "$RUNNER_TEMP/v2-reservation-recovery" --runners
+    --repository "$GITHUB_REPOSITORY" --artifact-dir "$RUNNER_TEMP/v2-reservation-recovery" --runners "$@"
 fi
 python3 - <<'PYCODE' >> "$GITHUB_OUTPUT"
 import json, subprocess
