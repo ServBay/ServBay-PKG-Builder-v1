@@ -11,6 +11,10 @@ on:
         type: choice
         options: [v1, v2]
         default: v1
+      scope_reservations:
+        description: Reconcile only this producer matrix for an explicitly selected package
+        type: boolean
+        default: false
       build_revision:
         description: 'Explicit rebuild revision (v2 only)'
         type: number
@@ -46,6 +50,10 @@ on:
       runtime_version:
         type: string
         default: v1
+      scope_reservations:
+        description: Reconcile only this producer matrix for an explicitly selected package
+        type: boolean
+        default: false
       build_revision:
         type: number
         default: 0
@@ -109,6 +117,7 @@ jobs:
           VERSION: ${{ inputs.version }}
           ARCH: ${{ inputs.arch }}
           REVISION: ${{ inputs.build_revision }}
+          SCOPE_RESERVATIONS: ${{ inputs.scope_reservations }}
           GH_TOKEN: ${{ github.token }}
           HOST_REQUEST: ${{ inputs.host_request }}
         run: |

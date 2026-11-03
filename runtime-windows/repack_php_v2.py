@@ -401,8 +401,9 @@ def prepare_php_payloads(split_source, core_identity, module_identities, core_ev
 
 def finalize_php_payloads(payload_dir, split_source, native_result, default_modules,
                           minimum_os, windows_compatibility, output_dir,
-                          *, core_source_url, module_source_url, seven_zip=None):
+                          *, core_source_url, module_source_url, handoff_producer, seven_zip=None):
     """Attach native evidence and produce final core/module schema-2 packages."""
+    producer = package_meta._state.validate_producer(handoff_producer)
     payload_dir = Path(payload_dir).absolute()
     split_path = Path(split_source["path"]).absolute()
     if split_path.is_symlink() or not split_path.is_file() or _hash(split_path.read_bytes()) != _sha(split_source["sha256"]):
@@ -432,9 +433,6 @@ def finalize_php_payloads(payload_dir, split_source, native_result, default_modu
     loaded = {row.get("name"): row for row in native["modules"] if isinstance(row, dict)}
     if set(loaded) != set(audit["modules"]):
         raise ValueError("PHP native module set differs from the payload")
-    original_producer = audit["producer"]
-    producer = {"commit": original_producer["commit"], "run_id": str(original_producer["run_id"]),
-                "run_attempt": original_producer["run_attempt"]}
     host = copy.deepcopy(audit["host"])
     assets = {row["filename"]: row for row in split["assets"]}
     output = Path(output_dir).absolute()

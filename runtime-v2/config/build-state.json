@@ -12652,9 +12652,9 @@
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.69\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
-        "commit": "eed6e38edcaa45be01646950112fec67fbd2fdf7",
+        "commit": "301d8f897ef1509e49df69a597869bc516eb39dc",
         "run_attempt": 1,
-        "run_id": "39969006714"
+        "run_id": "39970607571"
       },
       "record": {
         "arch": "x86_64",
@@ -12667,16 +12667,7 @@
         "runtime_version": "v2",
         "version": "2.4.69"
       },
-      "reservation": {
-        "claimed_at": "2026-10-23T14:33:22+00:00",
-        "expires_at": "2026-10-23T22:33:22+00:00",
-        "producer": {
-          "commit": "301d8f897ef1509e49df69a597869bc516eb39dc",
-          "run_attempt": 1,
-          "run_id": "39970607571"
-        }
-      },
-      "status": "build-failed"
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
