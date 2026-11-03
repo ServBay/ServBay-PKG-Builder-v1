@@ -156,11 +156,11 @@ postgresql	19.beta2
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-# meilisearch	1.56.0
+meilisearch	1.56.1
 # simple-acme	2.4.1
 # cloudflared	2026.10.7
 # frp	0.71.1
-# pinggy	0.6.1
+pinggy	0.6.3
 # ngrok	3.39.13	VUnfuMhAnU
 # bun	1.4.4
 # deno	2.9.8
@@ -174,4 +174,4 @@ disk-cleaner	1.0.0
 # mongodb	8.2.12
 # mongodb	8.3.13
 # mongosh	2.14.1
-# mongotools	100.20.0
+mongotools	100.20.1
