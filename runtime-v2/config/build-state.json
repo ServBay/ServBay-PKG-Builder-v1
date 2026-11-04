@@ -5893,6 +5893,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "memcached",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.6.45"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T16:14:16+00:00",
+        "expires_at": "2026-11-05T00:14:16+00:00",
+        "producer": {
+          "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+          "run_attempt": 1,
+          "run_id": "41865192576"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
       "last_collected_producer": {
@@ -12812,6 +12835,29 @@
         "recipe_name": "httpd",
         "runtime_version": "v2",
         "version": "2.4.69"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "memcached",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.6.45"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T16:14:16+00:00",
+        "expires_at": "2026-11-05T00:14:16+00:00",
+        "producer": {
+          "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+          "run_attempt": 1,
+          "run_id": "41865192576"
+        }
       },
       "status": "discovered"
     },
