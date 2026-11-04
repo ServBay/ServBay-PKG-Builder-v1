@@ -1650,7 +1650,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.1\"}": {
+      "artifact_expires_at": "2026-11-11T14:56:05Z",
+      "artifact_id": "13336047364",
+      "artifact_name": "pkg2-macos-arm64-package-composer-2.11.1",
+      "artifact_zip_sha256": "42d641dbd05597e1fdb37409e216017b0ff47a8da456c7082a8e7ba268563875",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+        "run_attempt": 1,
+        "run_id": "41852133538"
+      },
+      "package_sha256": "d9c6dea361171aabc0211bd29f0c864dd5d0f5aa746216af178394e2b77f0451",
+      "producer": {
+        "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+        "run_attempt": 1,
+        "run_id": "41852133538"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1661,16 +1676,7 @@
         "runtime_version": "v2",
         "version": "2.11.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T14:53:54+00:00",
-        "expires_at": "2026-11-04T22:53:54+00:00",
-        "producer": {
-          "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
-          "run_attempt": 1,
-          "run_id": "41852133538"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.30\"}": {
       "consecutive_failures": 0,
@@ -8586,7 +8592,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.1\"}": {
+      "artifact_expires_at": "2026-11-11T14:55:46Z",
+      "artifact_id": "13336541685",
+      "artifact_name": "pkg2-macos-x86_64-package-composer-2.11.1",
+      "artifact_zip_sha256": "bc9264b77cccebf5e7e775797e1c30093c36f847e6a57375560f5ca2c595263c",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+        "run_attempt": 1,
+        "run_id": "41852133538"
+      },
+      "package_sha256": "2724825089e1e290ab0df4ba2bbf150b459590ee2685b7ea9c0e8046c61cb386",
+      "producer": {
+        "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+        "run_attempt": 1,
+        "run_id": "41852133538"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -8597,16 +8618,7 @@
         "runtime_version": "v2",
         "version": "2.11.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T14:53:54+00:00",
-        "expires_at": "2026-11-04T22:53:54+00:00",
-        "producer": {
-          "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
-          "run_attempt": 1,
-          "run_id": "41852133538"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.30\"}": {
       "consecutive_failures": 0,
