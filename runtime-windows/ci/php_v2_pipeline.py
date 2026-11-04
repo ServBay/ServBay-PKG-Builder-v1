@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the exact PHP 8.6.0RC4 split-artifact pipeline on native Windows x64."""
+"""Package an exact released PHP split-artifact producer on native Windows x64."""
 
 import argparse
 import ctypes
@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import struct
 import subprocess
@@ -18,10 +19,6 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY = "ServBay/PHP-Windows-Portable"
-RUN_ID = 40272362001
-ATTEMPT = 1
-VERSION = "8.6.0RC4"
-PRODUCER_COMMIT = "5f5af83f797ae89a7187ddca87492cf8064d68d7"
 COLLECTOR_COMMIT = "b614c80d50c417f22a92a78be2540c750c7559f8"
 PHP_RUNTIME_ENV = {"SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "TEMP", "TMP", "PATH", "COMSPEC", "PATHEXT"}
 
@@ -41,9 +38,10 @@ def sha(path):
     return digest.hexdigest()
 
 
-def run(command, *, env=None, strict_stderr=False):
+def run(command, *, env=None, strict_stderr=False, binary=False):
     result = subprocess.run([str(item) for item in command], capture_output=True,
-                            text=True, encoding="utf-8", errors="strict", timeout=300, env=env)
+                            text=not binary, encoding=None if binary else "utf-8",
+                            errors=None if binary else "strict", timeout=300, env=env)
     # PHP info can contain environment values. Never echo raw subprocess output.
     if result.returncode or (strict_stderr and result.stderr.strip()):
         raise RuntimeError(f"{Path(str(command[0])).name} failed ({result.returncode}; stderr_present={bool(result.stderr.strip())})")
@@ -78,7 +76,7 @@ def require_native_x64():
             "platform": platform.platform()}
 
 
-def parse_abi(info):
+def parse_abi(info, version):
     def one(label):
         values = [line.split("=>", 1)[1].strip() for line in info.splitlines()
                   if line.startswith(label + " =>")]
@@ -86,9 +84,9 @@ def parse_abi(info):
         if not values or len(set(values)) != 1:
             raise ValueError("Missing or conflicting actual PHP field: " + label)
         return values[0]
-    if (one("PHP Version") != VERSION or one("Architecture") != "x64" or one("Thread Safety") != "disabled"
+    if (one("PHP Version") != version or one("Architecture") != "x64" or one("Thread Safety") != "disabled"
             or one("Debug Build") != "no"):
-        raise ValueError("Actual PHP version/thread/debug differs from RC4 NTS release")
+        raise ValueError("Actual PHP version/thread/debug differs from the selected NTS release")
     module_api, zend_api = int(one("PHP API")), int(one("Zend Extension"))
     extension, zend = one("PHP Extension Build"), one("Zend Extension Build")
     if extension != f"API{module_api},NTS,VS18" or zend != f"API{zend_api},NTS,VS18":
@@ -97,65 +95,130 @@ def parse_abi(info):
             "extension_build": extension, "zend_extension_build": zend, "zts": False, "debug": False}
 
 
-def identities(selected, abi, module_revision, *, core_revision):
+def identities(selected, abi, module_revision, *, core_revision, version):
     if type(core_revision) is not int or not 0 <= core_revision <= 2147483647:
         raise ValueError("An explicit core_revision between 0 and 2147483647 is required")
     if type(module_revision) is not int or not 1 <= module_revision <= 2147483647:
         raise ValueError("An explicit module_revision between 1 and 2147483647 is required; revision 0 is occupied")
     core = {"runtime_version": "v2", "os": "windows", "kind": "package", "name": "php",
-            "version": VERSION, "arch": "x64", "build_revision": core_revision}
+            "version": version, "arch": "x64", "build_revision": core_revision}
     modules = [{**core, "kind": "php-extension", "name": row["name"],
                 "version": row["ref"][1:] if row["ref"].startswith("v") else row["ref"],
-                "build_revision": module_revision, "host": {"type": "php", "series": "8.6", "abi": dict(abi)}}
+                "build_revision": module_revision, "host": {"type": "php", "series": ".".join(version.split(".")[:2]), "abi": dict(abi)}}
                for row in selected]
     return core, modules
 
 
-def artifact_names(selected):
-    return ["php-build-artifacts-x64-nts"] + [f"extension-{row['name']}-{VERSION}-x64-nts" for row in selected]
+def artifact_names(selected, version):
+    return ["php-build-artifacts-x64-nts"] + [f"extension-{row['name']}-{version}-x64-nts" for row in selected]
 
 
-def validate_upstream(upstream, artifacts, selected):
-    expected = {"id": RUN_ID, "run_attempt": ATTEMPT, "head_sha": PRODUCER_COMMIT,
+def validate_upstream(upstream, artifacts, selected, context):
+    producer = context["producer"]
+    expected = {"id": producer["run_id"], "run_attempt": producer["run_attempt"], "head_sha": producer["commit"],
                 "status": "completed", "conclusion": "success", "path": ".github/workflows/build.yml",
                 "event": "workflow_dispatch"}
     if (any(upstream.get(key) != value for key, value in expected.items())
             or upstream.get("repository", {}).get("full_name") != REPOSITORY):
         raise ValueError("Upstream run/attempt/producer/status differs from the exact approved build")
-    names = artifact_names(selected)
+    names = artifact_names(selected, context["display_version"])
     for name in names:
         matches = [row for row in artifacts if row.get("name") == name]
         if len(matches) != 1:
             raise ValueError("Missing or duplicate original artifact: " + name)
         row = matches[0]
         if (row.get("expired") is not False or row.get("size_in_bytes", 0) <= 0
-                or row.get("workflow_run", {}).get("id") != RUN_ID
-                or row.get("workflow_run", {}).get("head_sha") != PRODUCER_COMMIT):
+                or row.get("workflow_run", {}).get("id") != producer["run_id"]
+                or row.get("workflow_run", {}).get("head_sha") != producer["commit"]):
             raise ValueError("Original artifact has expired or differs from its producer: " + name)
     return names
 
 
-def upstream_inputs(selected, destination):
-    def api(suffix, paginate=False):
-        command = ["gh", "api"] + (["--paginate", "--slurp"] if paginate else [])
-        return json.loads(run(command + [f"repos/{REPOSITORY}/actions/runs/{RUN_ID}" + suffix]))
-    latest = api("")
-    attempt = api(f"/attempts/{ATTEMPT}")
-    artifacts = [row for page in api("/artifacts?per_page=100", True) for row in page["artifacts"]]
-    names = validate_upstream(latest, artifacts, selected)
-    validate_upstream(attempt, artifacts, selected)
+def github_json(path, *, paginate=False):
+    command = ["gh", "api"] + (["--paginate", "--slurp"] if paginate else [])
+    return json.loads(run(command + [f"repos/{REPOSITORY}/" + path]))
+
+
+def source_metadata(context, selected):
+    producer = context["producer"]
+    path = f"actions/runs/{producer['run_id']}"
+    latest = github_json(path)
+    attempt = github_json(path + f"/attempts/{producer['run_attempt']}")
+    artifacts = [row for page in github_json(path + "/artifacts?per_page=100", paginate=True)
+                 for row in page["artifacts"]]
+    validate_upstream(latest, artifacts, selected, context)
+    validate_upstream(attempt, artifacts, selected, context)
+    return attempt, artifacts
+
+
+def resolve_source(version):
+    """Resolve the existing release index, then bind its immutable producer to GitHub."""
+    if not isinstance(version, str) or not re.fullmatch(r"[1-9][0-9]*\.[0-9]+\.[0-9]+(?:(?:RC|alpha|beta)[1-9][0-9]*)?", version):
+        raise ValueError("An explicit PHP release version is required")
+    tag = f"php-{version}-x64-nts"
+    release = github_json("releases/tags/" + tag)
+    if release.get("tag_name") != tag or release.get("draft") is not False:
+        raise ValueError("PHP release tag differs or is a draft")
+    assets = [row for row in release.get("assets", []) if row.get("name") == "split-assets.json"]
+    if len(assets) != 1:
+        raise ValueError("Exactly one released split-assets.json is required")
+    asset = assets[0]
+    if (type(asset.get("id")) is not int or asset["id"] < 1 or asset.get("state") != "uploaded"
+            or type(asset.get("size")) is not int or asset["size"] <= 0
+            or not re.fullmatch(r"sha256:[a-f0-9]{64}", str(asset.get("digest", "")))):
+        raise ValueError("Released split index needs its stored SHA256 and size")
+    data = run(["gh", "api", f"repos/{REPOSITORY}/releases/assets/{asset['id']}",
+                "-H", "Accept: application/octet-stream"], binary=True)
+    if len(data) != asset["size"] or "sha256:" + hashlib.sha256(data).hexdigest() != asset["digest"]:
+        raise ValueError("Released split index SHA256/size differs from GitHub")
+    repacker = load("php_source_repacker", ROOT / "runtime-windows/repack_php_v2.py")
+    index = json.loads(data, object_pairs_hook=repacker._unique_object)
+    if (not isinstance(index, dict) or index.get("schema") != "servbay.php-split-assets.v1"
+            or index.get("publishable_v2") is not False):
+        raise ValueError("Expected the existing non-publishable split-assets v1 index")
+    context = index.get("build_context", {})
+    producer = context.get("producer", {})
+    if (context.get("display_version") != version or context.get("build_version") != version
+            or context.get("source_ref") != version or context.get("build_branch") != ""
+            or context.get("arch") != "x64" or context.get("thread_safe") != "nts"
+            or producer.get("repository") != REPOSITORY):
+        raise ValueError("Released split source differs from the selected PHP release")
+    repacker.package_meta._state.validate_producer({"commit": producer.get("commit"),
+        "run_id": str(producer.get("run_id")), "run_attempt": producer.get("run_attempt")})
+    if type(producer.get("run_id")) is not int or producer["run_id"] < 1:
+        raise ValueError("Released producer run must be a positive integer")
+    selected = index.get("selected_extensions")
+    if not isinstance(selected, list) or not selected:
+        raise ValueError("Released selected extensions are required")
+    series = ".".join(version.split(".")[:2])
+    config = json.loads(run(["gh", "api", f"repos/{REPOSITORY}/contents/extensions.php{series}.json?ref={producer['commit']}",
+                            "-H", "Accept: application/vnd.github.raw+json"]), object_pairs_hook=repacker._unique_object)
+    for row in config:
+        for key in ("args", "libs"):
+            row.setdefault(key, "")
+    if config != selected:
+        raise ValueError("Released extension requests differ from the exact producer configuration")
+    source_metadata(context, selected)
+    return index
+
+
+def upstream_inputs(selected, destination, context):
+    producer = context["producer"]
+    attempt, artifacts = source_metadata(context, selected)
+    names = artifact_names(selected, context["display_version"])
     for name in names:
         target = destination / ("core" if name == names[0] else "extensions/" + name)
-        run(["gh", "run", "download", str(RUN_ID), "--repo", REPOSITORY,
+        run(["gh", "run", "download", str(producer["run_id"]), "--repo", REPOSITORY,
              "--name", name, "--dir", target])
     # A rerun during download invalidates the artifact binding as well.
-    validate_upstream(api(""), artifacts, selected)
+    validate_upstream(github_json(f"actions/runs/{producer['run_id']}"), artifacts, selected, context)
     return {"run": attempt, "artifacts": [row for row in artifacts if row["name"] in names]}
 
 
 def native_test(core_root, audit):
     php = core_root / "bin/php.exe"
-    abi = parse_abi(php_run(php, ["-n", "-i"]))
+    version = audit["core"]["identity"]["version"]
+    abi = parse_abi(php_run(php, ["-n", "-i"]), version)
     if "host" in audit and abi != audit["host"]["abi"]:
         raise ValueError("Native PHP ABI differs from the frozen original core")
     extension = audit["extension_dir"]
@@ -187,14 +250,14 @@ def native_test(core_root, audit):
                              '$i=new Imagick(); echo json_encode(count($i->queryFormats("PNG"))>0);'])
         if value.strip() != "true":
             raise ValueError("Imagick native PNG query failed")
-    return {"php": VERSION, "extension_dir": extension, "loaded": len(results),
+    return {"php": version, "extension_dir": extension, "loaded": len(results),
             "modules": results, "imagick_png": coders}
 
 
 def extract_host(repacker, audit, archives, destination, seven_zip):
     """Extract each archive independently and merge only identical shared files."""
     destination.mkdir()
-    core_root = destination / "host/php/8.6"
+    core_root = destination / "host/php" / audit["host"]["series"]
     for name, archive in archives.items():
         owner = audit["core"] if name == "core" else audit["modules"][name]
         actual = repacker.windows_archive.extract_verified_archive(archive, destination / name, seven_zip)
@@ -260,7 +323,7 @@ def export_verified(output, build):
     output = Path(output).absolute()
     if output.exists() or output.is_symlink() or not output.parent.is_dir():
         raise ValueError("Output must be a new directory with an existing parent")
-    with tempfile.TemporaryDirectory(prefix="servbay-php-rc4-", dir=output.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix="servbay-php-native-", dir=output.parent) as temporary:
         work = Path(temporary)
         build(work)
         # build() writes this only after both native runs pass. Failure exposes no metadata.
@@ -276,33 +339,38 @@ def export_verified(output, build):
         os.rename(exported, output)
 
 
-def pipeline(portable, producer, output, module_revision, seven_zip, *, handoff_producer_file, core_revision):
-    repacker = load("php_rc4_repacker", ROOT / "runtime-windows/repack_php_v2.py")
+def validate_collected_source(collected, released):
+    """Bind consumed runtime ZIPs without freezing unrelated diagnostic metadata."""
+    fields = ("role", "extension", "filename", "bytes", "sha256")
+    def runtimes(index):
+        return sorted(tuple(row.get(key) for key in fields) for row in index["assets"]
+                      if row.get("role") in {"core-runtime", "extension-runtime"})
+    if runtimes(collected) != runtimes(released):
+        raise ValueError("Original runtime ZIPs differ from the released split index")
+
+
+def pipeline(portable, output, module_revision, seven_zip, *, handoff_producer_file, core_revision, version):
+    repacker = load("php_repacker", ROOT / "runtime-windows/repack_php_v2.py")
     handoff_producer = repacker.package_meta._state.validate_producer(json.loads(
         Path(handoff_producer_file).read_text(encoding="utf-8-sig"), object_pairs_hook=repacker._unique_object))
-    identities([], {}, module_revision, core_revision=core_revision)
+    identities([], {}, module_revision, core_revision=core_revision, version=version)
     machine = require_native_x64()
-    # Read the producer configuration from its immutable Git object, not a working copy.
-    selected = json.loads(run(["git", "-C", producer, "show", PRODUCER_COMMIT + ":extensions.php8.6.json"]))
+    released = resolve_source(version)
+    context, selected = released["build_context"], released["selected_extensions"]
     if len(selected) != 16 or len({row["name"] for row in selected}) != 16:
         raise ValueError("The exact producer must select all 16 modules")
     source = Path(portable) / "scripts/collect_split_assets.py"
     expected = run(["git", "-C", portable, "show", COLLECTOR_COMMIT + ":scripts/collect_split_assets.py"])
     if source.read_text(encoding="utf-8") != expected:
         raise ValueError("Collector working file differs from its pinned reviewed commit")
-    collector = load("php_rc4_collector", source)
-    context = {"producer": {"repository": REPOSITORY, "commit": PRODUCER_COMMIT,
-                            "run_id": RUN_ID, "run_attempt": ATTEMPT},
-               "display_version": VERSION, "source_ref": VERSION, "build_version": VERSION,
-               "build_branch": "", "arch": "x64", "thread_safe": "nts",
-               "core_runtime_filename": f"php-{VERSION}-nts-Win32-vs18-x64.zip",
-               "core_devel_filename": f"php-devel-pack-{VERSION}-nts-Win32-vs18-x64.zip"}
+    collector = load("php_collector", source)
     collector._validate_inputs(context, selected)
 
     def build(work):
-        upstream = upstream_inputs(selected, work / "inputs")
+        upstream = upstream_inputs(selected, work / "inputs", context)
         split = work / "split"
         index = collector.collect_split_assets(work / "inputs/core", work / "inputs/extensions", selected, context, split)
+        validate_collected_source(index, released)
         build_payloads(repacker, split, index, selected, work, module_revision, seven_zip, machine, upstream,
                        handoff_producer=handoff_producer, core_revision=core_revision)
     export_verified(output, build)
@@ -313,15 +381,16 @@ def build_payloads(repacker, split, index, selected, work, module_revision, seve
     handoff_producer = repacker.package_meta._state.validate_producer(handoff_producer)
     if len(selected) != 16 or len({row["name"] for row in selected}) != 16:
         raise ValueError("The exact producer must select all 16 modules")
-    identities([], {}, module_revision, core_revision=core_revision)
+    version = index["build_context"]["display_version"]
+    identities([], {}, module_revision, core_revision=core_revision, version=version)
     split_source = {"path": str(split / "split-assets.json"), "sha256": sha(split / "split-assets.json")}
     core_asset = next(row for row in index["assets"] if row["role"] == "core-runtime")
     raw = work / "raw-core"
     raw.mkdir()
     repacker._zip_inventory(split / core_asset["filename"], core_asset, raw)
-    abi = parse_abi(php_run(raw / "php.exe", ["-n", "-i"]))
-    core, modules = identities(selected, abi, module_revision, core_revision=core_revision)
-    evidence = {"source_sha256": core_asset["sha256"], "version": VERSION, "abi": abi}
+    abi = parse_abi(php_run(raw / "php.exe", ["-n", "-i"]), version)
+    core, modules = identities(selected, abi, module_revision, core_revision=core_revision, version=version)
+    evidence = {"source_sha256": core_asset["sha256"], "version": version, "abi": abi}
     prepared = repacker.prepare_php_payloads(split_source, core, modules, evidence,
                                             work / "prepared", seven_zip=seven_zip)
     audit = prepared["audit"]
@@ -372,17 +441,17 @@ def build_payloads(repacker, split, index, selected, work, module_revision, seve
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--portable-source", type=Path, required=True)
-    parser.add_argument("--producer-source", type=Path, required=True)
+    parser.add_argument("--version", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--core-revision", type=int, required=True)
     parser.add_argument("--module-revision", type=int, required=True)
     parser.add_argument("--seven-zip", required=True)
     parser.add_argument("--handoff-producer", type=Path, required=True)
     args = parser.parse_args()
-    pipeline(args.portable_source.absolute(), args.producer_source.absolute(), args.output_dir,
+    pipeline(args.portable_source.absolute(), args.output_dir,
              args.module_revision, args.seven_zip, handoff_producer_file=args.handoff_producer,
-             core_revision=args.core_revision)
-    print(f"Verified {VERSION} native x64 core and all 16 modules: {args.output_dir}")
+             core_revision=args.core_revision, version=args.version)
+    print(f"Verified {args.version} native x64 core and all 16 modules: {args.output_dir}")
 
 
 if __name__ == "__main__":

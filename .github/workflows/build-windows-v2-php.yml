@@ -3,6 +3,10 @@ name: build-windows-v2-php
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: Exact released PHP version to package from its existing split index
+        required: true
+        type: string
       core_revision:
         description: Explicit API-reviewed unoccupied core revision for this formal manifest
         required: true
@@ -17,7 +21,7 @@ permissions:
   actions: read
 
 jobs:
-  php-rc4:
+  php:
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
     steps:
@@ -29,22 +33,16 @@ jobs:
           ref: b614c80d50c417f22a92a78be2540c750c7559f8
           path: php-portable
           persist-credentials: false
-      - name: Checkout exact original producer configuration
-        uses: actions/checkout@v4
-        with:
-          repository: ServBay/PHP-Windows-Portable
-          ref: 5f5af83f797ae89a7187ddca87492cf8064d68d7
-          path: php-producer
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           architecture: x64
-      - name: Collect original run 40272362001 attempt 1 and validate both payload generations
+      - name: Resolve released source and validate both payload generations
         id: php
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_DISPATCH_PAT || github.token }}
+          PHP_VERSION: ${{ inputs.version }}
           CORE_REVISION: ${{ inputs.core_revision }}
           MODULE_REVISION: ${{ inputs.module_revision }}
         run: |
@@ -57,7 +55,7 @@ jobs:
           } | ConvertTo-Json -Compress | Set-Content -Encoding utf8 handoff-producer.json
           python -B runtime-windows/ci/php_v2_pipeline.py `
             --portable-source php-portable `
-            --producer-source php-producer `
+            --version "$env:PHP_VERSION" `
             --handoff-producer handoff-producer.json `
             --core-revision "$env:CORE_REVISION" `
             --module-revision "$env:MODULE_REVISION" `
