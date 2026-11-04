@@ -1649,6 +1649,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "composer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T14:53:54+00:00",
+        "expires_at": "2026-11-04T22:53:54+00:00",
+        "producer": {
+          "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+          "run_attempt": 1,
+          "run_id": "41852133538"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.30\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -8561,6 +8584,29 @@
         "version": "2.10.3"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "composer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T14:53:54+00:00",
+        "expires_at": "2026-11-04T22:53:54+00:00",
+        "producer": {
+          "commit": "e4c4f49e64bb246640fa9118df219c1eacdc08b4",
+          "run_attempt": 1,
+          "run_id": "41852133538"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.30\"}": {
       "consecutive_failures": 0,
