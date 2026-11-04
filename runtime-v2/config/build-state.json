@@ -1664,7 +1664,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.31\"}": {
+      "artifact_expires_at": "2026-11-11T14:50:02Z",
+      "artifact_id": "13335966073",
+      "artifact_name": "pkg2-macos-arm64-package-composer-2.2.31",
+      "artifact_zip_sha256": "02b51927b833d83e306a54325974a36350d9ef3a80cff2ce92e61345852cc607",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+        "run_attempt": 1,
+        "run_id": "41851132680"
+      },
+      "package_sha256": "7badcf992874ef1b6450674bcef7987249b3f32b90efcf55af6c9492d4823e08",
+      "producer": {
+        "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+        "run_attempt": 1,
+        "run_id": "41851132680"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1675,16 +1690,7 @@
         "runtime_version": "v2",
         "version": "2.2.31"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T14:47:57+00:00",
-        "expires_at": "2026-11-04T22:47:57+00:00",
-        "producer": {
-          "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
-          "run_attempt": 1,
-          "run_id": "41851132680"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-10-30T17:17:08Z",
@@ -8571,7 +8577,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.31\"}": {
+      "artifact_expires_at": "2026-11-11T14:51:01Z",
+      "artifact_id": "13334028515",
+      "artifact_name": "pkg2-macos-x86_64-package-composer-2.2.31",
+      "artifact_zip_sha256": "7802618c98ae241301ea2e38ad358e89feb23ac7469a778361eef28f1138dd12",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+        "run_attempt": 1,
+        "run_id": "41851132680"
+      },
+      "package_sha256": "9bcc531a2f1b1aaff2bfe66c958a0af39703906ed910936da78ac7d0cd8b856c",
+      "producer": {
+        "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+        "run_attempt": 1,
+        "run_id": "41851132680"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -8582,16 +8603,7 @@
         "runtime_version": "v2",
         "version": "2.2.31"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T14:47:57+00:00",
-        "expires_at": "2026-11-04T22:47:57+00:00",
-        "producer": {
-          "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
-          "run_attempt": 1,
-          "run_id": "41851132680"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-10-30T17:17:58Z",
