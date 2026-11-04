@@ -1663,6 +1663,29 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.31\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "composer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.2.31"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T14:47:57+00:00",
+        "expires_at": "2026-11-04T22:47:57+00:00",
+        "producer": {
+          "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+          "run_attempt": 1,
+          "run_id": "41851132680"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-10-30T17:17:08Z",
       "artifact_id": "12518442925",
@@ -8544,6 +8567,29 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "2.2.30"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"composer\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.2.31\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "composer",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.2.31"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-04T14:47:57+00:00",
+        "expires_at": "2026-11-04T22:47:57+00:00",
+        "producer": {
+          "commit": "de9be47c329b45ee5a32ad3fc8be44818a511577",
+          "run_attempt": 1,
+          "run_id": "41851132680"
+        }
       },
       "status": "discovered"
     },
