@@ -6010,7 +6010,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "artifact_expires_at": "2026-11-12T13:49:29Z",
+      "artifact_id": "13418914427",
+      "artifact_name": "pkg2-macos-arm64-package-maven-3.10.0-r1",
+      "artifact_zip_sha256": "14e3c4df30cbc7162c016b94e6c0b73e8706d2e9a2a36792a5187867788998ea",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+        "run_attempt": 1,
+        "run_id": "42038981648"
+      },
+      "package_sha256": "1495976f23049b1706b53e0b3784d0e488ddf6cd3cc50ea3c3ff3ff977636cd6",
+      "producer": {
+        "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+        "run_attempt": 1,
+        "run_id": "42038981648"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -6021,16 +6036,7 @@
         "runtime_version": "v2",
         "version": "3.10.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T13:48:17+00:00",
-        "expires_at": "2026-11-05T21:48:17+00:00",
-        "producer": {
-          "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
-          "run_attempt": 1,
-          "run_id": "42038981648"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:15:52Z",
@@ -13129,7 +13135,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "artifact_expires_at": "2026-11-12T13:50:46Z",
+      "artifact_id": "13419667880",
+      "artifact_name": "pkg2-macos-x86_64-package-maven-3.10.0-r1",
+      "artifact_zip_sha256": "b0aa528b557c0a4736209f8e97a727893e212073895cce099dbab18bf984cda7",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+        "run_attempt": 1,
+        "run_id": "42038981648"
+      },
+      "package_sha256": "379369f510dcf5157d3ea5b64c6aa3b0ac9c22b76353757e5be764a2d36bd54b",
+      "producer": {
+        "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+        "run_attempt": 1,
+        "run_id": "42038981648"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -13140,16 +13161,7 @@
         "runtime_version": "v2",
         "version": "3.10.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T13:48:17+00:00",
-        "expires_at": "2026-11-05T21:48:17+00:00",
-        "producer": {
-          "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
-          "run_attempt": 1,
-          "run_id": "42038981648"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:18:02Z",
