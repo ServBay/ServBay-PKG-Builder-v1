@@ -387,7 +387,7 @@ def environment_producer():
                                     'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])})
 
 
-def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, repository, work_dir, module_revision=0):
+def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, repository, work_dir, module_revision=0, selected_only=False):
     candidates = [json.loads(path.read_text()) for path in Path(candidate_dir).rglob('candidate.json')]
     if host_request:
         value = json.loads(host_request)
@@ -401,7 +401,8 @@ def plan_reserved_modules(candidate_dir, host_request, catalog_url, producer, re
             raise ValueError('The public module catalog failed; no empty fallback')
         catalog.extend(payload['data']['extensions'])
     plan = plan_modules(candidates, catalog, producer, module_revision=module_revision)
-    reserved = _state.reserve_github(plan['include'], producer, repository, Path(work_dir) / 'reservation') if plan['include'] else {'include': [], 'diagnostics': []}
+    reserved = _state.reserve_github(plan['include'], producer, repository, Path(work_dir) / 'reservation',
+                                     reconcile_records=plan['include'] if selected_only else None) if plan['include'] else {'include': [], 'diagnostics': []}
     matrix = selected_matrix(plan['include'], reserved['include'])
     plan['dependency_matrix'] = {'include': [row for row in matrix['include'] if row.get('required_modules')]}
     core_matrix = {'include': [{'artifact_name': row['candidate']['artifact_name'],
@@ -421,6 +422,7 @@ def main():
     plan.add_argument('--catalog', required=True)
     plan.add_argument('--output', required=True)
     plan.add_argument('--module-revision', type=int, default=0)
+    plan.add_argument('--selected-only', action='store_true')
     prepare = sub.add_parser('prepare-module')
     prepare.add_argument('--unit', required=True)
     prepare.add_argument('--candidate-dir', required=True)
@@ -437,7 +439,8 @@ def main():
     producer = environment_producer()
     if args.command == 'plan':
         result, matrix, cores, diagnostics = plan_reserved_modules(args.candidates, args.host_request, args.catalog,
-            producer, os.environ['GITHUB_REPOSITORY'], os.environ['RUNNER_TEMP'], module_revision=args.module_revision)
+            producer, os.environ['GITHUB_REPOSITORY'], os.environ['RUNNER_TEMP'], module_revision=args.module_revision,
+            selected_only=args.selected_only)
         Path(args.output).write_text(json.dumps(result, indent=2) + '\n')
         with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
             for key, value in [('matrix', json.dumps(matrix, separators=(',', ':'))), ('count', len(matrix['include'])),

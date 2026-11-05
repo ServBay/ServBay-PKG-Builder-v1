@@ -516,12 +516,18 @@ jobs:
           HOST_REQUEST: ${{ inputs.host_request }}
           MODULE_CATALOG_URL: ${{ vars.MODULE_CATALOG_URL }}
           MODULE_REVISION: ${{ inputs.module_revision }}
+          SCOPE_RESERVATIONS: ${{ inputs.scope_reservations }}
           PRODUCER_COMMIT: ${{ needs.plan.outputs.commit }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          case "${SCOPE_RESERVATIONS:-false}" in
+            true) set -- --selected-only ;;
+            false|'') set -- ;;
+            *) echo 'Invalid explicit reservation scope' >&2; exit 1 ;;
+          esac
           python3 runtime-v2/ci/module_pipeline.py plan --candidates candidates --host-request "$HOST_REQUEST" \
-            --catalog "$MODULE_CATALOG_URL" --module-revision "$MODULE_REVISION" --output module-plan.json
+            --catalog "$MODULE_CATALOG_URL" --module-revision "$MODULE_REVISION" --output module-plan.json "$@"
       - uses: actions/upload-artifact@v4
         with:
           name: module-plan-${{ inputs.pkg }}-${{ inputs.version }}-${{ inputs.arch }}-r${{ inputs.build_revision }}

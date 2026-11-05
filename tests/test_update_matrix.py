@@ -693,6 +693,103 @@ else:
             matrix = json.loads((root / 'matrix.json').read_text())['include']
             return initial, after, unrelated, owner_reads, matrix
 
+    def test_module_workflow_scope_reaches_real_cli_planner_and_cas_reservation(self):
+        workflow_tests = load_module('module_scope_workflow', 'tests/test_v2_workflows.py')
+        workflow = workflow_tests.WorkflowTests().workflow('build-macos.yml')
+        job = workflow['jobs']['module-plan']
+        step = next(row for row in job['steps'] if row.get('id') == 'modules')
+        pipeline = load_module('module_scope_pipeline', 'runtime-v2/ci/module_pipeline.py')
+        state = pipeline._state
+        producer = dict(commit='b' * 40, run_id='456', run_attempt=1)
+        target_owner = dict(commit='c' * 40, run_id='111', run_attempt=1)
+        foreign_owner = dict(commit='d' * 40, run_id='999', run_attempt=1)
+        host = dict(type='php', series='8.4', version='8.4.0', package_sha256='e' * 64,
+                    abi=dict(module_api=20240924, zend_extension_api=420240924,
+                             extension_build='API20240924,NTS', zend_extension_build='API420240924,NTS',
+                             zts=False, debug=False))
+        request = dict(origin='catalog-host', host=host, arch='arm64', base={}, minimum_os='12.0',
+                       filename='php-8.4.0.tar.gz', download_url='https://fixture.invalid/php.tar.gz')
+        records = pipeline._profiles.module_records(host, 'arm64')
+        foreign = [dict(records[0], arch='x86_64'),
+                   dict(runtime_version='v2', os='macos', kind='package', name='caddy',
+                        version='2.11.0', arch='arm64', build_revision=0)]
+        expired = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        initial = state.reserve_records({'schema_version': 1, 'units': {}}, [records[0]], target_owner, now=expired)['state']
+        initial = state.reserve_records(initial, foreign, foreign_owner, now=expired)['state']
+        default = workflow['on']['workflow_call']['inputs']['scope_reservations']['default']
+        for scope in (True, False, None):
+            with self.subTest(scope=scope), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / 'candidates').mkdir()
+                (root / 'ledger.json').write_text(json.dumps(initial))
+                # Execute the real step, replacing only external catalog/GitHub transports.
+                (root / 'python3').write_text('#!' + sys.executable + '\nPIPELINE_PATH = ' +
+                                             repr(str(ROOT / 'runtime-v2/ci/module_pipeline.py')) + '\n' + """import importlib.util,json,pathlib,sys
+root=pathlib.Path.cwd()
+(root/'argv.json').write_text(json.dumps(sys.argv[1:]))
+spec=importlib.util.spec_from_file_location('fixture_pipeline',PIPELINE_PATH)
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+module.read_catalog=lambda *args,**kwargs: {'status_code':200,'data':{'extensions':[]}}
+sys.argv=sys.argv[1:]
+module.main()
+""")
+                (root / 'python3').chmod(0o755)
+                (root / 'gh').write_text('#!' + sys.executable + '\n' + """import base64,json,pathlib,sys
+root=pathlib.Path.cwd();ledger=root/'ledger.json'
+endpoint=next(x for x in sys.argv if x.startswith('repos/'))
+with (root/'requests.jsonl').open('a') as out:out.write(json.dumps(endpoint)+'\\n')
+if '/actions/runs/' in endpoint:
+    owner=111 if '/runs/111/' in endpoint else 999
+    if endpoint.endswith('/jobs?per_page=100&page=1'): print(json.dumps({'jobs':[]}))
+    elif '/artifacts' in endpoint: print(json.dumps({'artifacts':[]}))
+    else: print(json.dumps({'id':owner,'run_attempt':1,'head_sha':('c' if owner==111 else 'd')*40,'status':'completed'}))
+elif '--method' in sys.argv:
+    payload=json.load(sys.stdin)
+    if not (root/'conflict').exists():
+        (root/'conflict').write_text('1');sys.stderr.write('HTTP 409');sys.exit(1)
+    ledger.write_bytes(base64.b64decode(payload['content']));print('{}')
+else: print(json.dumps({'sha':'fixture-blob','content':base64.b64encode(ledger.read_bytes()).decode()}))
+""")
+                (root / 'gh').chmod(0o755)
+                env = dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'],
+                           HOST_REQUEST=json.dumps(request), MODULE_CATALOG_URL='https://fixture.invalid/modules',
+                           MODULE_REVISION='0', PRODUCER_COMMIT=producer['commit'], GITHUB_RUN_ID=producer['run_id'],
+                           GITHUB_RUN_ATTEMPT='1', GITHUB_REPOSITORY='fixture/repo', RUNNER_TEMP=str(root),
+                           GITHUB_OUTPUT=str(root / 'github-output'), PYTHONDONTWRITEBYTECODE='1')
+                env.pop('SCOPE_RESERVATIONS', None)
+                for key, value in step.get('env', {}).items():
+                    if value == '${{ inputs.scope_reservations }}':
+                        env[key] = str(default if scope is None else scope).lower()
+                result = subprocess.run(['/bin/bash', '-c', step['run']], cwd=root, env=env, capture_output=True, text=True)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                after = json.loads((root / 'ledger.json').read_text())
+                queries = [json.loads(line) for line in (root / 'requests.jsonl').read_text().splitlines()]
+                foreign_reads = [q for q in queries if '/actions/runs/999/' in q]
+                if scope is True:
+                    for row in foreign:
+                        self.assertEqual(initial['units'][state.identity(row)], after['units'][state.identity(row)])
+                    self.assertEqual([], foreign_reads)
+                else:
+                    self.assertTrue(foreign_reads)
+                    for row in foreign:
+                        self.assertNotIn('reservation', after['units'][state.identity(row)])
+                self.assertEqual(producer, after['units'][state.identity(records[0])]['reservation']['producer'])
+                self.assertEqual(1, sum('/runs/111/attempts/1' in q and '/jobs' not in q for q in queries))
+                self.assertEqual(2, sum('/contents/' in q and '?' in q for q in queries))
+                argv = json.loads((root / 'argv.json').read_text())
+                self.assertEqual(scope is True, '--selected-only' in argv)
+                matrix = dict(line.split('=', 1) for line in (root / 'github-output').read_text().splitlines())
+                self.assertEqual({state.identity(row) for row in records},
+                                 {state.identity(row) for row in json.loads(matrix['matrix'])['include']})
+        expression = job['if'].removeprefix('${{').removesuffix('}}').strip().replace('always()', 'True')
+        for runtime, expected in [('v1', False), ('v2', True)]:
+            resolved = expression
+            for key, value in {'inputs.runtime_version': runtime, 'needs.plan.result': 'success',
+                               'inputs.host_request': json.dumps(request), 'needs.plan.outputs.count': '1',
+                               'inputs.pkg': 'php'}.items():
+                resolved = resolved.replace(key, repr(value))
+            self.assertEqual(expected, eval(resolved.replace('&&', ' and ').replace('||', ' or '), {'__builtins__': {}}, {}))
+
     def test_selected_parent_to_producer_reservation_chain_never_reads_or_changes_other_expired_owners(self):
         before, after, unrelated, reads, matrix = self.reservation_chain()
         state = load_module('chain_identity', 'runtime/ci/build_state.py')
