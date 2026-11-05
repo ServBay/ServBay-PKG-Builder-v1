@@ -5894,7 +5894,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "artifact_expires_at": "2026-11-11T16:15:52Z",
+      "artifact_id": "13341299458",
+      "artifact_name": "pkg2-macos-arm64-package-memcached-1.6.45-r1",
+      "artifact_zip_sha256": "dfabb2b9afb0728a5879b10a04701707eb0d850125560e300820cf6772c01430",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+        "run_attempt": 1,
+        "run_id": "41865192576"
+      },
+      "package_sha256": "807a3b57c072d25c488d1ea51dee49e0fbe0dda8203839e09a566d475835f32f",
+      "producer": {
+        "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+        "run_attempt": 1,
+        "run_id": "41865192576"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5905,16 +5920,7 @@
         "runtime_version": "v2",
         "version": "1.6.45"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T16:14:16+00:00",
-        "expires_at": "2026-11-05T00:14:16+00:00",
-        "producer": {
-          "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
-          "run_attempt": 1,
-          "run_id": "41865192576"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
@@ -6420,6 +6426,29 @@
         "version": "1.0.0"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "memcached",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.6.45"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T08:06:09+00:00",
+        "expires_at": "2026-11-05T16:06:09+00:00",
+        "producer": {
+          "commit": "501c9237e6442c41d29671fee50d22a97e5ccb2e",
+          "run_attempt": 1,
+          "run_id": "41991895790"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
@@ -12839,7 +12868,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "artifact_expires_at": "2026-11-11T16:18:02Z",
+      "artifact_id": "13342067682",
+      "artifact_name": "pkg2-macos-x86_64-package-memcached-1.6.45-r1",
+      "artifact_zip_sha256": "2c10901ecbf91cee5a540ff4c1ea75ff1b5cfcfcfadf4cd4b3850626129513c7",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+        "run_attempt": 1,
+        "run_id": "41865192576"
+      },
+      "package_sha256": "b72bf2c02e16931887891443077dcd44c987edd1a16e10c78a1878f3f2d2f3e5",
+      "producer": {
+        "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
+        "run_attempt": 1,
+        "run_id": "41865192576"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -12850,16 +12894,7 @@
         "runtime_version": "v2",
         "version": "1.6.45"
       },
-      "reservation": {
-        "claimed_at": "2026-11-04T16:14:16+00:00",
-        "expires_at": "2026-11-05T00:14:16+00:00",
-        "producer": {
-          "commit": "231fa36b67bf66a48fecbde9a82c592506866a22",
-          "run_attempt": 1,
-          "run_id": "41865192576"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
@@ -13414,6 +13449,29 @@
         "version": "2.4.69"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 2,
+        "build_type": "source",
+        "kind": "package",
+        "name": "memcached",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.6.45"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T08:06:09+00:00",
+        "expires_at": "2026-11-05T16:06:09+00:00",
+        "producer": {
+          "commit": "501c9237e6442c41d29671fee50d22a97e5ccb2e",
+          "run_attempt": 1,
+          "run_id": "41991895790"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":2,\"kind\":\"package\",\"name\":\"mysql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"5.7.44\"}": {
       "consecutive_failures": 1,
