@@ -9,6 +9,175 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTests(unittest.TestCase):
+    def _run_php85_patch_recipe(self, module, version, php="8.5", *, script=None,
+                                patch_source=None, fail_patch=False):
+        """Execute the real recipe; replace only download/build/install tools."""
+        if script is None:
+            script = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        name = "_build_php_mod_" + module
+        body = self._extract_shell_function(script, name)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "bin").mkdir()
+            (root / "extensions").mkdir()
+            (root / "extensions" / (module + ".so")).touch()
+            for tool in ("bin/phpize", "configure"):
+                target = root / tool
+                target.write_text("#!/bin/sh\necho " + Path(tool).name + " >> \"$TRACE\"\n")
+                target.chmod(0o755)
+            php_config = root / "bin/php-config"
+            php_config.write_text('#!/bin/sh\nprintf "%s\\n" "$SERVBAY_BUILD_DIR/extensions"\n')
+            php_config.chmod(0o755)
+            if patch_source is not None:
+                target = root / "src/contrib/php_array_api.h"
+                target.parent.mkdir(parents=True)
+                target.write_text(patch_source)
+                apply_patch = ("_apply_single_patch() {\n" + self._extract_shell_function(
+                    script, "_apply_single_patch") + "}\n")
+            else:
+                apply_patch = ('_apply_single_patch() { local selected="${1#$PATCH_DIR/}"; selected="${selected#$SERVBAY_BUILD_DIR/patch/}"; print -r -- "patch $selected $2" >> "$TRACE"; '
+                               + ("return 9" if fail_patch else ":") + "; }\n")
+            harness = r"""
+log_message() { :; }
+_download_pecl_source() { print -r -- "download $1 $2" >> "$TRACE"; }
+unpack_package() { print -r -- "unpack $1 $2" >> "$TRACE"; }
+sed() { print -r -- "sed $*" >> "$TRACE"; }
+find() { :; }
+make() { print -r -- "make $*" >> "$TRACE"; }
+cp() { :; }
+_install_php_module() { print -r -- install >> "$TRACE"; }
+_php_module_extension_dir() { print -r -- "$SERVBAY_BUILD_DIR/extensions"; }
+_verify_php_module_loads() { print -r -- "verify $3" >> "$TRACE"; }
+cleanup_source_directory() { print -r -- "cleanup $1" >> "$TRACE"; }
+patch() { print -r -- "real-patch $*" >> "$TRACE"; command /usr/bin/patch "$@"; }
+""" + apply_patch + name + "() {\n" + body + "}\n" + name + ' "$1" "$2.12" "$2" "$3"\n'
+            import os
+            env = dict(os.environ, TRACE=str(root / "trace"),
+                       PATCH_DIR=str(ROOT / "runtime-v2/patch"), PROJECT_ROOT=str(ROOT),
+                       SERVBAY_BUILD_DIR=tmp, SERVBAY_ETC_PATH=tmp, SERVBAY_LOG_PATH=tmp,
+                       SERVBAY_COMMON_PATH=tmp, MODULE_INSTALL_ROOT=tmp)
+            result = subprocess.run(["/bin/zsh", "-c", harness, "recipe-fixture", version, php, tmp],
+                                    cwd=root, env=env, capture_output=True, text=True, timeout=30)
+            events = (root / "trace").read_text().splitlines()
+            after = (root / "src/contrib/php_array_api.h").read_text() if patch_source is not None else None
+            return result, events, after
+
+    def test_v2_php85_memcached_patch_version_routes(self):
+        for version in ("3.2.0", "3.3.9", "3.4.0", "3.10.0", "4.0.0"):
+            with self.subTest(version=version):
+                result, events, _ = self._run_php85_patch_recipe("memcached", version)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                expected = ["patch php8.5/memcached.diff p0"] if version in ("3.2.0", "3.3.9") else []
+                self.assertEqual(expected, [e for e in events if e.startswith("patch ")])
+                self.assertIn("download memcached " + version, events)
+                self.assertIn("verify memcached", events)
+
+    def test_v2_php85_xdebug_patch_version_routes(self):
+        for version in ("3.4.3", "3.5.2", "3.5.3", "3.10.0", "4.0.0"):
+            with self.subTest(version=version):
+                result, events, _ = self._run_php85_patch_recipe("xdebug", version)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                legacy = version in ("3.4.3", "3.5.2")
+                self.assertEqual(["patch php8.5/xdebug-3.4.3-php8.5.patch p0"] if legacy else [],
+                                 [e for e in events if e.startswith("patch ")])
+                self.assertEqual(["sed -i  s/80500/80600/ configure"] if legacy else [],
+                                 [e for e in events if e.startswith("sed ")])
+                self.assertIn("verify xdebug", events)
+
+    def test_v2_php85_swoole_patch_version_routes(self):
+        for version in ("6.1.6", "6.2.3", "6.2.4", "6.10.0", "7.0.0"):
+            with self.subTest(version=version):
+                result, events, _ = self._run_php85_patch_recipe("swoole", version)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                expected = ["patch php8.5/swoole.diff p0"] if version in ("6.1.6", "6.2.3") else []
+                self.assertEqual(expected, [e for e in events if e.startswith("patch ")])
+                self.assertIn("verify swoole", events)
+
+    def test_v2_php85_mongodb_patch_version_routes(self):
+        for version in ("1.19.1", "1.21.11", "1.21.12", "1.30.0", "2.0.0"):
+            with self.subTest(version=version):
+                result, events, _ = self._run_php85_patch_recipe("mongodb", version)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                patch_version = "1.19.1" if version in ("1.19.1", "1.21.11") else "1.21.12"
+                self.assertEqual([f"patch php8.5/mongodb-{patch_version}-php8.5.patch p0"],
+                                 [e for e in events if e.startswith("patch ")])
+                self.assertIn("verify mongodb", events)
+
+    def test_v2_php85_mongodb_real_patch_and_failure_exit(self):
+        # Pristine excerpts from official PECL source, not reconstructed patch output.
+        # 1.21.12 full header SHA256: cfe6ab1b17570d646f1289c8ff1a24be31b798961d7e51da1e2e15b6c2383740
+        # 1.19.1 full header SHA256: 9881878c6b51edfc7321a4244f7e1275d7877c6cc7f6275f2f907622ee7fa4f7
+        for version, middle in (("1.19.1", "#ifdef ZEND_ENGINE_3\n\t\t\t*pfree = ! IS_INTERNED(Z_STR(c));\n#else\n\t\t\t*pfree = ! IS_INTERNED(Z_STRVAL(c));\n#endif\n"),
+                                ("1.21.12", "\t\t\t*pfree = ! IS_INTERNED(Z_STR(c));\n")):
+            source = ("\t\tdefault:\n\t\t{\n\t\t\tzval c = *z;\n\t\t\tzval_copy_ctor(&c);\n"
+                      "\t\t\tconvert_to_string(&c);\n" + middle +
+                      "\t\t\t*plen = Z_STRLEN(c);\n\t\t\treturn Z_STRVAL(c);\n\t\t}\n\t}\n}\n")
+            old = "*pfree = ! IS_INTERNED(Z_STR(c));"
+            new = "*pfree = ! ZSTR_IS_INTERNED(Z_STR(c));"
+            self.assertEqual(1, source.count(old))
+            patch = ROOT / f"runtime-v2/patch/php8.5/mongodb-{version}-php8.5.patch"
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as tmp:
+                target = Path(tmp) / "src/contrib/php_array_api.h"
+                target.parent.mkdir(parents=True)
+                target.write_text(source)
+                self.assertTrue(patch.is_file(), str(patch))
+                with patch.open() as patch_input:
+                    dry = subprocess.run(["/usr/bin/patch", "--dry-run", "--ignore-whitespace", "-N", "-p0"],
+                                         stdin=patch_input, cwd=tmp, capture_output=True, text=True, timeout=30)
+                self.assertEqual(0, dry.returncode, dry.stdout + dry.stderr)
+                self.assertEqual(source, target.read_text())
+                result, events, after = self._run_php85_patch_recipe("mongodb", version, patch_source=source)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                expected = source.replace(old, new)
+                if version == "1.19.1":
+                    # The preserved legacy patch writes two tabs; its input has three.
+                    expected = expected.replace("\t\t\t" + new, "\t\t" + new)
+                self.assertEqual(expected, after)
+                self.assertEqual(1, after.count(new))
+                self.assertIn("verify mongodb", events)
+                broken = source.replace(old, "*pfree = 0;")
+                result, events, after = self._run_php85_patch_recipe("mongodb", version, patch_source=broken)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertEqual(broken, after)
+                self.assertNotIn("phpize", events)
+                self.assertNotIn("install", events)
+
+    def test_v2_php85_legacy_patch_failure_stops_each_recipe(self):
+        for module, version, phpize_before_patch in (("memcached", "3.2.0", False),
+                                                     ("xdebug", "3.4.3", True),
+                                                     ("swoole", "6.1.6", False),
+                                                     ("mongodb", "1.19.1", False)):
+            with self.subTest(module=module):
+                result, events, _ = self._run_php85_patch_recipe(module, version, fail_patch=True)
+                self.assertNotEqual(0, result.returncode)
+                self.assertEqual(phpize_before_patch, "phpize" in events)
+                self.assertNotIn("configure", events)
+                self.assertNotIn("install", events)
+                self.assertNotIn("verify " + module, events)
+
+    def test_v1_and_v2_php84_php86_patch_routes_stay_compatible(self):
+        v1 = (ROOT / "runtime/build_package").read_text()
+        cases = {
+            "memcached": ("3.4.0", ["patch php8.6/memcached-3.4.0.patch p0"]),
+            "xdebug": ("3.5.3", ["patch php8.5/xdebug-3.4.3-php8.5.patch p0", "patch php8.6/xdebug-ini.patch p0"]),
+            "swoole": ("6.2.4", ["patch php8.6/swoole-rc4.patch p0"]),
+            "mongodb": ("1.21.12", []),
+        }
+        for module, (version, php86_patches) in cases.items():
+            for php, expected in (("8.4", []), ("8.6", php86_patches)):
+                with self.subTest(runtime="v2", module=module, php=php):
+                    result, events, _ = self._run_php85_patch_recipe(module, version, php)
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertEqual(expected, [e for e in events if e.startswith("patch ")])
+                    self.assertIn("verify " + module, events)
+            with self.subTest(runtime="v1", module=module):
+                result, events, _ = self._run_php85_patch_recipe(module, version, script=v1)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                old_patch = {"memcached": "memcached.diff", "xdebug": "xdebug-3.4.3-php8.5.patch",
+                             "swoole": "swoole.diff", "mongodb": "mongodb-1.19.1-php8.5.patch"}[module]
+                self.assertEqual(["patch php8.5/" + old_patch + " p0"],
+                                 [e for e in events if e.startswith("patch ")])
+
     def test_macos_php7_resolves_and_iconv_reach_the_configure_link_line(self):
         # 7.0-7.3 need two libraries that configure must know about before it
         # writes the Makefile: the base's GNU libiconv (the system/SDK stub has
