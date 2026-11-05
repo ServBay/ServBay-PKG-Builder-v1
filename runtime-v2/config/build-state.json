@@ -5894,7 +5894,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
+      "artifact_expires_at": "2026-11-12T09:40:12Z",
+      "artifact_id": "13404081902",
+      "artifact_name": "pkg2-macos-arm64-package-deno-2.9.8-r1",
+      "artifact_zip_sha256": "65a5bec07567595cb9eb9b220c60265c294c89c1f96d5a9951398f0dfbaeee87",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
+        "run_attempt": 1,
+        "run_id": "42003914663"
+      },
+      "package_sha256": "03168adc76b77d0b6fc25efbebead9c4073433e2da686b7a2bf639fe772af2bc",
+      "producer": {
+        "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
+        "run_attempt": 1,
+        "run_id": "42003914663"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5905,16 +5920,7 @@
         "runtime_version": "v2",
         "version": "2.9.8"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T09:37:41+00:00",
-        "expires_at": "2026-11-05T17:37:41+00:00",
-        "producer": {
-          "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
-          "run_attempt": 1,
-          "run_id": "42003914663"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:15:52Z",
@@ -12897,7 +12903,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
+      "artifact_expires_at": "2026-11-12T09:42:58Z",
+      "artifact_id": "13403663187",
+      "artifact_name": "pkg2-macos-x86_64-package-deno-2.9.8-r1",
+      "artifact_zip_sha256": "341a0b20dfd05372cd6da91578e5e1753a773862dcb1b1894154bd4b66bf54d5",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
+        "run_attempt": 1,
+        "run_id": "42003914663"
+      },
+      "package_sha256": "9f92a20098e189ebe5a39bc691f746870ca371654a1c78030200aaba0c8903df",
+      "producer": {
+        "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
+        "run_attempt": 1,
+        "run_id": "42003914663"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -12908,16 +12929,7 @@
         "runtime_version": "v2",
         "version": "2.9.8"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T09:37:41+00:00",
-        "expires_at": "2026-11-05T17:37:41+00:00",
-        "producer": {
-          "commit": "ba6265665221515cec7d028f0b480a6d8e268668",
-          "run_attempt": 1,
-          "run_id": "42003914663"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:18:02Z",
