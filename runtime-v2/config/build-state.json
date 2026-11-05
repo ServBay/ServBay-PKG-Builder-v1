@@ -5894,7 +5894,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
+      "artifact_expires_at": "2026-11-12T12:37:10Z",
+      "artifact_id": "13415475725",
+      "artifact_name": "pkg2-macos-arm64-package-caddy-2.11.7-r1",
+      "artifact_zip_sha256": "b1f724c344ccc818d51f27d40306bd7d4964bdee0d553448a16c16efaba0590e",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+        "run_attempt": 1,
+        "run_id": "42027783750"
+      },
+      "package_sha256": "51c8b12d7d197af943aa28cbad326ce0df4616045cfb14e5271453b3fae82c35",
+      "producer": {
+        "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+        "run_attempt": 1,
+        "run_id": "42027783750"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -5905,16 +5920,7 @@
         "runtime_version": "v2",
         "version": "2.11.7"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T12:31:05+00:00",
-        "expires_at": "2026-11-05T20:31:05+00:00",
-        "producer": {
-          "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
-          "run_attempt": 1,
-          "run_id": "42027783750"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-11-12T09:40:12Z",
@@ -12955,7 +12961,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
+      "artifact_expires_at": "2026-11-12T12:40:36Z",
+      "artifact_id": "13414749015",
+      "artifact_name": "pkg2-macos-x86_64-package-caddy-2.11.7-r1",
+      "artifact_zip_sha256": "54882ad1d61d32e87a1c27f6b6ed90efbf9ef0468578b74bf056315671e3dd64",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+        "run_attempt": 1,
+        "run_id": "42027783750"
+      },
+      "package_sha256": "359781ab7d8076264aa85c65a5116bd0ac852c4b0777d80fc69baef09a784975",
+      "producer": {
+        "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+        "run_attempt": 1,
+        "run_id": "42027783750"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -12966,16 +12987,7 @@
         "runtime_version": "v2",
         "version": "2.11.7"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T12:31:05+00:00",
-        "expires_at": "2026-11-05T20:31:05+00:00",
-        "producer": {
-          "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
-          "run_attempt": 1,
-          "run_id": "42027783750"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-11-12T09:42:58Z",
