@@ -479,16 +479,46 @@ def github_owner_snapshot(repository, producer, artifact_dir, allow_running=Fals
         raise ValueError("Invalid GitHub repository")
     root = f"repos/{repository}/actions"
 
-    def get(endpoint):
-        result = subprocess.run(["gh", "api", endpoint], check=True, capture_output=True, text=True, timeout=120)
+    def get(endpoint, timeout=120):
+        result = subprocess.run(["gh", "api", endpoint], check=True, capture_output=True, text=True, timeout=timeout)
         return json.loads(result.stdout)
 
-    run = get(f"{root}/runs/{producer['run_id']}/attempts/{producer['run_attempt']}")
-    if (str(run.get("id")) != producer["run_id"] or run.get("run_attempt") != producer["run_attempt"]
-            or run.get("head_sha") != producer["commit"]):
-        raise ValueError("GitHub owner run/attempt/head does not match its reservation")
-    if run.get("status") != "completed" and not (allow_running and run.get("status") == "in_progress"):
-        return {"run": run, "jobs": [], "artifacts": [], "artifact_dir": artifact_dir}
+    endpoint = f"{root}/runs/{producer['run_id']}/attempts/{producer['run_attempt']}"
+    deadline = time.monotonic() + 300 if allow_running else None
+    status = None
+    while True:
+        timeout_message = (f"Timed out after 300s waiting for GitHub owner status={status!r}; "
+                           f"run_id={producer['run_id']} run_attempt={producer['run_attempt']} endpoint={endpoint}")
+        remaining = deadline - time.monotonic() if allow_running else 120
+        if remaining <= 0:
+            raise ValueError(timeout_message)
+        try:
+            run = get(endpoint, timeout=min(120, remaining))
+            if (str(run.get("id")) != producer["run_id"] or run.get("run_attempt") != producer["run_attempt"]
+                    or run.get("head_sha") != producer["commit"]):
+                raise ValueError("GitHub owner run/attempt/head does not match its reservation")
+        except (ValueError, subprocess.SubprocessError) as error:
+            if isinstance(error, subprocess.TimeoutExpired) and allow_running and time.monotonic() >= deadline:
+                raise ValueError(timeout_message) from error
+            if allow_running and status is not None:
+                error.add_note(f"Last confirmed GitHub owner status={status!r}; "
+                               f"run_id={producer['run_id']} run_attempt={producer['run_attempt']} endpoint={endpoint}")
+            raise
+        status = run.get("status")
+        if not allow_running:
+            if status != "completed":
+                return {"run": run, "jobs": [], "artifacts": [], "artifact_dir": artifact_dir}
+            break
+        if status not in ("queued", "requested", "waiting", "pending", "in_progress", "completed"):
+            raise ValueError(f"GitHub owner returned invalid status={status!r}; "
+                             f"run_id={producer['run_id']} run_attempt={producer['run_attempt']} endpoint={endpoint}")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError(f"Timed out after 300s waiting for GitHub owner status={status!r}; "
+                             f"run_id={producer['run_id']} run_attempt={producer['run_attempt']} endpoint={endpoint}")
+        if status in ("in_progress", "completed"):
+            break
+        time.sleep(min(5, remaining))
 
     def pages(endpoint, field):
         rows, page = [], 1
