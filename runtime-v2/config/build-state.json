@@ -5893,6 +5893,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "caddy",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.7"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T12:31:05+00:00",
+        "expires_at": "2026-11-05T20:31:05+00:00",
+        "producer": {
+          "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+          "run_attempt": 1,
+          "run_id": "42027783750"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"deno\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.9.8\"}": {
       "artifact_expires_at": "2026-11-12T09:40:12Z",
       "artifact_id": "13404081902",
@@ -12928,6 +12951,29 @@
         "recipe_name": "httpd",
         "runtime_version": "v2",
         "version": "2.4.69"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.7\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "caddy",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.7"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T12:31:05+00:00",
+        "expires_at": "2026-11-05T20:31:05+00:00",
+        "producer": {
+          "commit": "5554ef8263e8b2466eb6c358feb4f21ffe735c6f",
+          "run_attempt": 1,
+          "run_id": "42027783750"
+        }
       },
       "status": "discovered"
     },
