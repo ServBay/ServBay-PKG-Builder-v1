@@ -6009,6 +6009,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "maven",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.10.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T13:48:17+00:00",
+        "expires_at": "2026-11-05T21:48:17+00:00",
+        "producer": {
+          "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+          "run_attempt": 1,
+          "run_id": "42038981648"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:15:52Z",
       "artifact_id": "13341299458",
@@ -13104,6 +13127,29 @@
         "version": "2.56.0"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "maven",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "3.10.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-05T13:48:17+00:00",
+        "expires_at": "2026-11-05T21:48:17+00:00",
+        "producer": {
+          "commit": "7ac7aaf22579fadad1b37dde9a00f43eed98ffcb",
+          "run_attempt": 1,
+          "run_id": "42038981648"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-11-11T16:18:02Z",
