@@ -3435,7 +3435,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"20.20.2\"}": {
+      "artifact_expires_at": "2026-11-12T14:50:03Z",
+      "artifact_id": "13425458625",
+      "artifact_name": "pkg2-macos-arm64-package-node-20.20.2",
+      "artifact_zip_sha256": "7896f576e5bc09415e8a39b52b03f587a04691a15237d7d41b80d0491dd53471",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
+        "run_attempt": 1,
+        "run_id": "42048553380"
+      },
+      "package_sha256": "8109dc3eca6802cd930026794dec5af113439305ceb2fa1ff752bfa305a9b41d",
+      "producer": {
+        "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
+        "run_attempt": 1,
+        "run_id": "42048553380"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3446,16 +3461,7 @@
         "runtime_version": "v2",
         "version": "20.20.2"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T14:48:30+00:00",
-        "expires_at": "2026-11-05T22:48:30+00:00",
-        "producer": {
-          "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
-          "run_attempt": 1,
-          "run_id": "42048553380"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"21.7.3\"}": {
       "consecutive_failures": 0,
@@ -10589,7 +10595,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"20.20.2\"}": {
+      "artifact_expires_at": "2026-11-12T14:54:17Z",
+      "artifact_id": "13425997075",
+      "artifact_name": "pkg2-macos-x86_64-package-node-20.20.2",
+      "artifact_zip_sha256": "7a935b1d9c3b557acc5d49ea85f85ff0a9432c48a1a1e90cd86f26cbf06b8bea",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
+        "run_attempt": 1,
+        "run_id": "42048553380"
+      },
+      "package_sha256": "8ea33af1718abbdbb2b9096b6cb55c8f4816cd80c5a4a798df5e7282201e2196",
+      "producer": {
+        "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
+        "run_attempt": 1,
+        "run_id": "42048553380"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10600,16 +10621,7 @@
         "runtime_version": "v2",
         "version": "20.20.2"
       },
-      "reservation": {
-        "claimed_at": "2026-11-05T14:48:30+00:00",
-        "expires_at": "2026-11-05T22:48:30+00:00",
-        "producer": {
-          "commit": "b300beae091e12f624b07366a5e78cab794d7ed3",
-          "run_attempt": 1,
-          "run_id": "42048553380"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"21.7.3\"}": {
       "consecutive_failures": 0,
