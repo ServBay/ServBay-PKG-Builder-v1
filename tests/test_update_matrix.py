@@ -3,6 +3,7 @@ import contextlib
 import copy
 from datetime import datetime, timedelta, timezone
 import io
+import hashlib
 import json
 import os
 import re
@@ -11,7 +12,9 @@ import subprocess
 import sys
 from unittest import mock
 import tempfile
+import traceback
 import unittest
+import zipfile
 from pathlib import Path
 
 
@@ -204,6 +207,288 @@ class SelectedV2UpdateTests(unittest.TestCase):
         self.assertEqual(3, result['state']['units'][self.state.identity(target)]['consecutive_failures'])
         with self.assertRaises(ValueError):
             self.state.reserve_github([target], dict(producer, commit='invalid'), 'fixture/repo', Path(self.tmp.name), read_state=lambda: ('fixture', state), write_state=lambda sha, updated: None, reconcile_records=[target])
+
+
+class OwnerSnapshotWaitTests(unittest.TestCase):
+    def setUp(self):
+        self.state = load_module('owner_wait_state', 'runtime/ci/build_state.py')
+        self.producer = dict(commit='a' * 40, run_id='123', run_attempt=1)
+        self.record = dict(runtime_version='v2', os='macos', kind='package', name='nginx',
+                           version='1.32.0', arch='arm64', build_revision=0)
+        self.endpoint = 'repos/fixture/repo/actions/runs/123/attempts/1'
+
+    def run_data(self, status='in_progress', **changes):
+        return dict(dict(id=123, run_attempt=1, head_sha=self.producer['commit'], status=status), **changes)
+
+    @contextlib.contextmanager
+    def owner_api(self, runs, *, state=None, durations=(0,), artifacts=(), archive=b''):
+        state = state or self.state
+        trace = dict(now=0, requests=[], sleeps=[], reads=0)
+
+        def request(command, **kwargs):
+            endpoint = command[2]
+            trace['requests'].append((endpoint, kwargs.get('timeout')))
+            if endpoint == self.endpoint:
+                index = trace['reads']
+                trace['reads'] += 1
+                duration = durations[min(index, len(durations) - 1)]
+                self.assertLessEqual(duration, kwargs['timeout'])
+                trace['now'] += duration
+                value = runs[min(index, len(runs) - 1)]
+                if isinstance(value, Exception):
+                    raise value
+                output = value if isinstance(value, str) else json.dumps(value)
+            elif endpoint == self.endpoint + '/jobs?per_page=100&page=1':
+                output = json.dumps({'jobs': []})
+            elif endpoint == 'repos/fixture/repo/actions/runs/123/artifacts?per_page=100&page=1':
+                output = json.dumps({'artifacts': list(artifacts)})
+            elif endpoint == 'repos/fixture/repo/actions/artifacts/321/zip':
+                kwargs['stdout'].write(archive)
+                output = ''
+            else:
+                raise AssertionError('Unexpected GitHub request: ' + endpoint)
+            return subprocess.CompletedProcess(command, 0, stdout=output, stderr='')
+
+        def sleep(seconds):
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, min(5, 300 - trace['now']))
+            trace['sleeps'].append(seconds)
+            trace['now'] += seconds
+
+        with mock.patch.object(state.subprocess, 'run', side_effect=request), \
+                mock.patch.object(state.time, 'monotonic', side_effect=lambda: trace['now']), \
+                mock.patch.object(state.time, 'sleep', side_effect=sleep):
+            yield trace
+
+    def snapshot(self, directory, **kwargs):
+        return self.state.github_owner_snapshot('fixture/repo', self.producer, directory, **kwargs)
+
+    def collect_fixture(self, root):
+        state_path, records, report = root / 'state.json', root / 'records.json', root / 'report.json'
+        initial = self.state.reserve_records({'schema_version': 1, 'units': {}}, [self.record], self.producer)['state']
+        state_path.write_text(json.dumps(initial))
+        records.write_text(json.dumps({'include': [self.record]}))
+        (root / 'producer.json').write_text(json.dumps(self.producer))
+        argv = ['build_state.py', 'collect', '--state', str(state_path), '--records', str(records),
+                '--producer', str(root / 'producer.json'), '--artifact-dir', str(root / 'artifacts'),
+                '--repository', 'fixture/repo', '--report', str(report), '--persist']
+        return initial, state_path, report, argv
+
+    def test_each_transient_status_waits_then_reads_exact_attempt_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for status in ('queued', 'requested', 'waiting', 'pending'):
+                with self.subTest(status=status), self.owner_api([self.run_data(status), self.run_data()]) as trace:
+                    snapshot = self.snapshot(directory, allow_running=True)
+                    self.assertEqual('in_progress', snapshot['run']['status'])
+                    self.assertEqual(2, trace['reads'])
+                    self.assertEqual([5], trace['sleeps'])
+                    self.assertEqual(4, len(trace['requests']))
+
+    def test_collectible_statuses_never_sleep_including_failed_or_cancelled_runs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for status, conclusion in (('in_progress', None), ('completed', 'success'),
+                                       ('completed', 'failure'), ('completed', 'cancelled')):
+                with self.subTest(status=status, conclusion=conclusion), \
+                        self.owner_api([self.run_data(status, conclusion=conclusion)]) as trace:
+                    snapshot = self.snapshot(directory, allow_running=True)
+                    self.assertEqual(conclusion, snapshot['run']['conclusion'])
+                    self.assertEqual(3, len(trace['requests']))
+                    self.assertEqual([], trace['sleeps'])
+
+    def test_transient_budget_includes_requests_and_caps_final_sleep(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for durations, timeouts, sleeps in (((0,), [min(120, 300 - 5 * n) for n in range(60)], [5] * 60),
+                                                ((120, 120, 50), [120, 120, 50], [5, 5]),
+                                                ((120, 120, 49), [120, 120, 50], [5, 5, 1])):
+                with self.subTest(durations=durations), \
+                        self.owner_api([self.run_data('pending')], durations=durations) as trace:
+                    with self.assertRaises(ValueError) as failure:
+                        self.snapshot(directory, allow_running=True)
+                    message = str(failure.exception)
+                    for value in ('pending', '123', '1', self.endpoint, '300'):
+                        self.assertIn(value, message)
+                    self.assertEqual(300, trace['now'])
+                    self.assertEqual(timeouts, [timeout for _, timeout in trace['requests']])
+                    self.assertEqual(sleeps, trace['sleeps'])
+            runs = [self.run_data('pending'), self.run_data('pending'),
+                    subprocess.TimeoutExpired(['gh', 'api'], 50)]
+            with self.owner_api(runs, durations=(120, 120, 50)) as trace:
+                with self.assertRaises(ValueError) as failure:
+                    self.snapshot(directory, allow_running=True)
+                for value in ('pending', 'run_id=123', 'run_attempt=1', self.endpoint, '300'):
+                    self.assertIn(value, str(failure.exception))
+                self.assertEqual(300, trace['now'])
+                self.assertEqual(3, trace['reads'])
+                self.assertEqual([5, 5], trace['sleeps'])
+
+    def test_identity_is_revalidated_after_wait_before_any_other_request_or_state_write(self):
+        for field, value in (('id', 999), ('run_attempt', 2), ('head_sha', 'b' * 40)):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                initial, state_path, report, argv = self.collect_fixture(root)
+                before = state_path.read_bytes()
+                changed = self.run_data()
+                changed[field] = value
+                with self.owner_api([self.run_data('queued'), changed]) as trace, \
+                        mock.patch.object(self.state, 'github_state_store', return_value=(
+                            lambda: ('fixture', copy.deepcopy(initial)), lambda sha, state: None)) as store, \
+                        mock.patch.object(sys, 'argv', argv):
+                    with self.assertRaisesRegex(ValueError, 'run/attempt/head'):
+                        self.state.main()
+                    self.assertEqual([self.endpoint, self.endpoint], [url for url, _ in trace['requests']])
+                    self.assertEqual([5], trace['sleeps'])
+                    self.assertEqual([], list((root / 'artifacts').iterdir()))
+                    self.assertEqual(before, state_path.read_bytes())
+                    self.assertFalse(report.exists())
+                    store.assert_not_called()
+
+    def test_invalid_status_and_http_or_json_errors_are_not_retried(self):
+        missing = self.run_data()
+        missing.pop('status')
+        cases = [self.run_data(status) for status in ('unknown', '', None, ['queued'], 'failure', 'cancelled')]
+        cases += [missing, subprocess.CalledProcessError(1, ['gh', 'api']),
+                  subprocess.TimeoutExpired(['gh', 'api'], 120), '{broken']
+        with tempfile.TemporaryDirectory() as directory:
+            for value in cases:
+                for after_wait in (False, True):
+                    runs = ([self.run_data('requested')] if after_wait else []) + [value]
+                    with self.subTest(value=value, after_wait=after_wait), self.owner_api(runs) as trace:
+                        with self.assertRaises((ValueError, subprocess.SubprocessError)) as failure:
+                            self.snapshot(Path(directory) / 'unwritten', allow_running=True)
+                        if isinstance(value, dict):
+                            message = str(failure.exception)
+                            for field in (repr(value.get('status')), 'run_id=123', 'run_attempt=1', self.endpoint):
+                                self.assertIn(field, message)
+                        self.assertEqual(1 + after_wait, len(trace['requests']))
+                        self.assertEqual([5] if after_wait else [], trace['sleeps'])
+                        self.assertFalse((Path(directory) / 'unwritten').exists())
+
+    def test_old_owner_reads_remain_single_shot_without_waiting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for status in ('queued', 'requested', 'waiting', 'pending', 'in_progress', 'unknown', None):
+                with self.subTest(status=status), self.owner_api([self.run_data(status)]) as trace:
+                    snapshot = self.snapshot(directory)
+                    self.assertEqual([], snapshot['jobs'])
+                    self.assertEqual([], snapshot['artifacts'])
+                    self.assertEqual([(self.endpoint, 120)], trace['requests'])
+                    self.assertEqual([], trace['sleeps'])
+
+    def test_wait_failures_preserve_exception_and_show_last_confirmed_status_in_traceback(self):
+        body = 'private-response-body-fixture'
+        http = subprocess.CalledProcessError(1, ['gh', 'api', self.endpoint], output=body, stderr=body)
+        timeout = subprocess.TimeoutExpired(['gh', 'api', self.endpoint], 120)
+        cases = [('http', http, subprocess.CalledProcessError), ('json', body, json.JSONDecodeError),
+                 ('timeout', timeout, subprocess.TimeoutExpired)]
+        for field, value in (('id', 999), ('run_attempt', 2), ('head_sha', 'b' * 40)):
+            changed = self.run_data()
+            changed[field] = value
+            cases.append((field, changed, ValueError))
+        for label, value, expected_type in cases:
+            with self.subTest(error=label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                initial, state_path, report, argv = self.collect_fixture(root)
+                before = state_path.read_bytes()
+                with self.owner_api([self.run_data('requested'), value]) as trace, \
+                        mock.patch.object(self.state, 'github_state_store', return_value=(
+                            lambda: ('fixture', copy.deepcopy(initial)), lambda sha, state: None)) as store, \
+                        mock.patch.object(sys, 'argv', argv):
+                    with self.assertRaises(expected_type) as failure:
+                        try:
+                            self.state.main()
+                        except expected_type as caught:
+                            visible = ''.join(traceback.format_exception(caught))
+                            raise
+                    error = failure.exception
+                    self.assertIs(type(error), expected_type)
+                    if isinstance(value, Exception):
+                        self.assertIs(value, error)
+                    self.assertIsNone(error.__cause__)
+                    self.assertIn('Traceback (most recent call last):', visible)
+                    for field in ("status='requested'", 'run_id=123', 'run_attempt=1', self.endpoint):
+                        self.assertIn(field, visible)
+                    self.assertNotIn(body, visible)
+                    self.assertEqual([self.endpoint, self.endpoint], [url for url, _ in trace['requests']])
+                    self.assertEqual([5], trace['sleeps'])
+                    self.assertEqual([], list((root / 'artifacts').iterdir()))
+                    self.assertEqual(before, state_path.read_bytes())
+                    self.assertFalse(report.exists())
+                    store.assert_not_called()
+
+    def test_old_owner_errors_keep_original_type_and_diagnostics_without_notes(self):
+        for value, expected_type in ((subprocess.CalledProcessError(1, ['gh', 'api']), subprocess.CalledProcessError),
+                                     ('{broken', json.JSONDecodeError),
+                                     (subprocess.TimeoutExpired(['gh', 'api'], 120), subprocess.TimeoutExpired),
+                                     (self.run_data(head_sha='b' * 40), ValueError)):
+            with self.subTest(error=expected_type), tempfile.TemporaryDirectory() as directory, \
+                    self.owner_api([value]) as trace:
+                with self.assertRaises(expected_type) as failure:
+                    self.snapshot(Path(directory) / 'unwritten')
+                error = failure.exception
+                self.assertIs(type(error), expected_type)
+                if isinstance(value, Exception):
+                    self.assertIs(value, error)
+                self.assertFalse(getattr(error, '__notes__', []))
+                self.assertNotIn('Last confirmed', ''.join(traceback.format_exception(error)))
+                self.assertEqual([(self.endpoint, 120)], trace['requests'])
+                self.assertEqual([], trace['sleeps'])
+                self.assertFalse((Path(directory) / 'unwritten').exists())
+
+    def artifact_fixture(self, record):
+        package, manifest = b'fixture package bytes', b'fixture module manifest'
+        meta = dict(record, schema_version=2, producer=self.producer, filename='package.tar.gz',
+                    sha256=hashlib.sha256(package).hexdigest(), manifest_filename='manifest.json',
+                    manifest_sha256=hashlib.sha256(manifest).hexdigest())
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w') as archive:
+            archive.writestr('meta.json', json.dumps(meta))
+            archive.writestr(meta['filename'], package)
+            archive.writestr(meta['manifest_filename'], manifest)
+        archive = output.getvalue()
+        artifact = dict(id=321, name=self.state.artifact_name(record), expired=False,
+                        expires_at='2026-11-09T00:00:00Z', digest='sha256:' + hashlib.sha256(archive).hexdigest(),
+                        workflow_run=dict(id=123, head_sha=self.producer['commit']))
+        return meta, archive, artifact
+
+    def test_real_collect_cli_waits_and_persists_verified_zip_and_package_hashes(self):
+        meta, archive, artifact = self.artifact_fixture(self.record)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            initial, state_path, report, argv = self.collect_fixture(root)
+            writes = []
+            with self.owner_api([self.run_data('waiting'), self.run_data('completed', conclusion='failure')],
+                                artifacts=[artifact], archive=archive) as trace, \
+                    mock.patch.object(self.state, 'github_state_store', return_value=(
+                        lambda: ('fixture', copy.deepcopy(initial)), lambda sha, state: writes.append((sha, state)))), \
+                    mock.patch.object(sys, 'argv', argv):
+                self.state.main()
+            self.assertEqual([5], trace['sleeps'])
+            self.assertEqual(1, len(writes))
+            result = json.loads(state_path.read_text())
+            self.assertEqual(result, writes[0][1])
+            unit = result['units'][self.state.identity(self.record)]
+            self.assertEqual('build-ready', unit['status'])
+            self.assertEqual(meta['sha256'], unit['package_sha256'])
+            self.assertEqual(artifact['digest'][7:], unit['artifact_zip_sha256'])
+            self.assertEqual(self.producer, unit['producer'])
+            self.assertEqual(archive, (root / 'artifacts/321.zip').read_bytes())
+            summary = json.loads(report.read_text())
+            self.assertEqual(1, summary['ready_count'])
+            self.assertEqual([], summary['diagnostics'])
+
+    def test_module_consumer_waits_using_real_shared_snapshot_and_verifies_archive(self):
+        pipeline = load_module('owner_wait_pipeline', 'runtime-v2/ci/module_pipeline.py')
+        record = dict(self.record, kind='php-extension', name='redis', version='6.2.0',
+                      host=dict(type='php', series='8.4', abi={'zts': False, 'debug': False}))
+        meta, archive, artifact = self.artifact_fixture(record)
+        with tempfile.TemporaryDirectory() as directory, \
+                self.owner_api([self.run_data('pending'), self.run_data()], state=pipeline._state,
+                               artifacts=[artifact], archive=archive) as trace:
+            paths = pipeline.fetch_module_artifacts('fixture/repo', self.producer, [record], directory)
+            self.assertEqual([5], trace['sleeps'])
+            self.assertEqual(2, trace['reads'])
+            self.assertEqual([str(Path(directory) / '321/meta.json')], paths)
+            self.assertEqual(meta, json.loads(Path(paths[0]).read_text()))
+            self.assertEqual(meta['sha256'], hashlib.sha256((Path(paths[0]).parent / meta['filename']).read_bytes()).hexdigest())
 
 
 class SelectedV2WorkflowTests(unittest.TestCase):
