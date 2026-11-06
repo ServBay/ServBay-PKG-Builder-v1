@@ -4265,6 +4265,15 @@
         "runtime_version": "v2",
         "version": "8.5.12"
       },
+      "reservation": {
+        "claimed_at": "2026-11-06T04:29:14+00:00",
+        "expires_at": "2026-11-06T12:29:14+00:00",
+        "producer": {
+          "commit": "cddc5f4258689f229958aa0c2ca8c90c61e12296",
+          "run_attempt": 1,
+          "run_id": "42162766068"
+        }
+      },
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.6.0RC4\"}": {
@@ -11956,6 +11965,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.5.12"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-06T04:29:14+00:00",
+        "expires_at": "2026-11-06T12:29:14+00:00",
+        "producer": {
+          "commit": "cddc5f4258689f229958aa0c2ca8c90c61e12296",
+          "run_attempt": 1,
+          "run_id": "42162766068"
+        }
       },
       "status": "build-failed"
     },
