@@ -2075,13 +2075,24 @@ _install_pg_module_loader_alias() {
     local module_name=$3
     local server_include dl_suffix loader
     server_include=$("$pg_config" --includedir-server) || return 1
-    dl_suffix=$(python3 - "${server_include}/pg_config.h" <<'PY'
-import pathlib, re, sys
-header = pathlib.Path(sys.argv[1]).read_text()
+    dl_suffix=$(python3 - "${server_include}/pg_config.h" "$pg_config" <<'PY'
+import pathlib, re, subprocess, sys
+source = pathlib.Path(sys.argv[1])
+header = source.read_text()
 header = re.sub(r'/\*.*?\*/|//[^\n]*', '', header, flags=re.DOTALL)
-suffixes = re.findall(r'^\s*#\s*define\s+DLSUFFIX\s+"(\.[A-Za-z0-9_]+)"\s*$', header, re.MULTILINE)
-if len(suffixes) != 1:
-    raise SystemExit("Expected one safe PostgreSQL DLSUFFIX in " + sys.argv[1])
+configured = re.findall(r'\bDLSUFFIX\b', header)
+suffixes = re.findall(r'^[ \t]*#[ \t]*define[ \t]+DLSUFFIX[ \t]+"(\.[A-Za-z0-9_]+)"[ \t]*$', header, re.MULTILINE)
+if not configured:
+    # Older hosts keep the module suffix in the PGXS port configuration.
+    pgxs = pathlib.Path(subprocess.run([sys.argv[2], '--pgxs'], check=True,
+                                     capture_output=True, text=True).stdout.strip())
+    pgxs.read_text()
+    source = pgxs.parent.parent / 'Makefile.port'
+    port = re.sub(r'#[^\n]*', '', source.read_text())
+    configured = re.findall(r'\bDLSUFFIX\b', port)
+    suffixes = re.findall(r'^[ \t]*DLSUFFIX[ \t]*=[ \t]*(\.[A-Za-z0-9_]+)[ \t]*$', port, re.MULTILINE)
+if len(configured) != 1 or len(suffixes) != 1:
+    raise SystemExit("Expected one safe PostgreSQL DLSUFFIX in " + str(source))
 print(suffixes[0])
 PY
     ) || return 1

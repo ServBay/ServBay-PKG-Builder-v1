@@ -178,6 +178,110 @@ patch() { print -r -- "real-patch $*" >> "$TRACE"; command /usr/bin/patch "$@"; 
                 self.assertEqual(["patch php8.5/" + old_patch + " p0"],
                                  [e for e in events if e.startswith("patch ")])
 
+    def test_v2_pg_module_loader_suffix_sources_and_rejections(self):
+        import shlex
+        import sys
+
+        script = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = self._extract_shell_function(script, "_install_pg_module_loader_alias")
+        absent = "/* #define DLSUFFIX \".bad\" */\n#define PG_VERSION_NUM 140024\n"
+        port_so = "AROPT = crs\n\nDLSUFFIX = .so\n"
+        cases = [
+            ("pg14-port", absent, port_so, "ok", ".so"),
+            ("pg14-port-dylib", absent, "DLSUFFIX = .dylib # configured\n", "ok", ".dylib"),
+            ("pg15-header", '#define DLSUFFIX ".so"\n', None, "fail", ".so"),
+            ("pg16-header", '#define DLSUFFIX ".dylib"\n', None, "fail", ".dylib"),
+            ("header-missing", None, port_so, "ok", None),
+            ("header-read-error", "directory", port_so, "ok", None),
+            ("header-unsafe", '#define DLSUFFIX "../escape"\n', port_so, "ok", None),
+            ("header-unsafe-name", '#define DLSUFFIX ".bad-name"\n', port_so, "ok", None),
+            ("header-duplicate", '#define DLSUFFIX ".so"\n#define DLSUFFIX ".dylib"\n', port_so, "ok", None),
+            ("header-mixed", '#define DLSUFFIX ".so"\n#define DLSUFFIX "../escape"\n', port_so, "ok", None),
+            ("header-malformed", '#define DLSUFFIX (.so)\n', port_so, "ok", None),
+            ("header-split-line", '#define DLSUFFIX\n".so"\n', port_so, "ok", None),
+            ("pgxs-command-fails", absent, port_so, "fail", None),
+            ("pgxs-empty", absent, port_so, "empty", None),
+            ("pgxs-missing", absent, port_so, "missing", None),
+            ("pgxs-read-error", absent, port_so, "directory", None),
+            ("port-missing", absent, None, "ok", None),
+            ("port-read-error", absent, "directory", "ok", None),
+            ("port-no-value", absent, "# DLSUFFIX = .so\nAROPT = crs\n", "ok", None),
+            ("port-unsafe", absent, "DLSUFFIX = $(touch ../../outside-marker)\n", "ok", None),
+            ("port-unsafe-name", absent, "DLSUFFIX = .bad-name\n", "ok", None),
+            ("port-duplicate", absent, "DLSUFFIX = .so\nDLSUFFIX = .dylib\n", "ok", None),
+            ("port-mixed", absent, "DLSUFFIX = .so\nDLSUFFIX = ../escape\n", "ok", None),
+            ("port-malformed", absent, "DLSUFFIX := .so\n", "ok", None),
+            ("port-split-line", absent, "DLSUFFIX =\n.so\n", "ok", None),
+        ]
+        for label, header_text, port_text, pgxs_mode, suffix in cases:
+            for module in ("pg_jieba", "libpgrouting-3.8"):
+                with self.subTest(case=label, module=module), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    host = root / "host"
+                    include = host / "include/server"
+                    include.mkdir(parents=True)
+                    header = include / "pg_config.h"
+                    if header_text == "directory":
+                        header.mkdir()
+                    elif header_text is not None:
+                        header.write_text(header_text)
+                    pgxs = host / "lib/pgxs/src/makefiles/pgxs.mk"
+                    pgxs.parent.mkdir(parents=True)
+                    if pgxs_mode == "directory":
+                        pgxs.mkdir()
+                    elif pgxs_mode != "missing":
+                        pgxs.write_text("include $(top_builddir)/src/Makefile.global\n")
+                    port = pgxs.parent.parent / "Makefile.port"
+                    if port_text == "directory":
+                        port.mkdir()
+                    elif port_text is not None:
+                        port.write_text(port_text)
+                    config = host / "bin/pg_config"
+                    config.parent.mkdir()
+                    pgxs_reply = ("printf '%s\\n' " + shlex.quote(str(pgxs)) + "; exit 7" if pgxs_mode == "fail" else
+                                  "exit 0" if pgxs_mode == "empty" else
+                                  "printf '%s\\n' " + shlex.quote(str(pgxs)))
+                    config.write_text("#!/bin/sh\ncase \"$1\" in\n"
+                                      "--includedir-server) printf '%s\\n' " + shlex.quote(str(include)) + ";;\n"
+                                      "--pgxs) " + pgxs_reply + ";;\n*) exit 8;;\nesac\n")
+                    config.chmod(0o755)
+                    lib = root / "stage/lib"
+                    lib.mkdir(parents=True)
+                    source = lib / (module + ".so")
+                    source.write_bytes(b"installed module fixture\n")
+                    sentinel = root / "outside-sentinel"
+                    sentinel.write_bytes(b"unchanged\n")
+                    before = {str(p.relative_to(root)): p.read_bytes()
+                              for p in root.rglob("*") if p.is_file()}
+                    paths_before = {str(p.relative_to(root)) for p in root.rglob("*")}
+                    harness = ('python3() { ' + shlex.quote(sys.executable) + ' -B "$@"; }\n'
+                               'log_message() { print -r -- "$*" >&2; }\n'
+                               '_install_pg_module_loader_alias() {\n' + body + '}\n'
+                               '_install_pg_module_loader_alias "$1" "$2" "$3"\n')
+                    result = subprocess.run(["/bin/zsh", "-c", harness, "loader-fixture",
+                                             str(config), str(lib), module], cwd=root,
+                                            capture_output=True, text=True, timeout=30)
+                    if suffix is None:
+                        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                        self.assertEqual(paths_before, {str(p.relative_to(root)) for p in root.rglob("*")})
+                    else:
+                        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                        loader = lib / (module + suffix)
+                        self.assertTrue(loader.is_file())
+                        self.assertEqual(source.read_bytes(), loader.read_bytes())
+                        expected = {module + ".so"}
+                        if suffix != ".so":
+                            self.assertTrue(loader.is_symlink())
+                            self.assertEqual(Path(module + ".so"), loader.readlink())
+                            expected.add(module + suffix)
+                        else:
+                            self.assertFalse(loader.is_symlink())
+                        self.assertEqual(expected, {p.name for p in lib.iterdir()})
+                        added = {str(p.relative_to(root)) for p in root.rglob("*")} - paths_before
+                        self.assertEqual({str(loader.relative_to(root))} if suffix != ".so" else set(), added)
+                    self.assertEqual(before, {name: (root / name).read_bytes() for name in before})
+                    self.assertFalse((root / "outside-marker").exists())
+
     def test_macos_php7_resolves_and_iconv_reach_the_configure_link_line(self):
         # 7.0-7.3 need two libraries that configure must know about before it
         # writes the Makefile: the base's GNU libiconv (the system/SDK stub has
