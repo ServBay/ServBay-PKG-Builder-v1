@@ -6869,6 +6869,29 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"13.23\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "13.23"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-06T18:59:17+00:00",
+        "expires_at": "2026-11-07T02:59:17+00:00",
+        "producer": {
+          "commit": "d5478b5128b43c8fa0b62eb6b4d77a3e327d0b8f",
+          "run_attempt": 1,
+          "run_id": "42275580764"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"14.24\"}": {
       "artifact_expires_at": "2026-11-13T18:22:55Z",
       "artifact_id": "13527779526",
@@ -14659,6 +14682,29 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.6.0beta3"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"13.23\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "postgresql",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "13.23"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-06T18:59:17+00:00",
+        "expires_at": "2026-11-07T02:59:17+00:00",
+        "producer": {
+          "commit": "d5478b5128b43c8fa0b62eb6b4d77a3e327d0b8f",
+          "run_attempt": 1,
+          "run_id": "42275580764"
+        }
       },
       "status": "discovered"
     },
