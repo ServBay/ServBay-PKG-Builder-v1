@@ -5393,7 +5393,10 @@ _build_php_mod_memcached() {
     unpack_package "${mod_name}-${mod_version}" "${mod_name}-${mod_version}.tgz" || return 1
     {
         if [[ "$php_version_major" == "8.5" ]]; then
-            _apply_single_patch "${PATCH_DIR}/php8.5/memcached.diff" "p0" || return 1
+            autoload -Uz is-at-least
+            if ! is-at-least 3.4.0 "$mod_version"; then
+                _apply_single_patch "${PATCH_DIR}/php8.5/memcached.diff" "p0" || return 1
+            fi
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
             if [[ "$mod_version" == "3.4.0" ]]; then
@@ -5431,8 +5434,11 @@ _build_php_mod_xdebug() {
         "${php_bin_dir}/phpize" || return 1
 
         if [[ "$php_version_major" == "8.5" ]]; then
-            sed -i '' 's/80500/80600/' configure
-            _apply_single_patch "${PATCH_DIR}/php8.5/xdebug-3.4.3-php8.5.patch" "p0" || return 1
+            autoload -Uz is-at-least
+            if ! is-at-least 3.5.3 "$mod_version"; then
+                sed -i '' 's/80500/80600/' configure
+                _apply_single_patch "${PATCH_DIR}/php8.5/xdebug-3.4.3-php8.5.patch" "p0" || return 1
+            fi
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
             # xdebug 3.4.3 原始版本检查是 < 80500，需要改成 < 80700
@@ -5505,7 +5511,12 @@ _build_php_mod_mongodb() {
     {
 
         if [[ "$php_version_major" == "8.5" ]]; then
-            _apply_single_patch "${PATCH_DIR}/php8.5/mongodb-1.19.1-php8.5.patch" "p0" || return 1
+            autoload -Uz is-at-least
+            if is-at-least 1.21.12 "$mod_version"; then
+                _apply_single_patch "${PATCH_DIR}/php8.5/mongodb-1.21.12-php8.5.patch" "p0" || return 1
+            else
+                _apply_single_patch "${PATCH_DIR}/php8.5/mongodb-1.19.1-php8.5.patch" "p0" || return 1
+            fi
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
             # PHP 8.6: IS_INTERNED 已重命名为 ZSTR_IS_INTERNED
@@ -5639,7 +5650,10 @@ _build_php_mod_swoole() {
             _apply_single_patch "${PATCH_DIR}/swoole/swoole-4.3.6.patch" "p0" || return 1
         fi
         if [[ "$php_version_major" == "8.5" ]]; then
-            _apply_single_patch "${PATCH_DIR}/php8.5/swoole.diff" "p0" || return 1
+            autoload -Uz is-at-least
+            if ! is-at-least 6.2.4 "$mod_version"; then
+                _apply_single_patch "${PATCH_DIR}/php8.5/swoole.diff" "p0" || return 1
+            fi
         fi
         if [[ "$php_version_major" == "8.6" ]]; then
             _apply_single_patch "${PATCH_DIR}/php8.6/swoole-rc4.patch" "p0" || return 1
