@@ -4844,6 +4844,15 @@
         "runtime_version": "v2",
         "version": "14.24"
       },
+      "reservation": {
+        "claimed_at": "2026-11-06T13:34:14+00:00",
+        "expires_at": "2026-11-06T21:34:14+00:00",
+        "producer": {
+          "commit": "15f91bcc6e70b8caf2507b9460cb60d227826855",
+          "run_attempt": 1,
+          "run_id": "42226522546"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"15.19\"}": {
@@ -12292,6 +12301,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "14.24"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-06T13:34:14+00:00",
+        "expires_at": "2026-11-06T21:34:14+00:00",
+        "producer": {
+          "commit": "15f91bcc6e70b8caf2507b9460cb60d227826855",
+          "run_attempt": 1,
+          "run_id": "42226522546"
+        }
       },
       "status": "discovered"
     },
