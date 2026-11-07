@@ -9106,11 +9106,21 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"major\":13},\"series\":\"13\",\"type\":\"postgresql\"},\"kind\":\"postgresql-extension\",\"name\":\"pgrouting\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.8.0\"}": {
+      "artifact_expires_at": "2026-11-14T06:53:24Z",
+      "artifact_id": "13564726839",
+      "artifact_name": "pkg2-macos-x86_64-postgresql-extension-pgrouting-3.8.0-13",
+      "artifact_zip_sha256": "87cbf6e0c8cf2f34526b0215b2192ecba992c51d6eb6d4ef8b19b969ef3987eb",
       "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "082333690ce265d4a2779b3b65b356bbf9c53741",
+        "commit": "08afa5614d1126284b736565a23bbec7ed830245",
         "run_attempt": 1,
-        "run_id": "42345607354"
+        "run_id": "42348257443"
+      },
+      "package_sha256": "5549667026a6ad995a0f26db2ab48ad013388f0d5f0ac3237b2cfae5a367e30f",
+      "producer": {
+        "commit": "08afa5614d1126284b736565a23bbec7ed830245",
+        "run_attempt": 1,
+        "run_id": "42348257443"
       },
       "record": {
         "arch": "x86_64",
@@ -9129,23 +9139,24 @@
         "runtime_version": "v2",
         "version": "3.8.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-07T06:43:55+00:00",
-        "expires_at": "2026-11-07T14:43:55+00:00",
-        "producer": {
-          "commit": "08afa5614d1126284b736565a23bbec7ed830245",
-          "run_attempt": 1,
-          "run_id": "42348257443"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"major\":13},\"series\":\"13\",\"type\":\"postgresql\"},\"kind\":\"postgresql-extension\",\"name\":\"postgis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.4.6\"}": {
+      "artifact_expires_at": "2026-11-14T06:49:32Z",
+      "artifact_id": "13564098891",
+      "artifact_name": "pkg2-macos-x86_64-postgresql-extension-postgis-3.4.6-13",
+      "artifact_zip_sha256": "717953cb04402bfded245286d877f9683526da1fe606c47c9c4bb2fcb79e5ecc",
       "consecutive_failures": 0,
       "last_collected_producer": {
-        "commit": "082333690ce265d4a2779b3b65b356bbf9c53741",
+        "commit": "08afa5614d1126284b736565a23bbec7ed830245",
         "run_attempt": 1,
-        "run_id": "42345607354"
+        "run_id": "42348257443"
+      },
+      "package_sha256": "bdbe513fbd98f26c6c9dac074b43a25127f385836896891c096cf9c97e4ebb0f",
+      "producer": {
+        "commit": "08afa5614d1126284b736565a23bbec7ed830245",
+        "run_attempt": 1,
+        "run_id": "42348257443"
       },
       "record": {
         "arch": "x86_64",
@@ -9164,16 +9175,7 @@
         "runtime_version": "v2",
         "version": "3.4.6"
       },
-      "reservation": {
-        "claimed_at": "2026-11-07T06:43:55+00:00",
-        "expires_at": "2026-11-07T14:43:55+00:00",
-        "producer": {
-          "commit": "08afa5614d1126284b736565a23bbec7ed830245",
-          "run_attempt": 1,
-          "run_id": "42348257443"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"host\":{\"abi\":{\"major\":13},\"series\":\"13\",\"type\":\"postgresql\"},\"kind\":\"postgresql-extension\",\"name\":\"vector\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.8.7\"}": {
       "artifact_expires_at": "2026-11-13T19:17:07Z",
