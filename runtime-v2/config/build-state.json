@@ -2122,7 +2122,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.320\"}": {
+      "artifact_expires_at": "2026-11-16T15:01:32Z",
+      "artifact_id": "13683289588",
+      "artifact_name": "pkg2-macos-arm64-package-dotnetsdk-9.0.320",
+      "artifact_zip_sha256": "1717fb5143d96d24d300c34dfe9d4307d6f5cfeda24e5f9a443d9fb7117ca2a5",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
+        "run_attempt": 1,
+        "run_id": "42639847301"
+      },
+      "package_sha256": "b1ae587130a4e22d5c95ef71a03838195c3683afdec2250a56c969d5c51d7759",
+      "producer": {
+        "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
+        "run_attempt": 1,
+        "run_id": "42639847301"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2133,16 +2148,7 @@
         "runtime_version": "v2",
         "version": "9.0.320"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T14:58:17+00:00",
-        "expires_at": "2026-11-09T22:58:17+00:00",
-        "producer": {
-          "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
-          "run_attempt": 1,
-          "run_id": "42639847301"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"frp\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.71.1\"}": {
       "artifact_expires_at": "2026-10-30T17:02:52Z",
@@ -10861,7 +10867,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"9.0.320\"}": {
+      "artifact_expires_at": "2026-11-16T15:01:02Z",
+      "artifact_id": "13684213918",
+      "artifact_name": "pkg2-macos-x86_64-package-dotnetsdk-9.0.320",
+      "artifact_zip_sha256": "cae6deba7b6fe93493f56b6fdc680cdef1300e5b4cab98cd0932cdd6d9ab3a6f",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
+        "run_attempt": 1,
+        "run_id": "42639847301"
+      },
+      "package_sha256": "09899cf98712d2b4338ac49cf9518de419d625c0d1862e96d25d885bc8deea56",
+      "producer": {
+        "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
+        "run_attempt": 1,
+        "run_id": "42639847301"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10872,16 +10893,7 @@
         "runtime_version": "v2",
         "version": "9.0.320"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T14:58:17+00:00",
-        "expires_at": "2026-11-09T22:58:17+00:00",
-        "producer": {
-          "commit": "d93ec29178ef3117f2305ea930792b2be3196590",
-          "run_attempt": 1,
-          "run_id": "42639847301"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"frp\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.71.1\"}": {
       "artifact_expires_at": "2026-10-30T17:02:37Z",
