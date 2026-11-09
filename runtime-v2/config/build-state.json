@@ -2150,7 +2150,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"frp\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.72.0\"}": {
+      "artifact_expires_at": "2026-11-16T11:08:44Z",
+      "artifact_id": "13668570993",
+      "artifact_name": "pkg2-macos-arm64-package-frp-0.72.0",
+      "artifact_zip_sha256": "4ff2b3b91ca20f185d97f124a2bed5e5f094253426c53873fe1dd569bb8308f2",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
+        "run_attempt": 1,
+        "run_id": "42606267333"
+      },
+      "package_sha256": "76b36b6c8927e39bef22f2aafaf94a48f850df2a321ef0fa0e8a2047d896a76a",
+      "producer": {
+        "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
+        "run_attempt": 1,
+        "run_id": "42606267333"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2161,16 +2176,7 @@
         "runtime_version": "v2",
         "version": "0.72.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:06:21+00:00",
-        "expires_at": "2026-11-09T19:06:21+00:00",
-        "producer": {
-          "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
-          "run_attempt": 1,
-          "run_id": "42606267333"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"git\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.56.0\"}": {
       "artifact_expires_at": "2026-10-30T17:03:34Z",
@@ -10612,7 +10618,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"frp\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.72.0\"}": {
+      "artifact_expires_at": "2026-11-16T11:08:53Z",
+      "artifact_id": "13667549242",
+      "artifact_name": "pkg2-macos-x86_64-package-frp-0.72.0",
+      "artifact_zip_sha256": "44cbfb31191a2c400d32c835505880f5a36e7e548c533246d7a33e8190fb9418",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
+        "run_attempt": 1,
+        "run_id": "42606267333"
+      },
+      "package_sha256": "ccb41c0bda25510139b1bd180abd8382d5f3a42381c8b242af68521bcdc3ab3f",
+      "producer": {
+        "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
+        "run_attempt": 1,
+        "run_id": "42606267333"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10623,16 +10644,7 @@
         "runtime_version": "v2",
         "version": "0.72.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:06:21+00:00",
-        "expires_at": "2026-11-09T19:06:21+00:00",
-        "producer": {
-          "commit": "c458a0dc6b5dc6d6e7c78d60d93e76bccf0a3a3d",
-          "run_attempt": 1,
-          "run_id": "42606267333"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"git\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.56.0\"}": {
       "artifact_expires_at": "2026-10-30T17:06:08Z",
