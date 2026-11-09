@@ -2288,7 +2288,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.25.14\"}": {
+      "artifact_expires_at": "2026-11-16T07:01:09Z",
+      "artifact_id": "13655586728",
+      "artifact_name": "pkg2-macos-arm64-package-go-1.25.14",
+      "artifact_zip_sha256": "aff1cf59253fcf2a18bf37f4926b897c4af342523ef8b2dcf28863455be68d62",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
+        "run_attempt": 1,
+        "run_id": "42576401079"
+      },
+      "package_sha256": "c635aa3dda30a2c8e2e2263afd31b061af46687f551d88842f7fbe570bfee881",
+      "producer": {
+        "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
+        "run_attempt": 1,
+        "run_id": "42576401079"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2299,16 +2314,7 @@
         "runtime_version": "v2",
         "version": "1.25.14"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T06:59:16+00:00",
-        "expires_at": "2026-11-09T14:59:16+00:00",
-        "producer": {
-          "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
-          "run_attempt": 1,
-          "run_id": "42576401079"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.26.10\"}": {
       "consecutive_failures": 0,
@@ -10532,7 +10538,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.25.14\"}": {
+      "artifact_expires_at": "2026-11-16T07:01:37Z",
+      "artifact_id": "13655900837",
+      "artifact_name": "pkg2-macos-x86_64-package-go-1.25.14",
+      "artifact_zip_sha256": "a4b2329569d1c9b4de1bbfe0f656f41036b388a7f77e1aea7560422cff84a060",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
+        "run_attempt": 1,
+        "run_id": "42576401079"
+      },
+      "package_sha256": "512cfe33e68f408f0e324fac72d361d0581a8dd90826ad71a714b0eb18c92222",
+      "producer": {
+        "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
+        "run_attempt": 1,
+        "run_id": "42576401079"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10543,16 +10564,7 @@
         "runtime_version": "v2",
         "version": "1.25.14"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T06:59:16+00:00",
-        "expires_at": "2026-11-09T14:59:16+00:00",
-        "producer": {
-          "commit": "4e5783cf44d2fff4ff66f9fc7df93eb1239a7f8f",
-          "run_attempt": 1,
-          "run_id": "42576401079"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.26.10\"}": {
       "consecutive_failures": 0,
