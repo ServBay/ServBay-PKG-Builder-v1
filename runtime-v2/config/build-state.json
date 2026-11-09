@@ -2404,7 +2404,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.33.0\"}": {
+      "artifact_expires_at": "2026-11-16T10:13:24Z",
+      "artifact_id": "13664787455",
+      "artifact_name": "pkg2-macos-arm64-package-mailpit-1.33.0",
+      "artifact_zip_sha256": "73ed1c8a301d1e1fe872e737b1a31cfb77ce92c8518705b5b86230d610ac54c8",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+        "run_attempt": 1,
+        "run_id": "42598953482"
+      },
+      "package_sha256": "56d2e15cb7132a40e6f6e0bdeddc8f166d75b8c9e0931b9e06fc00fab650065b",
+      "producer": {
+        "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+        "run_attempt": 1,
+        "run_id": "42598953482"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2415,16 +2430,7 @@
         "runtime_version": "v2",
         "version": "1.33.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T10:10:52+00:00",
-        "expires_at": "2026-11-09T18:10:52+00:00",
-        "producer": {
-          "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
-          "run_attempt": 1,
-          "run_id": "42598953482"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.10.7\"}": {
       "consecutive_failures": 0,
@@ -10750,7 +10756,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.33.0\"}": {
+      "artifact_expires_at": "2026-11-16T10:12:51Z",
+      "artifact_id": "13665221120",
+      "artifact_name": "pkg2-macos-x86_64-package-mailpit-1.33.0",
+      "artifact_zip_sha256": "818c1482806244f93d24cfa8c652811d77ec047c9174b1a8d8bd19ef8b4609b8",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+        "run_attempt": 1,
+        "run_id": "42598953482"
+      },
+      "package_sha256": "20b11fd410b5b44cda545a5e4b6055038435b3588e1f1564818d7da7df959c48",
+      "producer": {
+        "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+        "run_attempt": 1,
+        "run_id": "42598953482"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10761,16 +10782,7 @@
         "runtime_version": "v2",
         "version": "1.33.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T10:10:52+00:00",
-        "expires_at": "2026-11-09T18:10:52+00:00",
-        "producer": {
-          "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
-          "run_attempt": 1,
-          "run_id": "42598953482"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.10.7\"}": {
       "consecutive_failures": 0,
