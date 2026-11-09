@@ -3027,6 +3027,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.20.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongotools",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "100.20.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T09:51:56+00:00",
+        "expires_at": "2026-11-09T17:51:56+00:00",
+        "producer": {
+          "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+          "run_attempt": 1,
+          "run_id": "42596614118"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mono\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.14.1\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -11320,6 +11343,29 @@
         "version": "100.19.1"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.20.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongotools",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "100.20.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T09:51:56+00:00",
+        "expires_at": "2026-11-09T17:51:56+00:00",
+        "producer": {
+          "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+          "run_attempt": 1,
+          "run_id": "42596614118"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mono\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.14.1\"}": {
       "consecutive_failures": 0,
