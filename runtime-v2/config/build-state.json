@@ -3173,7 +3173,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.1\"}": {
+      "artifact_expires_at": "2026-11-16T12:01:39Z",
+      "artifact_id": "13672230109",
+      "artifact_name": "pkg2-macos-arm64-package-mongosh-2.14.1",
+      "artifact_zip_sha256": "1cf078b3157caef57d050ecc8572d8334645005d0a315c57188b0b64b65f0c96",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+        "run_attempt": 1,
+        "run_id": "42613329517"
+      },
+      "package_sha256": "69b85e67fae81c56aeb484118d351abc0c2f1a1505a6b1563cd7536047e4b215",
+      "producer": {
+        "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+        "run_attempt": 1,
+        "run_id": "42613329517"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3184,16 +3199,7 @@
         "runtime_version": "v2",
         "version": "2.14.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:59:47+00:00",
-        "expires_at": "2026-11-09T19:59:47+00:00",
-        "producer": {
-          "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
-          "run_attempt": 1,
-          "run_id": "42613329517"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
       "artifact_expires_at": "2026-10-30T17:33:18Z",
@@ -11722,7 +11728,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.1\"}": {
+      "artifact_expires_at": "2026-11-16T12:03:10Z",
+      "artifact_id": "13671168794",
+      "artifact_name": "pkg2-macos-x86_64-package-mongosh-2.14.1",
+      "artifact_zip_sha256": "eaef8670ed5b92ea39f7c3670abaf98640d81df38685ca057526cef9c1c5adf0",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+        "run_attempt": 1,
+        "run_id": "42613329517"
+      },
+      "package_sha256": "24d89cdde1ccbd370514fe1869d9d58b0394daf28ec6a541aa9dd9ef9d62a276",
+      "producer": {
+        "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+        "run_attempt": 1,
+        "run_id": "42613329517"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -11733,16 +11754,7 @@
         "runtime_version": "v2",
         "version": "2.14.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:59:47+00:00",
-        "expires_at": "2026-11-09T19:59:47+00:00",
-        "producer": {
-          "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
-          "run_attempt": 1,
-          "run_id": "42613329517"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
       "artifact_expires_at": "2026-10-30T17:35:06Z",
