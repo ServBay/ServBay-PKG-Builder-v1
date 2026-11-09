@@ -3884,7 +3884,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"26.13.0\"}": {
+      "artifact_expires_at": "2026-11-16T12:37:11Z",
+      "artifact_id": "13672989203",
+      "artifact_name": "pkg2-macos-arm64-package-node-26.13.0",
+      "artifact_zip_sha256": "c8be8df0f528da26c4e72df27890e90cc0f721f7a8afcfc345c31c574eebb26d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
+        "run_attempt": 1,
+        "run_id": "42618250831"
+      },
+      "package_sha256": "44dcbe4bdb083dd6dde6abc0386b6b62160ce68e7afe7a502e6323b1a88cbcb5",
+      "producer": {
+        "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
+        "run_attempt": 1,
+        "run_id": "42618250831"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3895,16 +3910,7 @@
         "runtime_version": "v2",
         "version": "26.13.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T12:35:26+00:00",
-        "expires_at": "2026-11-09T20:35:26+00:00",
-        "producer": {
-          "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
-          "run_attempt": 1,
-          "run_id": "42618250831"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.11\"}": {
       "consecutive_failures": 0,
@@ -12477,7 +12483,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"26.13.0\"}": {
+      "artifact_expires_at": "2026-11-16T12:37:41Z",
+      "artifact_id": "13674305431",
+      "artifact_name": "pkg2-macos-x86_64-package-node-26.13.0",
+      "artifact_zip_sha256": "9dfe828810bc6b101c6e6a3e6c957e999bf9a819968426ac29d662cc608d114d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
+        "run_attempt": 1,
+        "run_id": "42618250831"
+      },
+      "package_sha256": "050bd40467d97e6b441b098ca7d05b3aebfa4900bcd2ab908af7400cceaf4631",
+      "producer": {
+        "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
+        "run_attempt": 1,
+        "run_id": "42618250831"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -12488,16 +12509,7 @@
         "runtime_version": "v2",
         "version": "26.13.0"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T12:35:26+00:00",
-        "expires_at": "2026-11-09T20:35:26+00:00",
-        "producer": {
-          "commit": "18b99dd42adb81f3300c765ed93a4cc9f2f3bd6e",
-          "run_attempt": 1,
-          "run_id": "42618250831"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ollama\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.40.11\"}": {
       "consecutive_failures": 0,
