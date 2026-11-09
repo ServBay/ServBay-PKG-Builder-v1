@@ -2403,6 +2403,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.33.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mailpit",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.33.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T10:10:52+00:00",
+        "expires_at": "2026-11-09T18:10:52+00:00",
+        "producer": {
+          "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+          "run_attempt": 1,
+          "run_id": "42598953482"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.10.7\"}": {
       "consecutive_failures": 0,
       "record": {
@@ -10725,6 +10748,29 @@
         "version": "1.32.0"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mailpit\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.33.0\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mailpit",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.33.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T10:10:52+00:00",
+        "expires_at": "2026-11-09T18:10:52+00:00",
+        "producer": {
+          "commit": "6e42141743e7ee23b6500ec437d6854ca865c73f",
+          "run_attempt": 1,
+          "run_id": "42598953482"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mariadb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.10.7\"}": {
       "consecutive_failures": 0,
