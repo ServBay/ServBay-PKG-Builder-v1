@@ -1679,6 +1679,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.9\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "caddy",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.9"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T21:18:32+00:00",
+        "expires_at": "2026-11-10T05:18:32+00:00",
+        "producer": {
+          "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+          "run_attempt": 1,
+          "run_id": "42701225903"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"cloudflared\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2026.10.3\"}": {
       "artifact_expires_at": "2026-10-30T17:02:02Z",
       "artifact_id": "12518081793",
@@ -10677,6 +10700,29 @@
         "version": "2.11.7"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.9\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "caddy",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.11.9"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T21:18:32+00:00",
+        "expires_at": "2026-11-10T05:18:32+00:00",
+        "producer": {
+          "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+          "run_attempt": 1,
+          "run_id": "42701225903"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"cloudflared\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2026.10.3\"}": {
       "artifact_expires_at": "2026-10-30T17:03:15Z",
