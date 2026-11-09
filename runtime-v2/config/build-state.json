@@ -3837,6 +3837,15 @@
         "runtime_version": "v2",
         "version": "25.9.0"
       },
+      "reservation": {
+        "claimed_at": "2026-11-09T12:17:16+00:00",
+        "expires_at": "2026-11-09T20:17:16+00:00",
+        "producer": {
+          "commit": "93bff2d2bda3d8d6c8fdea09467bf3cf4901ffb4",
+          "run_attempt": 1,
+          "run_id": "42615720412"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"node\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"26.12.1\"}": {
@@ -12391,6 +12400,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "25.9.0"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T12:17:16+00:00",
+        "expires_at": "2026-11-09T20:17:16+00:00",
+        "producer": {
+          "commit": "93bff2d2bda3d8d6c8fdea09467bf3cf4901ffb4",
+          "run_attempt": 1,
+          "run_id": "42615720412"
+        }
       },
       "status": "discovered"
     },
