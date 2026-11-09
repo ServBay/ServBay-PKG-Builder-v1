@@ -3134,7 +3134,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.45\"}": {
+      "artifact_expires_at": "2026-11-16T17:06:06Z",
+      "artifact_id": "13694022500",
+      "artifact_name": "pkg2-macos-arm64-package-mongodb-7.0.45",
+      "artifact_zip_sha256": "507b4ce622c9a78cd714e6a915f1b4fa1514e6a567184de4597201a897ad40bd",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
+        "run_attempt": 1,
+        "run_id": "42660914659"
+      },
+      "package_sha256": "d8ea5c29b931c9c721eb5e009ca55c58831c39ea9d9e192c907ae0a7c11c72e5",
+      "producer": {
+        "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
+        "run_attempt": 1,
+        "run_id": "42660914659"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3145,16 +3160,7 @@
         "runtime_version": "v2",
         "version": "7.0.45"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T17:03:56+00:00",
-        "expires_at": "2026-11-10T01:03:56+00:00",
-        "producer": {
-          "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
-          "run_attempt": 1,
-          "run_id": "42660914659"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.34\"}": {
       "consecutive_failures": 0,
@@ -11933,7 +11939,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.45\"}": {
+      "artifact_expires_at": "2026-11-16T17:06:55Z",
+      "artifact_id": "13694441632",
+      "artifact_name": "pkg2-macos-x86_64-package-mongodb-7.0.45",
+      "artifact_zip_sha256": "05889c4ca96beedabfeca68bf587f045a1938e682e74cd61a33ef031e0d6da15",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
+        "run_attempt": 1,
+        "run_id": "42660914659"
+      },
+      "package_sha256": "81ac74553479a174e516b8d08b14ead834845dc8906beb1f2dc7976092957f9d",
+      "producer": {
+        "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
+        "run_attempt": 1,
+        "run_id": "42660914659"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -11944,16 +11965,7 @@
         "runtime_version": "v2",
         "version": "7.0.45"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T17:03:56+00:00",
-        "expires_at": "2026-11-10T01:03:56+00:00",
-        "producer": {
-          "commit": "82a168fcf2dd8fdc1099af777c806e368900e85c",
-          "run_attempt": 1,
-          "run_id": "42660914659"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongodb\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.0.34\"}": {
       "consecutive_failures": 0,
