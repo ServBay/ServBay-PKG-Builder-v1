@@ -6596,6 +6596,29 @@
       },
       "status": "build-ready"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.27.3\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "go",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.27.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T07:46:54+00:00",
+        "expires_at": "2026-11-09T15:46:54+00:00",
+        "producer": {
+          "commit": "1afc07991809fdadea32a8fec125afc23f9c7c86",
+          "run_attempt": 1,
+          "run_id": "42581458812"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
       "artifact_expires_at": "2026-11-12T13:49:29Z",
       "artifact_id": "13418914427",
@@ -14770,6 +14793,29 @@
         "version": "2.56.0"
       },
       "status": "build-ready"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"go\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.27.3\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "go",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "1.27.3"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T07:46:54+00:00",
+        "expires_at": "2026-11-09T15:46:54+00:00",
+        "producer": {
+          "commit": "1afc07991809fdadea32a8fec125afc23f9c7c86",
+          "run_attempt": 1,
+          "run_id": "42581458812"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"maven\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.0\"}": {
       "artifact_expires_at": "2026-11-12T13:50:46Z",
