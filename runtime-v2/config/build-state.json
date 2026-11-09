@@ -1591,6 +1591,30 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.70\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "apache",
+        "os": "macos",
+        "recipe_name": "httpd",
+        "runtime_version": "v2",
+        "version": "2.4.70"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T21:01:04+00:00",
+        "expires_at": "2026-11-10T05:01:04+00:00",
+        "producer": {
+          "commit": "9b31cb8579879647a979379289c769692d27d224",
+          "run_attempt": 1,
+          "run_id": "42698404751"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
       "artifact_expires_at": "2026-10-30T17:17:35Z",
       "artifact_id": "12518004661",
@@ -10559,6 +10583,30 @@
         "version": "2.4.69"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.70\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "apache",
+        "os": "macos",
+        "recipe_name": "httpd",
+        "runtime_version": "v2",
+        "version": "2.4.70"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T21:01:04+00:00",
+        "expires_at": "2026-11-10T05:01:04+00:00",
+        "producer": {
+          "commit": "9b31cb8579879647a979379289c769692d27d224",
+          "run_attempt": 1,
+          "run_id": "42698404751"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
       "artifact_expires_at": "2026-10-30T17:17:37Z",
