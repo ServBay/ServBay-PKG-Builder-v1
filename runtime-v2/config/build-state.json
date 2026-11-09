@@ -1592,7 +1592,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.70\"}": {
+      "artifact_expires_at": "2026-11-16T21:06:35Z",
+      "artifact_id": "13710193363",
+      "artifact_name": "pkg2-macos-arm64-package-apache-2.4.70",
+      "artifact_zip_sha256": "a3bd021456573c20812d22ea410a90697c3b5013257742363c073043e49b24e6",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "9b31cb8579879647a979379289c769692d27d224",
+        "run_attempt": 1,
+        "run_id": "42698404751"
+      },
+      "package_sha256": "67217d053dcf6772950bc16c86233c31a66067b9b8d059695c6a42c0fdb5892c",
+      "producer": {
+        "commit": "9b31cb8579879647a979379289c769692d27d224",
+        "run_attempt": 1,
+        "run_id": "42698404751"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1604,16 +1619,7 @@
         "runtime_version": "v2",
         "version": "2.4.70"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:01:04+00:00",
-        "expires_at": "2026-11-10T05:01:04+00:00",
-        "producer": {
-          "commit": "9b31cb8579879647a979379289c769692d27d224",
-          "run_attempt": 1,
-          "run_id": "42698404751"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
       "artifact_expires_at": "2026-10-30T17:17:35Z",
@@ -10585,7 +10591,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"apache\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.70\"}": {
+      "artifact_expires_at": "2026-11-16T21:06:16Z",
+      "artifact_id": "13710677067",
+      "artifact_name": "pkg2-macos-x86_64-package-apache-2.4.70",
+      "artifact_zip_sha256": "aead4c08f7b91dee59cdac5dbc40075b1e3534117003190135393cc52a9b72be",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "9b31cb8579879647a979379289c769692d27d224",
+        "run_attempt": 1,
+        "run_id": "42698404751"
+      },
+      "package_sha256": "a343bdc136b0991cc6e717c8c592268820077bc9553173569f46085c23a2461e",
+      "producer": {
+        "commit": "9b31cb8579879647a979379289c769692d27d224",
+        "run_attempt": 1,
+        "run_id": "42698404751"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10597,16 +10618,7 @@
         "runtime_version": "v2",
         "version": "2.4.70"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:01:04+00:00",
-        "expires_at": "2026-11-10T05:01:04+00:00",
-        "producer": {
-          "commit": "9b31cb8579879647a979379289c769692d27d224",
-          "run_attempt": 1,
-          "run_id": "42698404751"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"bun\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.4.4\"}": {
       "artifact_expires_at": "2026-10-30T17:17:37Z",
