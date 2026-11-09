@@ -4588,7 +4588,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"pinggy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.6.4\"}": {
+      "artifact_expires_at": "2026-11-16T11:22:48Z",
+      "artifact_id": "13668329917",
+      "artifact_name": "pkg2-macos-arm64-package-pinggy-0.6.4",
+      "artifact_zip_sha256": "458692a9c6078ff6f53ff29591d23ecd16b1c3ba91bca2aa42d2f9295045bd3f",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
+        "run_attempt": 1,
+        "run_id": "42608230596"
+      },
+      "package_sha256": "5a65c9e5d2c485e985d20af1240f6838e8fde8ce45a3f860a567c3371a18df87",
+      "producer": {
+        "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
+        "run_attempt": 1,
+        "run_id": "42608230596"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -4599,16 +4614,7 @@
         "runtime_version": "v2",
         "version": "0.6.4"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:20:35+00:00",
-        "expires_at": "2026-11-09T19:20:35+00:00",
-        "producer": {
-          "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
-          "run_attempt": 1,
-          "run_id": "42608230596"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.23\"}": {
       "consecutive_failures": 0,
@@ -13079,7 +13085,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"pinggy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"0.6.4\"}": {
+      "artifact_expires_at": "2026-11-16T11:23:24Z",
+      "artifact_id": "13668768745",
+      "artifact_name": "pkg2-macos-x86_64-package-pinggy-0.6.4",
+      "artifact_zip_sha256": "2ec7be4beb9c490494e03a8338a5a0fd919adc6cd94179f44f6616a3a0e85f54",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
+        "run_attempt": 1,
+        "run_id": "42608230596"
+      },
+      "package_sha256": "ebbf95975f2b29371626e65c584cfbab37abc49ef838570e0b9d9f0e94f37143",
+      "producer": {
+        "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
+        "run_attempt": 1,
+        "run_id": "42608230596"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -13090,16 +13111,7 @@
         "runtime_version": "v2",
         "version": "0.6.4"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:20:35+00:00",
-        "expires_at": "2026-11-09T19:20:35+00:00",
-        "producer": {
-          "commit": "178f550b7437a3bc6f37e9be5dec372a6e344321",
-          "run_attempt": 1,
-          "run_id": "42608230596"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"postgresql\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"10.23\"}": {
       "consecutive_failures": 0,
