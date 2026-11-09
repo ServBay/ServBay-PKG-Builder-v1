@@ -1680,7 +1680,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.9\"}": {
+      "artifact_expires_at": "2026-11-16T21:28:39Z",
+      "artifact_id": "13711624334",
+      "artifact_name": "pkg2-macos-arm64-package-caddy-2.11.9",
+      "artifact_zip_sha256": "89565929c4b2678f982b6f475b64e422a737291b491e2b49617f93b4675eba90",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+        "run_attempt": 1,
+        "run_id": "42701225903"
+      },
+      "package_sha256": "745fd05457e96aadf266d2eed586dca540ec6b987ccace0dc78f23b26ad36d81",
+      "producer": {
+        "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+        "run_attempt": 1,
+        "run_id": "42701225903"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1691,16 +1706,7 @@
         "runtime_version": "v2",
         "version": "2.11.9"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:18:32+00:00",
-        "expires_at": "2026-11-10T05:18:32+00:00",
-        "producer": {
-          "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
-          "run_attempt": 1,
-          "run_id": "42701225903"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"cloudflared\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2026.10.3\"}": {
       "artifact_expires_at": "2026-10-30T17:02:02Z",
@@ -10702,7 +10708,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"caddy\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.11.9\"}": {
+      "artifact_expires_at": "2026-11-16T21:27:41Z",
+      "artifact_id": "13712391191",
+      "artifact_name": "pkg2-macos-x86_64-package-caddy-2.11.9",
+      "artifact_zip_sha256": "dd7447ba07075a0cd63e10034e46dcfe965c9675ee0ca0be7efd2e99ca9a7599",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+        "run_attempt": 1,
+        "run_id": "42701225903"
+      },
+      "package_sha256": "691fbffe7df254dd82ef4b2fe019c1d712336756a270da9777e5fb20c454d31e",
+      "producer": {
+        "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
+        "run_attempt": 1,
+        "run_id": "42701225903"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10713,16 +10734,7 @@
         "runtime_version": "v2",
         "version": "2.11.9"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:18:32+00:00",
-        "expires_at": "2026-11-10T05:18:32+00:00",
-        "producer": {
-          "commit": "78c8360b58aa18c056a7d3ac8fabffea3d8a598b",
-          "run_attempt": 1,
-          "run_id": "42701225903"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"cloudflared\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2026.10.3\"}": {
       "artifact_expires_at": "2026-10-30T17:03:15Z",
