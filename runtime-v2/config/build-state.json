@@ -1968,7 +1968,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.100-rc1\"}": {
+      "artifact_expires_at": "2026-11-16T16:31:16Z",
+      "artifact_id": "13691124974",
+      "artifact_name": "pkg2-macos-arm64-package-dotnetsdk-11.0.100-rc1",
+      "artifact_zip_sha256": "bb8a29e0094d4058126f7627c27aa92430a3baa07d456449b06246e773aa065d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
+        "run_attempt": 1,
+        "run_id": "42655077824"
+      },
+      "package_sha256": "bd97f00b0afb24dd1b0b4d7b22f6a713e2a88f0dc1c825d58fc8f4ccab6c092b",
+      "producer": {
+        "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
+        "run_attempt": 1,
+        "run_id": "42655077824"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -1979,16 +1994,7 @@
         "runtime_version": "v2",
         "version": "11.0.100-rc1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T16:28:23+00:00",
-        "expires_at": "2026-11-10T00:28:23+00:00",
-        "producer": {
-          "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
-          "run_attempt": 1,
-          "run_id": "42655077824"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.1.818\"}": {
       "consecutive_failures": 0,
@@ -10737,7 +10743,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"11.0.100-rc1\"}": {
+      "artifact_expires_at": "2026-11-16T16:31:53Z",
+      "artifact_id": "13691239934",
+      "artifact_name": "pkg2-macos-x86_64-package-dotnetsdk-11.0.100-rc1",
+      "artifact_zip_sha256": "85eaa126f9db742ca1c32b602406fb8c886890312ed84337f54942db88ad94c7",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
+        "run_attempt": 1,
+        "run_id": "42655077824"
+      },
+      "package_sha256": "74d9466cd3dde85b419603e4410cc542d966fd9a1ac8c399b463c22dc81c505c",
+      "producer": {
+        "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
+        "run_attempt": 1,
+        "run_id": "42655077824"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -10748,16 +10769,7 @@
         "runtime_version": "v2",
         "version": "11.0.100-rc1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T16:28:23+00:00",
-        "expires_at": "2026-11-10T00:28:23+00:00",
-        "producer": {
-          "commit": "310cfaca256d784fb3e888f1c8cbb56f27369d5e",
-          "run_attempt": 1,
-          "run_id": "42655077824"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"dotnetsdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.1.818\"}": {
       "consecutive_failures": 0,
