@@ -4485,6 +4485,15 @@
         "runtime_version": "v2",
         "version": "27.0.1"
       },
+      "reservation": {
+        "claimed_at": "2026-11-09T20:44:38+00:00",
+        "expires_at": "2026-11-10T04:44:38+00:00",
+        "producer": {
+          "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+          "run_attempt": 1,
+          "run_id": "42695812900"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.352\"}": {
@@ -13438,6 +13447,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "27.0.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T20:44:38+00:00",
+        "expires_at": "2026-11-10T04:44:38+00:00",
+        "producer": {
+          "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+          "run_attempt": 1,
+          "run_id": "42695812900"
+        }
       },
       "status": "discovered"
     },
