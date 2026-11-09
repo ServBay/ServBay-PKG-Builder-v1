@@ -2944,7 +2944,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"meilisearch\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.56.1\"}": {
+      "artifact_expires_at": "2026-11-16T11:45:39Z",
+      "artifact_id": "13670596673",
+      "artifact_name": "pkg2-macos-arm64-package-meilisearch-1.56.1",
+      "artifact_zip_sha256": "2bb952bf5e881cd0ea68c29467c366d7648d94a71d931b98b9d40050f33ffc77",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
+        "run_attempt": 1,
+        "run_id": "42611269884"
+      },
+      "package_sha256": "8851c2438aef6afb1f4e290c2527b0b1ccf50fdd91f5ba3e4a5c6f4c6c275be1",
+      "producer": {
+        "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
+        "run_attempt": 1,
+        "run_id": "42611269884"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -2955,16 +2970,7 @@
         "runtime_version": "v2",
         "version": "1.56.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:43:34+00:00",
-        "expires_at": "2026-11-09T19:43:34+00:00",
-        "producer": {
-          "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
-          "run_attempt": 1,
-          "run_id": "42611269884"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-10-30T13:40:39Z",
@@ -11464,7 +11470,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"meilisearch\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.56.1\"}": {
+      "artifact_expires_at": "2026-11-16T11:46:24Z",
+      "artifact_id": "13670881218",
+      "artifact_name": "pkg2-macos-x86_64-package-meilisearch-1.56.1",
+      "artifact_zip_sha256": "4cfca04b5bd4a4f9a3c7bdb8ef4c13d09f49f96fd16035c956061f914a480df6",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
+        "run_attempt": 1,
+        "run_id": "42611269884"
+      },
+      "package_sha256": "25892cd003866519705cf9df62ee8baf998bd521b440724ce054d3c0cbb314db",
+      "producer": {
+        "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
+        "run_attempt": 1,
+        "run_id": "42611269884"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -11475,16 +11496,7 @@
         "runtime_version": "v2",
         "version": "1.56.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T11:43:34+00:00",
-        "expires_at": "2026-11-09T19:43:34+00:00",
-        "producer": {
-          "commit": "25ddbd05b53298f1a1fd64bd1e1d011f8ed93358",
-          "run_attempt": 1,
-          "run_id": "42611269884"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"memcached\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.6.45\"}": {
       "artifact_expires_at": "2026-10-30T13:41:36Z",
