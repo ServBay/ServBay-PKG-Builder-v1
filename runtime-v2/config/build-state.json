@@ -4474,7 +4474,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"27.0.1\"}": {
+      "artifact_expires_at": "2026-11-16T20:47:09Z",
+      "artifact_id": "13709187707",
+      "artifact_name": "pkg2-macos-arm64-package-openjdk-27.0.1",
+      "artifact_zip_sha256": "640fdce2ee10e12605573d5ed58acba5b6481a873e430671aae93cc60c801250",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+        "run_attempt": 1,
+        "run_id": "42695812900"
+      },
+      "package_sha256": "9d5b4651912e3f42f3fd5c2edfb8c411a847f13012e7cb15de65ea21d36593cb",
+      "producer": {
+        "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+        "run_attempt": 1,
+        "run_id": "42695812900"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -4485,16 +4500,7 @@
         "runtime_version": "v2",
         "version": "27.0.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T20:44:38+00:00",
-        "expires_at": "2026-11-10T04:44:38+00:00",
-        "producer": {
-          "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
-          "run_attempt": 1,
-          "run_id": "42695812900"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.352\"}": {
       "consecutive_failures": 0,
@@ -13437,7 +13443,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"27.0.1\"}": {
+      "artifact_expires_at": "2026-11-16T20:49:07Z",
+      "artifact_id": "13708948158",
+      "artifact_name": "pkg2-macos-x86_64-package-openjdk-27.0.1",
+      "artifact_zip_sha256": "6b294562d6048e544bb6ba166c228319d03216348eb066efb7199b4a492e374c",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+        "run_attempt": 1,
+        "run_id": "42695812900"
+      },
+      "package_sha256": "801226f121abf187d4f7922b8ccb3615d067f5dec210b58751ee2076781242e0",
+      "producer": {
+        "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
+        "run_attempt": 1,
+        "run_id": "42695812900"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -13448,16 +13469,7 @@
         "runtime_version": "v2",
         "version": "27.0.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T20:44:38+00:00",
-        "expires_at": "2026-11-10T04:44:38+00:00",
-        "producer": {
-          "commit": "556d946f5cf7490cce16bf28901d21769b959fc0",
-          "run_attempt": 1,
-          "run_id": "42695812900"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"openjdk\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.352\"}": {
       "consecutive_failures": 0,
