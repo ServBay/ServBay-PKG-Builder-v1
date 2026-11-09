@@ -7180,7 +7180,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
+      "artifact_expires_at": "2026-11-16T13:13:34Z",
+      "artifact_id": "13677441161",
+      "artifact_name": "pkg2-macos-arm64-package-rust-1.99.1-r1",
+      "artifact_zip_sha256": "903c69884afc252fd56bc590acfef63e44ce8109667c8097d045ea5a64390a65",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
+        "run_attempt": 1,
+        "run_id": "42622833862"
+      },
+      "package_sha256": "7cee51555e928ca7848e4223142789c3a5d9205578685a0620341202c7c2a87e",
+      "producer": {
+        "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
+        "run_attempt": 1,
+        "run_id": "42622833862"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -7191,16 +7206,7 @@
         "runtime_version": "v2",
         "version": "1.99.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T13:08:31+00:00",
-        "expires_at": "2026-11-09T21:08:31+00:00",
-        "producer": {
-          "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
-          "run_attempt": 1,
-          "run_id": "42622833862"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
@@ -15760,7 +15766,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
+      "artifact_expires_at": "2026-11-16T13:13:04Z",
+      "artifact_id": "13676174924",
+      "artifact_name": "pkg2-macos-x86_64-package-rust-1.99.1-r1",
+      "artifact_zip_sha256": "639cc68d03792bf004681d94559e80521e7857769c73fe42cfff5e24e0a81073",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
+        "run_attempt": 1,
+        "run_id": "42622833862"
+      },
+      "package_sha256": "d0b97996b9440d39c2b24ff32081bfbd87eadd305d2b08fe85b6ad4fce383315",
+      "producer": {
+        "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
+        "run_attempt": 1,
+        "run_id": "42622833862"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -15771,16 +15792,7 @@
         "runtime_version": "v2",
         "version": "1.99.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T13:08:31+00:00",
-        "expires_at": "2026-11-09T21:08:31+00:00",
-        "producer": {
-          "commit": "efb698825a98ab178eb1d84707df2b1937d5d777",
-          "run_attempt": 1,
-          "run_id": "42622833862"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":10,\"kind\":\"package\",\"name\":\"php\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.27\"}": {
       "consecutive_failures": 1,
