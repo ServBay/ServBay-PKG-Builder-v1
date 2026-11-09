@@ -3028,7 +3028,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.20.1\"}": {
+      "artifact_expires_at": "2026-11-16T09:54:04Z",
+      "artifact_id": "13663538102",
+      "artifact_name": "pkg2-macos-arm64-package-mongotools-100.20.1",
+      "artifact_zip_sha256": "b9a9e640ec6b6622eefa75cd8910828550fd09e8b10f1354cc2ed4444aa5f0af",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+        "run_attempt": 1,
+        "run_id": "42596614118"
+      },
+      "package_sha256": "ce071c9714b4ca077d1fdfddfcf9f2de5212a6056fa74aa78fe0b59e6c23d59f",
+      "producer": {
+        "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+        "run_attempt": 1,
+        "run_id": "42596614118"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -3039,16 +3054,7 @@
         "runtime_version": "v2",
         "version": "100.20.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T09:51:56+00:00",
-        "expires_at": "2026-11-09T17:51:56+00:00",
-        "producer": {
-          "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
-          "run_attempt": 1,
-          "run_id": "42596614118"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mono\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.14.1\"}": {
       "consecutive_failures": 0,
@@ -11345,7 +11351,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.20.1\"}": {
+      "artifact_expires_at": "2026-11-16T09:54:45Z",
+      "artifact_id": "13663832733",
+      "artifact_name": "pkg2-macos-x86_64-package-mongotools-100.20.1",
+      "artifact_zip_sha256": "1a2aafa27f2a16161078918dbd61a0307a0826a14f114d2ce35543aeaaf17e20",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+        "run_attempt": 1,
+        "run_id": "42596614118"
+      },
+      "package_sha256": "cff9c3bf8f3f19b6fc64b67a20b1b4ea5799c0a05cf831975add18f8e3ab80d6",
+      "producer": {
+        "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
+        "run_attempt": 1,
+        "run_id": "42596614118"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -11356,16 +11377,7 @@
         "runtime_version": "v2",
         "version": "100.20.1"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T09:51:56+00:00",
-        "expires_at": "2026-11-09T17:51:56+00:00",
-        "producer": {
-          "commit": "89891804a838d213fcbff9b6d618138b6a341b91",
-          "run_attempt": 1,
-          "run_id": "42596614118"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mono\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"6.14.1\"}": {
       "consecutive_failures": 0,
