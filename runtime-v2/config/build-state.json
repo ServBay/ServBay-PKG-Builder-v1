@@ -5412,7 +5412,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "artifact_expires_at": "2026-11-16T21:54:23Z",
+      "artifact_id": "13714066897",
+      "artifact_name": "pkg2-macos-arm64-package-redis-7.0.15",
+      "artifact_zip_sha256": "b4af06955d55f8e76fef26092ffbd6b990c82f1177e1019da44d2a32f67fbb49",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
+        "run_attempt": 1,
+        "run_id": "42706563091"
+      },
+      "package_sha256": "1ddebec9c8dbe69c5ed4f15f018dc9eb9099596791b48b9250ac12f74524c45d",
+      "producer": {
+        "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
+        "run_attempt": 1,
+        "run_id": "42706563091"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -5423,16 +5438,7 @@
         "runtime_version": "v2",
         "version": "7.0.15"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:52:24+00:00",
-        "expires_at": "2026-11-10T05:52:24+00:00",
-        "producer": {
-          "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
-          "run_attempt": 1,
-          "run_id": "42706563091"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.2.16\"}": {
       "consecutive_failures": 0,
@@ -14454,7 +14460,22 @@
       "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "artifact_expires_at": "2026-11-16T21:56:12Z",
+      "artifact_id": "13714261163",
+      "artifact_name": "pkg2-macos-x86_64-package-redis-7.0.15",
+      "artifact_zip_sha256": "5c6bb223fa5b6ee7a3d814685c4271a865ab36cd1b60a06d805b537cfb01c6e8",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
+        "run_attempt": 1,
+        "run_id": "42706563091"
+      },
+      "package_sha256": "3db912b2f33cfa469b8588b4bd0634b323f873ffe20d7b55475fe8a81292a74a",
+      "producer": {
+        "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
+        "run_attempt": 1,
+        "run_id": "42706563091"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -14465,16 +14486,7 @@
         "runtime_version": "v2",
         "version": "7.0.15"
       },
-      "reservation": {
-        "claimed_at": "2026-11-09T21:52:24+00:00",
-        "expires_at": "2026-11-10T05:52:24+00:00",
-        "producer": {
-          "commit": "e0abb30a8e869db9400ade12f1ab4de8bd56d2eb",
-          "run_attempt": 1,
-          "run_id": "42706563091"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.2.16\"}": {
       "consecutive_failures": 0,
