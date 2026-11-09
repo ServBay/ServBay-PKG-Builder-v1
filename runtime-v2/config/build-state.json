@@ -3172,6 +3172,29 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongosh",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.14.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T11:59:47+00:00",
+        "expires_at": "2026-11-09T19:59:47+00:00",
+        "producer": {
+          "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+          "run_attempt": 1,
+          "run_id": "42613329517"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongotools\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"100.19.1\"}": {
       "artifact_expires_at": "2026-10-30T17:33:18Z",
       "artifact_id": "12520385482",
@@ -11695,6 +11718,29 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "2.14.0"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"mongosh\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.14.1\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "prebuilt",
+        "kind": "package",
+        "name": "mongosh",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "2.14.1"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-09T11:59:47+00:00",
+        "expires_at": "2026-11-09T19:59:47+00:00",
+        "producer": {
+          "commit": "b30024a6b1ca6a3d391cafae6e5715603ff6c01d",
+          "run_attempt": 1,
+          "run_id": "42613329517"
+        }
       },
       "status": "discovered"
     },
