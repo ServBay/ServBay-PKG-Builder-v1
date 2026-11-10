@@ -5583,6 +5583,29 @@
       },
       "status": "discovered"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.2.11\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.2.11"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T06:01:17+00:00",
+        "expires_at": "2026-11-10T14:01:17+00:00",
+        "producer": {
+          "commit": "39b594724d45736b753a143b80a0dc061ca5594f",
+          "run_attempt": 1,
+          "run_id": "42765704963"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.4.2\"}": {
       "artifact_expires_at": "2026-10-30T14:24:02Z",
       "artifact_id": "12507024736",
@@ -14730,6 +14753,29 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.2.10"
+      },
+      "status": "discovered"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.2.11\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 0,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "8.2.11"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T06:01:17+00:00",
+        "expires_at": "2026-11-10T14:01:17+00:00",
+        "producer": {
+          "commit": "39b594724d45736b753a143b80a0dc061ca5594f",
+          "run_attempt": 1,
+          "run_id": "42765704963"
+        }
       },
       "status": "discovered"
     },
