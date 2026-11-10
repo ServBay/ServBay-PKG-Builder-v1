@@ -7551,6 +7551,29 @@
       },
       "status": "build-failed"
     },
+    "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "arm64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "7.0.15"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T04:46:06+00:00",
+        "expires_at": "2026-11-10T12:46:06+00:00",
+        "producer": {
+          "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+          "run_attempt": 1,
+          "run_id": "42757914042"
+        }
+      },
+      "status": "discovered"
+    },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-11-16T13:13:34Z",
       "artifact_id": "13677441161",
@@ -16537,6 +16560,29 @@
         "version": "3.15.1"
       },
       "status": "build-failed"
+    },
+    "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "consecutive_failures": 0,
+      "record": {
+        "arch": "x86_64",
+        "build_revision": 1,
+        "build_type": "source",
+        "kind": "package",
+        "name": "redis",
+        "os": "macos",
+        "runtime_version": "v2",
+        "version": "7.0.15"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T04:46:06+00:00",
+        "expires_at": "2026-11-10T12:46:06+00:00",
+        "producer": {
+          "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+          "run_attempt": 1,
+          "run_id": "42757914042"
+        }
+      },
+      "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-11-16T13:13:04Z",
