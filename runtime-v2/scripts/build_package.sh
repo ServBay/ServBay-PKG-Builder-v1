@@ -1168,6 +1168,15 @@ get_package_packing_info() {
             local version_major=$(echo "$packageVersion" | awk -F. '{print $1"."$2}')
             PACK_INFO[source_dir]="${SERVBAY_PACKAGE_FULL_PATH}"
             PACK_FILES=( "python/${version_major}" )
+            local easy_install="${SERVBAY_PACKAGE_FULL_PATH}/python/${version_major}/bin/easy_install-${version_major}"
+            local framework_easy_install="${SERVBAY_PACKAGE_FULL_PATH}/python/${version_major}/Python.framework/Versions/${version_major}/bin/easy_install-${version_major}"
+            if [[ -L "$easy_install" && ! -e "$easy_install" && ! -L "$framework_easy_install" ]]; then
+                local easy_install_target
+                easy_install_target=$(readlink "$easy_install") || return 1
+                if [[ "$easy_install_target" == "../Python.framework/Versions/${version_major}/bin/easy_install-${version_major}" || "$easy_install_target" == "$framework_easy_install" ]]; then
+                    PACK_INFO[exclude]="python/${version_major}/bin/easy_install-${version_major}"
+                fi
+            fi
             ;;
         "node")
             # Multi-version package
@@ -4435,6 +4444,21 @@ build_python() {
     mv "${prefix}/Python Launcher.app" "${prefix}/Python Launcher ${version_major}.app"
 
     # Clean up test suite and caches
+    # Keep links within this Python installation relocatable in the package.
+    python3 - "$prefix" <<'PY' || return 1
+import os, subprocess, sys
+prefix = os.path.abspath(sys.argv[1])
+for directory, directories, files in os.walk(prefix, followlinks=False):
+    for name in directories + files:
+        link = os.path.join(directory, name)
+        if not os.path.islink(link):
+            continue
+        target = os.readlink(link)
+        if target.startswith(prefix + os.sep) and os.path.commonpath((prefix, os.path.normpath(target))) == prefix:
+            # Preserve suffix components: a directory symlink followed by .. is significant.
+            relative_target = os.path.relpath(prefix, directory) + os.sep + target[len(prefix) + 1:]
+            subprocess.run(["ln", "-sfn", relative_target, link], check=True)
+PY
     log_message "INFO" "Cleaning up test suite and caches..."
     local py_lib="${prefix}/Python.framework/Versions/${version_major}/lib/python${version_major}"
     trash_path "${py_lib}/test"

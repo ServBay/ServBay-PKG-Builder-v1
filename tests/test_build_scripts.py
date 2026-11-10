@@ -260,6 +260,150 @@ patch() { print -r -- "real-patch $*" >> "$TRACE"; command /usr/bin/patch "$@"; 
                             self.assertEqual(cwd_before, {p.name: p.read_bytes() for p in cwd.iterdir()})
                             self.assertTrue(all(not p.is_symlink() for p in cwd.iterdir()))
 
+    def test_v2_python_archive_links_preserve_payload_and_framework_layout(self):
+        import os
+        import shutil
+        import stat
+        import sys
+        import tarfile
+
+        script = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        body = self._extract_shell_function(script, "build_python")
+        body = body[body.index("    # Clean up test suite and caches"):]
+        harness = ('log_message() { :; }\ntrash_path() { :; }\n'
+                   'build_python() { local prefix=$1; local version_major=$2;\n' + body + '}\n')
+        for name in ("get_package_packing_info", "core_pack_package"):
+            harness += name + "() {\n" + self._extract_shell_function(script, name) + "}\n"
+        harness += ('typeset -A PACK_INFO\ntypeset -a PACK_FILES\n'
+                    'SERVBAY_PACKAGE_FULL_PATH="$1"\nSERVBAY_BUILD_DIR="$2"\nGTAR_BIN="$3"\n'
+                    'get_package_packing_info python "$4.22" || exit $?\n'
+                    'print -r -- "exclude-before-normalization:${PACK_INFO[exclude]}"\n'
+                    'build_python "$1/python/$4" "$4" || exit $?\n'
+                    'get_package_packing_info python "$4.22" || exit $?\n'
+                    'core_pack_package python "$4.22"\n')
+        tar_tool = shutil.which("gtar") or shutil.which("tar")
+        self.assertIsNotNone(tar_tool)
+        for version in ("3.10", "2.7"):
+            for easy_install_case in ("missing", "present", "external", "cycle", "unknown", "target-cycle"):
+                for cwd_label in ("source", "shadow"):
+                    with self.subTest(version=version, easy_install=easy_install_case, cwd=cwd_label), tempfile.TemporaryDirectory() as tmp:
+                        root = Path(tmp)
+                        packages = root / "packages"
+                        base = packages / "python" / version
+                        framework = base / "Python.framework"
+                        installed = framework / "Versions" / version
+                        framework_bin = installed / "bin"
+                        framework_bin.mkdir(parents=True)
+                        (base / "bin").mkdir()
+                        targets = ["idle" + version, "python" + version + "-config", "python" + version,
+                                   "pydoc" + version, "2to3-" + version, "pip" + version]
+                        if easy_install_case == "present":
+                            targets.append("easy_install-" + version)
+                        for index, name in enumerate(targets):
+                            target = framework_bin / name
+                            target.write_bytes((name + " fixture\n").encode())
+                            target.chmod(0o755 if index % 2 else 0o644)
+                        (installed / "Python").write_bytes(b"framework binary fixture\n")
+                        app_target = installed / "Resources/Python.app/Contents/MacOS/Python"
+                        app_target.parent.mkdir(parents=True)
+                        app_target.write_bytes(b"app binary fixture\n")
+                        (installed / "include" / ("python" + version)).mkdir(parents=True)
+                        (installed / "Headers").symlink_to("include/python" + version)
+                        (framework / "Versions/Current").symlink_to(version)
+                        for name in ("Python", "Resources", "Headers"):
+                            (framework / name).symlink_to("Versions/Current/" + name)
+                        expected_links = {}
+                        for name in targets[:6] + ["easy_install-" + version]:
+                            link = base / "bin" / name
+                            link.symlink_to(framework_bin / name)
+                            expected_links[link] = "../Python.framework/Versions/" + version + "/bin/" + name
+                        easy_install = base / "bin" / ("easy_install-" + version)
+                        if easy_install_case in ("external", "cycle", "unknown"):
+                            easy_install.unlink()
+                            target = {"external": str(root / "outside-easy-install"),
+                                      "cycle": "easy_install-" + version,
+                                      "unknown": "../unknown-easy-install"}[easy_install_case]
+                            easy_install.symlink_to(target)
+                            expected_links[easy_install] = target
+                        elif easy_install_case == "target-cycle":
+                            (framework_bin / ("easy_install-" + version)).symlink_to("easy_install-" + version)
+                        idle_link = base / ("IDLE " + version + ".app/Contents/MacOS/Python")
+                        idle_link.parent.mkdir(parents=True)
+                        idle_link.symlink_to(app_target)
+                        expected_links[idle_link] = ("../../../Python.framework/Versions/" + version
+                                                     + "/Resources/Python.app/Contents/MacOS/Python")
+                        (base / "bin/relative").symlink_to("../Python.framework/Versions/" + version + "/bin/python" + version)
+                        (base / "bin/dangling").symlink_to("../missing")
+                        (base / "file").write_bytes(b"WRONG\n")
+                        (base / "nested/deep").mkdir(parents=True)
+                        (base / "nested/file").write_bytes(b"EXPECTED\n")
+                        (base / "alias").symlink_to("nested/deep", target_is_directory=True)
+                        semantic_link = base / "bin/path-semantics"
+                        semantic_link.symlink_to(base / "alias/../file")
+                        expected_links[semantic_link] = "../alias/../file"
+                        self.assertEqual(b"EXPECTED\n", semantic_link.read_bytes())
+                        (base / "bin/unconfirmed-prefix").symlink_to(str(base.parent) + "/./" + version + "/file")
+                        outside = root / "outside"
+                        outside.mkdir()
+                        (outside / "untouched").symlink_to(framework_bin / ("python" + version))
+                        (base / "external").symlink_to(outside, target_is_directory=True)
+                        (base / "bin/external").symlink_to(base.parent / (version + "-external/command"))
+                        (base / "bin/escaping").symlink_to(base / "../external-command")
+                        for link in base.rglob("*"):
+                            if link.is_symlink() and link not in expected_links:
+                                expected_links[link] = os.readlink(link)
+                        resolved = {}
+                        for link in expected_links:
+                            try:
+                                resolved[link] = link.resolve()
+                            except (OSError, RuntimeError):
+                                self.assertIn(easy_install_case, ("cycle", "target-cycle"))
+                        regular = {p.relative_to(packages).as_posix():
+                                   (p.read_bytes(), stat.S_IMODE(p.stat().st_mode))
+                                   for p in base.rglob("*") if p.is_file() and not p.is_symlink()}
+                        names = {base.relative_to(packages).as_posix()} | {
+                            p.relative_to(packages).as_posix() for p in base.rglob("*")}
+                        omitted = "python/" + version + "/bin/easy_install-" + version
+                        if easy_install_case == "missing":
+                            names.remove(omitted)
+                        cwd = root / cwd_label
+                        cwd.mkdir()
+                        (cwd / "sentinel").write_bytes(b"unrelated source bytes\n")
+                        env = dict(os.environ, PATH=str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""),
+                                   PYTHONDONTWRITEBYTECODE="1")
+                        for attempt in range(2):
+                            result = subprocess.run(["/bin/zsh", "-c", harness, "python-archive-fixture",
+                                                     str(packages), str(cwd), tar_tool, version],
+                                                    cwd=cwd, env=env, capture_output=True, text=True, timeout=30)
+                            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                            self.assertEqual("exclude-before-normalization:" + (omitted if easy_install_case == "missing" else "") + "\n",
+                                             result.stdout)
+                            self.assertEqual(b"EXPECTED\n", semantic_link.read_bytes())
+                            for link, target in expected_links.items():
+                                self.assertEqual(target, os.readlink(link), link.relative_to(base).as_posix())
+                                if link in resolved:
+                                    self.assertEqual(resolved[link], link.resolve(), link.relative_to(base).as_posix())
+                            self.assertTrue((base / "bin" / ("easy_install-" + version)).is_symlink())
+                            self.assertEqual(easy_install_case == "present", easy_install.exists())
+                            self.assertEqual(str(framework_bin / ("python" + version)), str((outside / "untouched").readlink()))
+                            self.assertEqual(b"unrelated source bytes\n", (cwd / "sentinel").read_bytes())
+                            package = cwd / "dist/packages/python" / ("python-" + version + ".22.tar.gz")
+                            with tarfile.open(package, "r:gz") as archive:
+                                members = {m.name.rstrip("/"): m for m in archive.getmembers()}
+                                self.assertEqual(names, set(members))
+                                for name, (payload, mode) in regular.items():
+                                    member = members[name]
+                                    self.assertTrue(member.isfile(), name)
+                                    self.assertEqual(mode, member.mode, name)
+                                    self.assertEqual(len(payload), member.size, name)
+                                    self.assertEqual(payload, archive.extractfile(member).read(), name)
+                                for link, target in expected_links.items():
+                                    name = link.relative_to(packages).as_posix()
+                                    if easy_install_case == "missing" and name == omitted:
+                                        continue
+                                    self.assertTrue(members[name].issym(), name)
+                                    self.assertEqual(target, members[name].linkname, name)
+
     def test_v2_pg_module_loader_suffix_sources_and_rejections(self):
         import shlex
         import sys
