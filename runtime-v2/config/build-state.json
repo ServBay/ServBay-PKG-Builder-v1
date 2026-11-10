@@ -5538,6 +5538,15 @@
         "runtime_version": "v2",
         "version": "8.0.6"
       },
+      "reservation": {
+        "claimed_at": "2026-11-10T05:42:09+00:00",
+        "expires_at": "2026-11-10T13:42:09+00:00",
+        "producer": {
+          "commit": "4d1bc037d68b23e730b4baa6201640a47387facc",
+          "run_attempt": 1,
+          "run_id": "42763750088"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.10.2\"}": {
@@ -14672,6 +14681,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "8.0.6"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T05:42:09+00:00",
+        "expires_at": "2026-11-10T13:42:09+00:00",
+        "producer": {
+          "commit": "4d1bc037d68b23e730b4baa6201640a47387facc",
+          "run_attempt": 1,
+          "run_id": "42763750088"
+        }
       },
       "status": "discovered"
     },
