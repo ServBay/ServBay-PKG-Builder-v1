@@ -178,6 +178,88 @@ patch() { print -r -- "real-patch $*" >> "$TRACE"; command /usr/bin/patch "$@"; 
                 self.assertEqual(["patch php8.5/" + old_patch + " p0"],
                                  [e for e in events if e.startswith("patch ")])
 
+    def test_v2_python_aliases_resolve_independently_of_cwd(self):
+        script = (ROOT / "runtime-v2/scripts/build_package.sh").read_text()
+        harness = 'log_message() { print -r -- "$*" >&2; }\n'
+        for name in ("_create_symlinks", "_create_python_symlinks2", "_create_python_symlinks3"):
+            harness += name + "() {\n" + self._extract_shell_function(script, name) + "}\n"
+        harness += ('SERVBAY_PACKAGE_FULL_PATH="$1"\n'
+                    '_create_python_symlinks$2 "$3" "$4"\n')
+        for major, version in (("3", "3.10"), ("2", "2.7")):
+            aliases = {
+                "2to3": "2to3", "idle" + major: "idle" + major, "idle": "idle",
+                "pip" + major: "pip" + major, "pip" + version: "pip" + version, "pip": "pip",
+                "pydoc" + major: "pydoc" + major, "pydoc": "pydoc",
+                "python" + major: "python" + major,
+                "python" + major + "-config": "python" + major + "-config",
+                "python-config": "python-config", "wheel" + major: "wheel" + major,
+                "wheel": "wheel", "wheel" + version: "wheel" + version,
+            }
+            resolved = {
+                "2to3": "2to3-" + version, "idle" + major: "idle" + version,
+                "idle": "idle" + version, "pip" + major: "pip" + version,
+                "pip" + version: "pip" + version, "pip": "pip" + version,
+                "pydoc" + major: "pydoc" + version, "pydoc": "pydoc" + version,
+                "python" + major: "python" + version,
+                "python" + major + "-config": "python" + version + "-config",
+                "python-config": "python" + version + "-config",
+                "wheel" + major: "wheel", "wheel": "wheel", "wheel" + version: "wheel",
+            }
+            optional = ("easy_install", "easy_install" + major, "easy_install-" + version,
+                        "pyvenv", "pyvenv" + major, "pythonw", "pythonw2", "smtpd.py", "smtpd2.py")
+            for cwd_label in ("source", "shadow", "bin"):
+                with self.subTest(version=version, cwd=cwd_label), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    base = root / "packages/python" / version
+                    framework_bin = base / "Python.framework/Versions" / version / "bin"
+                    framework_bin.mkdir(parents=True)
+                    bin_dir = base / "bin"
+                    bin_dir.mkdir()
+                    for name in set(resolved.values()):
+                        source = framework_bin / name
+                        source.write_text('#!/bin/sh\nprintf "Python fixture ' + version + '\\n"\n')
+                        source.chmod(0o755)
+                    versioned = bin_dir / ("python" + version)
+                    versioned.symlink_to(framework_bin / ("python" + version))
+                    versioned_link = versioned.readlink()
+                    preserved = bin_dir / "python"
+                    preserved.write_bytes(b"existing destination must survive\n")
+                    cwd = bin_dir if cwd_label == "bin" else root / cwd_label
+                    cwd.mkdir(exist_ok=True)
+                    if cwd_label == "shadow":
+                        for name in aliases:
+                            (cwd / name).write_bytes(b"unrelated CWD destination\n")
+                    cwd_before = {p.name: p.read_bytes() for p in cwd.iterdir()} if cwd != bin_dir else None
+                    for attempt in range(2):
+                        result = subprocess.run(
+                            ["/bin/zsh", "-c", harness, "python-alias-fixture",
+                             str(root / "packages"), major, version, version + ".22"],
+                            cwd=cwd, capture_output=True, text=True, timeout=30)
+                        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                        entry = bin_dir / ("python" + major)
+                        self.assertTrue(entry.is_file(), "missing outer Python entry: " + entry.name)
+                        for name, framework_name in aliases.items():
+                            link = bin_dir / name
+                            self.assertTrue(link.is_symlink(), name)
+                            self.assertEqual(Path("../Python.framework/Versions") / version / "bin" / framework_name,
+                                             link.readlink(), name)
+                            self.assertEqual((framework_bin / resolved[name]).resolve(), link.resolve(), name)
+                        invocation = subprocess.run([str(entry), "-V"], cwd=cwd, capture_output=True,
+                                                    text=True, timeout=30)
+                        self.assertEqual(0, invocation.returncode, invocation.stderr)
+                        self.assertEqual("Python fixture " + version + "\n", invocation.stdout)
+                        self.assertEqual(b"existing destination must survive\n", preserved.read_bytes())
+                        self.assertFalse(preserved.is_symlink())
+                        self.assertEqual(versioned_link, versioned.readlink())
+                        self.assertEqual(set(aliases) | {"python", "python" + version},
+                                         {p.name for p in bin_dir.iterdir()})
+                        for name in optional:
+                            self.assertFalse((bin_dir / name).is_symlink(), name)
+                            self.assertFalse((bin_dir / name).exists(), name)
+                        if cwd_before is not None:
+                            self.assertEqual(cwd_before, {p.name: p.read_bytes() for p in cwd.iterdir()})
+                            self.assertTrue(all(not p.is_symlink() for p in cwd.iterdir()))
+
     def test_v2_pg_module_loader_suffix_sources_and_rejections(self):
         import shlex
         import sys

@@ -1822,8 +1822,8 @@ _create_symlinks() {
     for link_info in "${bin_symlinks[@]}"; do
         local target_path=${link_info%%:*}
         local source_path=${link_info#*:}
-        if [[ -e "${source_path}" ]] && [[ ! -e "${target_path}" ]]; then
-            ln -sf "${source_path}" "${target_path}"
+        if [[ -e "${bin_dir}/${source_path}" ]] && [[ ! -e "${bin_dir}/${target_path}" ]]; then
+            ln -sf "${source_path}" "${bin_dir}/${target_path}"
         fi
     done
 }
