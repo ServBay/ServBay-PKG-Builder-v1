@@ -5172,7 +5172,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.22\"}": {
+      "artifact_expires_at": "2026-11-17T07:10:58Z",
+      "artifact_id": "13741989815",
+      "artifact_name": "pkg2-macos-arm64-package-python-3.10.22",
+      "artifact_zip_sha256": "5a80dbc8e4629c89a123448e734fdbdc2a77612bc9571f418be8e2724d219be7",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+        "run_attempt": 1,
+        "run_id": "42772732466"
+      },
+      "package_sha256": "4e93972299fe0f8b3788b4b1ff6c510ee6d779ffbfdbeb57d8d7a486e264d97d",
+      "producer": {
+        "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+        "run_attempt": 1,
+        "run_id": "42772732466"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -5183,16 +5198,7 @@
         "runtime_version": "v2",
         "version": "3.10.22"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T07:04:36+00:00",
-        "expires_at": "2026-11-10T15:04:36+00:00",
-        "producer": {
-          "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
-          "run_attempt": 1,
-          "run_id": "42772732466"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.11.17\"}": {
       "consecutive_failures": 0,
@@ -14486,7 +14492,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.10.22\"}": {
+      "artifact_expires_at": "2026-11-17T07:16:51Z",
+      "artifact_id": "13743605579",
+      "artifact_name": "pkg2-macos-x86_64-package-python-3.10.22",
+      "artifact_zip_sha256": "229c5899113b7f533b7f06708908fb43cf5a5e564c14899b66fff8d14b6a975d",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+        "run_attempt": 1,
+        "run_id": "42772732466"
+      },
+      "package_sha256": "a18ae631d6039d43fe66ca1fdcbea787651b3940362d498673496f7cfe768751",
+      "producer": {
+        "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+        "run_attempt": 1,
+        "run_id": "42772732466"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -14497,16 +14518,7 @@
         "runtime_version": "v2",
         "version": "3.10.22"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T07:04:36+00:00",
-        "expires_at": "2026-11-10T15:04:36+00:00",
-        "producer": {
-          "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
-          "run_attempt": 1,
-          "run_id": "42772732466"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.11.17\"}": {
       "consecutive_failures": 0,
