@@ -7552,7 +7552,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "artifact_expires_at": "2026-11-17T04:48:55Z",
+      "artifact_id": "13736262337",
+      "artifact_name": "pkg2-macos-arm64-package-redis-7.0.15-r1",
+      "artifact_zip_sha256": "7ecaf1713918029a5b28a2486669ebd64cff945f1986a55bb8e272ef3a7fcf8b",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+        "run_attempt": 1,
+        "run_id": "42757914042"
+      },
+      "package_sha256": "e3c87a84df551992f92674b577ca36d26f477b30bda28e36083adbed7887a2f5",
+      "producer": {
+        "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+        "run_attempt": 1,
+        "run_id": "42757914042"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 1,
@@ -7563,16 +7578,7 @@
         "runtime_version": "v2",
         "version": "7.0.15"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T04:46:06+00:00",
-        "expires_at": "2026-11-10T12:46:06+00:00",
-        "producer": {
-          "commit": "3248715d47d17461f698014739ba54aefd324ac3",
-          "run_attempt": 1,
-          "run_id": "42757914042"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-11-16T13:13:34Z",
@@ -16562,7 +16568,22 @@
       "status": "build-failed"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"7.0.15\"}": {
+      "artifact_expires_at": "2026-11-17T04:51:32Z",
+      "artifact_id": "13736318101",
+      "artifact_name": "pkg2-macos-x86_64-package-redis-7.0.15-r1",
+      "artifact_zip_sha256": "f9b0e6684173630e19065e5a429e00259a5f641f1a886143a99b6c0ec53417c9",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+        "run_attempt": 1,
+        "run_id": "42757914042"
+      },
+      "package_sha256": "bf393259fe67863eeaeb56c20b35e5fa144ab161ebcbbf356a3faed80671cfd8",
+      "producer": {
+        "commit": "3248715d47d17461f698014739ba54aefd324ac3",
+        "run_attempt": 1,
+        "run_id": "42757914042"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 1,
@@ -16573,16 +16594,7 @@
         "runtime_version": "v2",
         "version": "7.0.15"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T04:46:06+00:00",
-        "expires_at": "2026-11-10T12:46:06+00:00",
-        "producer": {
-          "commit": "3248715d47d17461f698014739ba54aefd324ac3",
-          "run_attempt": 1,
-          "run_id": "42757914042"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":1,\"kind\":\"package\",\"name\":\"rust\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"1.99.1\"}": {
       "artifact_expires_at": "2026-11-16T13:13:04Z",
