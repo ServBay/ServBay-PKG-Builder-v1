@@ -5742,7 +5742,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.8.4\"}": {
+      "artifact_expires_at": "2026-11-17T06:40:03Z",
+      "artifact_id": "13741361639",
+      "artifact_name": "pkg2-macos-arm64-package-redis-8.8.4",
+      "artifact_zip_sha256": "b8146df01d7a3ebc7965c181497d2f7298be3a2ecb49400a55f66bcfbbe5bce9",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
+        "run_attempt": 1,
+        "run_id": "42769710309"
+      },
+      "package_sha256": "d3a350ae664e6aa1eb65a3283724f598b5d30520b77a6de60449ac153a3729a9",
+      "producer": {
+        "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
+        "run_attempt": 1,
+        "run_id": "42769710309"
+      },
       "record": {
         "arch": "arm64",
         "build_revision": 0,
@@ -5753,16 +5768,7 @@
         "runtime_version": "v2",
         "version": "8.8.4"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T06:37:13+00:00",
-        "expires_at": "2026-11-10T14:37:13+00:00",
-        "producer": {
-          "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
-          "run_attempt": 1,
-          "run_id": "42769710309"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ruby\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.10\"}": {
       "consecutive_failures": 0,
@@ -15002,7 +15008,22 @@
       "status": "discovered"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"redis\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"8.8.4\"}": {
+      "artifact_expires_at": "2026-11-17T06:41:04Z",
+      "artifact_id": "13741257349",
+      "artifact_name": "pkg2-macos-x86_64-package-redis-8.8.4",
+      "artifact_zip_sha256": "970eec9999ef85d37d8ae76b8e402171b975cb59c4323fc4e3a3157ae605d8ed",
       "consecutive_failures": 0,
+      "last_collected_producer": {
+        "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
+        "run_attempt": 1,
+        "run_id": "42769710309"
+      },
+      "package_sha256": "987bb2966292d6591a52e9ac2fda60920d726f46cc9aab0954ac3765ce0c1f42",
+      "producer": {
+        "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
+        "run_attempt": 1,
+        "run_id": "42769710309"
+      },
       "record": {
         "arch": "x86_64",
         "build_revision": 0,
@@ -15013,16 +15034,7 @@
         "runtime_version": "v2",
         "version": "8.8.4"
       },
-      "reservation": {
-        "claimed_at": "2026-11-10T06:37:13+00:00",
-        "expires_at": "2026-11-10T14:37:13+00:00",
-        "producer": {
-          "commit": "720e47ef673f8a21b01016a32d89bf965b7adcde",
-          "run_attempt": 1,
-          "run_id": "42769710309"
-        }
-      },
-      "status": "discovered"
+      "status": "build-ready"
     },
     "{\"arch\":\"x86_64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"ruby\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"2.4.10\"}": {
       "consecutive_failures": 0,
