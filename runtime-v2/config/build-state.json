@@ -5183,6 +5183,15 @@
         "runtime_version": "v2",
         "version": "3.10.22"
       },
+      "reservation": {
+        "claimed_at": "2026-11-10T07:04:36+00:00",
+        "expires_at": "2026-11-10T15:04:36+00:00",
+        "producer": {
+          "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+          "run_attempt": 1,
+          "run_id": "42772732466"
+        }
+      },
       "status": "discovered"
     },
     "{\"arch\":\"arm64\",\"build_revision\":0,\"kind\":\"package\",\"name\":\"python\",\"os\":\"macos\",\"runtime_version\":\"v2\",\"version\":\"3.11.17\"}": {
@@ -14487,6 +14496,15 @@
         "os": "macos",
         "runtime_version": "v2",
         "version": "3.10.22"
+      },
+      "reservation": {
+        "claimed_at": "2026-11-10T07:04:36+00:00",
+        "expires_at": "2026-11-10T15:04:36+00:00",
+        "producer": {
+          "commit": "f9e580d2b29692fe7a51a0dc98b13377eddf9c81",
+          "run_attempt": 1,
+          "run_id": "42772732466"
+        }
       },
       "status": "discovered"
     },
