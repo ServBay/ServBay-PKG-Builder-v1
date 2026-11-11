@@ -14,7 +14,7 @@
 # php	8.3.36	php-8.3.36-windows-x64.zip
 # php	8.4.27	php-8.4.27-windows-x64.zip
 # php	8.5.12	php-8.5.12-windows-x64.zip
-php	8.6.0RC6	php-8.6.0RC6-windows-x64.zip
+php	8.6.0RC7	php-8.6.0RC7-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -25,11 +25,11 @@ php	8.6.0RC6	php-8.6.0RC6-windows-x64.zip
 # node	19.9.0
 # node	20.20.2
 # node	21.7.3
-# node	22.23.4
+node	22.23.5
 # node	23.11.1
-# node	24.22.2
+node	24.22.3
 # node	25.9.0
-# node	26.13.0
+node	26.13.1
 # python	2.7.18
 # python	3.5.4
 # python	3.6.8
@@ -57,8 +57,8 @@ php	8.6.0RC6	php-8.6.0RC6-windows-x64.zip
 # go	1.23.12
 # go	1.24.13
 # go	1.25.14
-go	1.26.11
-go	1.27.4
+# go	1.26.11
+# go	1.27.4
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
 # openjdk	8.0.512	zulu8.98.0.107-ca-jdk8.0.512-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
@@ -144,10 +144,10 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 postgresql	19.beta2
 # nginx	1.31.8
 # redis	7.4.11
-composer	2.2.32
-composer	2.11.2
+# composer	2.2.32
+# composer	2.11.2
 # adminer	6.3.0
-git	2.56.1
+# git	2.56.1
 # openssl	3.6.1
 # phpmyadmin	5.2.3
 # ollama	0.40.16
@@ -160,18 +160,18 @@ disk-cleaner	1.0.0
 # simple-acme	2.4.1
 # cloudflared	2026.10.7
 # frp	0.72.0
-pinggy	0.6.5
+pinggy	0.6.6
 # ngrok	3.39.13	VUnfuMhAnU
 # bun	1.4.4
 # deno	2.9.8
-# apache	2.4.70
+apache	2.4.71
 # caddy	2.11.9
-mongodb	4.4.32
-mongodb	5.0.35
-mongodb	6.0.30
-mongodb	7.0.48
-mongodb	8.0.38
+# mongodb	4.4.32
+# mongodb	5.0.35
+# mongodb	6.0.30
+# mongodb	7.0.48
+# mongodb	8.0.38
 # mongodb	8.2.12
-mongodb	8.3.17
-# mongosh	2.14.1
+# mongodb	8.3.17
+mongosh	2.14.2
 # mongotools	100.20.1
