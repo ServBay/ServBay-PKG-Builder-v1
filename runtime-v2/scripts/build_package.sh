@@ -3807,15 +3807,27 @@ build_git() {
         return 1
     fi
 
+    # Use the macOS system libiconv so git can open UTF-8-MAC for
+    # core.precomposeunicode. The bundled GNU libiconv does not implement it.
+    local sdk_path="${SDK_PATH:-$(xcrun --sdk macosx --show-sdk-path)}"
+    local iconv_prefix="${SERVBAY_BUILD_DIR}/git-iconv-system"
+    mkdir -p "${iconv_prefix}/include" "${iconv_prefix}/lib"
+    ln -sfn "${sdk_path}/usr/include/iconv.h" "${iconv_prefix}/include/iconv.h"
+    ln -sfn "${sdk_path}/usr/lib/libiconv.2.tbd" "${iconv_prefix}/lib/libiconv.tbd"
+    local git_cppflags="-I${iconv_prefix}/include ${CPPFLAGS:-}"
+    local git_cflags="-I${iconv_prefix}/include ${CFLAGS}"
+    local git_ldflags="-L${iconv_prefix}/lib ${LDFLAGS}"
+
     log_message "INFO" "Configuring Git ${version}..."
     make configure
     ./configure \
         --prefix="${prefix}" \
         --with-openssl="${SERVBAY_COMMON_PATH}/openssl/${OPENSSL_VERSION}" \
         --with-libpcre2 \
-        --with-iconv="${SERVBAY_COMMON_PATH}" \
-        CFLAGS="${CFLAGS}" \
-        LDFLAGS="${LDFLAGS}"
+        --with-iconv="${iconv_prefix}" \
+        CPPFLAGS="${git_cppflags}" \
+        CFLAGS="${git_cflags}" \
+        LDFLAGS="${git_ldflags}"
     
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Git 'configure' failed."
@@ -3824,7 +3836,10 @@ build_git() {
     fi
 
     log_message "INFO" "Compiling Git ${version}..."
-    make -j${CPU_NUMBER} NO_RUST=1 CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}"
+    make -j${CPU_NUMBER} NO_RUST=1 \
+        CPPFLAGS="${git_cppflags}" \
+        CFLAGS="${git_cflags}" \
+        LDFLAGS="${git_ldflags}"
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Git 'make' failed."
         cd "$SERVBAY_BUILD_DIR"
@@ -3835,6 +3850,12 @@ build_git() {
     make install NO_RUST=1
     if [[ $? -ne 0 ]]; then
         log_message "ERROR" "Git 'make install NO_RUST=1' failed."
+        cd "$SERVBAY_BUILD_DIR"
+        return 1
+    fi
+
+    if ! otool -L "${prefix}/bin/git" | grep -q "/usr/lib/libiconv.2.dylib"; then
+        log_message "ERROR" "Git is not linked against the macOS system libiconv."
         cd "$SERVBAY_BUILD_DIR"
         return 1
     fi
