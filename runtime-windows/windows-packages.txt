@@ -14,7 +14,7 @@
 # php	8.3.36	php-8.3.36-windows-x64.zip
 # php	8.4.27	php-8.4.27-windows-x64.zip
 # php	8.5.12	php-8.5.12-windows-x64.zip
-php	8.6.0RC7	php-8.6.0RC7-windows-x64.zip
+# php	8.6.0RC7	php-8.6.0RC7-windows-x64.zip
 # node	12.22.12
 # node	13.14.0
 # node	14.21.3
@@ -25,11 +25,11 @@ php	8.6.0RC7	php-8.6.0RC7-windows-x64.zip
 # node	19.9.0
 # node	20.20.2
 # node	21.7.3
-node	22.23.5
+# node	22.23.5
 # node	23.11.1
-node	24.22.3
+# node	24.22.3
 # node	25.9.0
-node	26.13.1
+# node	26.13.1
 # python	2.7.18
 # python	3.5.4
 # python	3.6.8
@@ -91,7 +91,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	3.3.13
 # ruby	3.4.12
 # ruby	4.0.9
-# rust	1.99.1
+rust	1.100.0
 # mysql	5.1.73
 # mysql	5.5.62
 # mysql	5.6.51
@@ -136,11 +136,11 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # postgresql	11.22	postgresql-11.22-1-windows-x64-binaries.zip
 # postgresql	12.22	postgresql-12.22-1-windows-x64-binaries.zip
 # postgresql	13.23	postgresql-13.23-1-windows-x64-binaries.zip
-# postgresql	14.24	postgresql-14.24-1-windows-x64-binaries.zip
-# postgresql	15.19	postgresql-15.19-1-windows-x64-binaries.zip
-# postgresql	16.15	postgresql-16.15-1-windows-x64-binaries.zip
-# postgresql	17.11	postgresql-17.11-1-windows-x64-binaries.zip
-# postgresql	18.6	postgresql-18.6-1-windows-x64-binaries.zip
+postgresql	14.25	postgresql-14.25-1-windows-x64-binaries.zip
+postgresql	15.20	postgresql-15.20-1-windows-x64-binaries.zip
+postgresql	16.16	postgresql-16.16-1-windows-x64-binaries.zip
+postgresql	17.12	postgresql-17.12-1-windows-x64-binaries.zip
+postgresql	18.7	postgresql-18.7-1-windows-x64-binaries.zip
 postgresql	19.beta2
 # nginx	1.31.8
 # redis	7.4.11
@@ -158,13 +158,13 @@ disk-cleaner	1.0.0
 # minio	2025.10.15
 # meilisearch	1.56.2
 # simple-acme	2.4.1
-# cloudflared	2026.10.7
+cloudflared	2026.11.0
 # frp	0.72.0
-pinggy	0.6.6
+pinggy	0.6.7
 # ngrok	3.39.13	VUnfuMhAnU
 # bun	1.4.4
 # deno	2.9.8
-apache	2.4.71
+# apache	2.4.71
 # caddy	2.11.9
 # mongodb	4.4.32
 # mongodb	5.0.35
@@ -173,5 +173,5 @@ apache	2.4.71
 # mongodb	8.0.38
 # mongodb	8.2.12
 # mongodb	8.3.17
-mongosh	2.14.2
+# mongosh	2.14.2
 # mongotools	100.20.1
