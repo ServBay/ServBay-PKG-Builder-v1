@@ -60,26 +60,26 @@
 # go	1.26.11
 # go	1.27.4
 # openjdk	7.0.352	zulu7.56.0.11-ca-jdk7.0.352-win_x64.zip
-# openjdk	8.0.512	zulu8.98.0.107-ca-jdk8.0.512-win_x64.zip
+openjdk	8.0.514	zulu8.98.0.201-ca-jdk8.0.514-win_x64.zip
 # openjdk	9.0.7	zulu9.0.7.1-ca-jdk9.0.7-win_x64.zip
 # openjdk	10.0.2	zulu10.3+5-jdk10.0.2-win_x64.zip
-# openjdk	11.0.33	zulu11.92.109-ca-jdk11.0.33-win_x64.zip
+openjdk	11.0.33.1	zulu11.92.201-ca-jdk11.0.33.1-win_x64.zip
 # openjdk	12.0.2	zulu12.3.11-ca-jdk12.0.2-win_x64.zip
 # openjdk	13.0.14	zulu13.54.17-ca-jdk13.0.14-win_x64.zip
 # openjdk	14.0.2	zulu14.29.23-ca-jdk14.0.2-win_x64.zip
 # openjdk	15.0.10	zulu15.46.17-ca-jdk15.0.10-win_x64.zip
 # openjdk	16.0.2	zulu16.32.15-ca-jdk16.0.2-win_x64.zip
-# openjdk	17.0.21.0.3	zulu17.70.113-ca-jdk17.0.21.0.3-win_x64.zip
+openjdk	17.0.21.1	zulu17.70.201-ca-jdk17.0.21.1-win_x64.zip
 # openjdk	18.0.2.1	zulu18.32.13-ca-jdk18.0.2.1-win_x64.zip
 # openjdk	19.0.2	zulu19.32.13-ca-jdk19.0.2-win_x64.zip
 # openjdk	20.0.2	zulu20.32.11-ca-jdk20.0.2-win_x64.zip
-# openjdk	21.0.13.0.3	zulu21.54.109-ca-jdk21.0.13.0.3-win_x64.zip
+openjdk	21.0.13.1	zulu21.54.201-ca-jdk21.0.13.1-win_x64.zip
 # openjdk	22.0.2	zulu22.32.15-ca-jdk22.0.2-win_x64.zip
 # openjdk	23.0.2	zulu23.32.11-ca-jdk23.0.2-win_x64.zip
 # openjdk	24.0.2	zulu24.32.13-ca-jdk24.0.2-win_x64.zip
-# openjdk	25.0.5.0.3	zulu25.38.109-ca-jdk25.0.5.0.3-win_x64.zip
+openjdk	25.0.5.1	zulu25.38.201-ca-jdk25.0.5.1-win_x64.zip
 # openjdk	26.0.2.1	zulu26.32.203-ca-jdk26.0.2.1-win_x64.zip
-# openjdk	27.0.1.0.3	zulu27.30.109-ca-jdk27.0.1.0.3-win_x64.zip
+openjdk	27.0.1.1	zulu27.30.201-ca-jdk27.0.1.1-win_x64.zip
 maven	3.9.15	apache-maven-3.9.15-bin.zip
 # ruby	2.4.10
 # ruby	2.5.9
@@ -152,15 +152,15 @@ postgresql	19.beta2
 # phpmyadmin	5.2.3
 # ollama	0.40.16
 # memcached	1.6.45
-# mailpit	1.33.1
+mailpit	1.34.0
 ai-gateway	1.0.0
 disk-cleaner	1.0.0
 # minio	2025.10.15
-meilisearch	1.57.0
+# meilisearch	1.57.0
 # simple-acme	2.4.1
-# cloudflared	2026.11.0
+cloudflared	2026.11.1
 # frp	0.72.0
-# pinggy	0.6.7
+pinggy	0.6.9
 # ngrok	3.39.13	VUnfuMhAnU
 # bun	1.4.4
 # deno	2.9.8
