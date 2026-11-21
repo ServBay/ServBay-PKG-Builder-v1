@@ -131,7 +131,7 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # mariadb	12.2.2
 # mariadb	12.3.4
 # mariadb	13.0.2
-# mariadb	13.1.1
+mariadb	13.1.2
 # postgresql	10.23	postgresql-10.23-1-windows-x64-binaries.zip
 # postgresql	11.22	postgresql-11.22-1-windows-x64-binaries.zip
 # postgresql	12.22	postgresql-12.22-1-windows-x64-binaries.zip
@@ -146,11 +146,11 @@ maven	3.9.15	apache-maven-3.9.15-bin.zip
 # redis	7.4.11
 # composer	2.2.32
 # composer	2.11.2
-adminer	6.3.1
+# adminer	6.3.1
 # git	2.56.1
 # openssl	3.6.1
 # phpmyadmin	5.2.3
-# ollama	0.40.16
+ollama	0.40.17
 # memcached	1.6.45
 # mailpit	1.34.0
 ai-gateway	1.0.0
